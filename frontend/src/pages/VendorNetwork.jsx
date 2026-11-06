@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react"
 import { getVendorNetwork } from "../services/api"
 import { formatMoney } from "../utils/format"
+import VendorIntelPanel from "../components/VendorIntelPanel"
 
 /* ═══════════════════════════════════════════════════════════════════════
    VENDOR COLLUSION & NETWORK MAP — SIH 26102 (/vendors)
@@ -12,9 +13,9 @@ import { formatMoney } from "../utils/format"
    ═══════════════════════════════════════════════════════════════════ */
 
 function riskColor(score) {
-  if (score >= 80) return "#dc2626"
-  if (score >= 50) return "#d97706"
-  return "#16a34a"
+  if (score >= 80) return "#e14b4b"
+  if (score >= 50) return "#f59e0b"
+  return "#269b71"
 }
 
 function severityBadge(score) {
@@ -63,7 +64,7 @@ function ClusterGraph({ clusters, onSelect }) {
                       </g>
                     )
                   })}
-                  <circle cx={HUB.x} cy={HUB.y} r="26" fill="#1e3a8a" />
+                  <circle cx={HUB.x} cy={HUB.y} r="26" fill="#37455a" />
                   <text x={HUB.x} y={HUB.y - 2} textAnchor="middle" fill="white" fontSize="8.5" fontWeight="700">SHARED</text>
                   <text x={HUB.x} y={HUB.y + 8} textAnchor="middle" fill="white" fontSize="8.5" fontWeight="700">OFFICE</text>
                   <text x={HUB.x} y={HUB.y + 42} textAnchor="middle" className="fill-gray-500" fontSize="10">
@@ -103,6 +104,9 @@ function ClusterGraph({ clusters, onSelect }) {
 export default function VendorNetwork() {
   const [data, setData] = useState(null)
   const [error, setError] = useState(null)
+  // Vendor opened from the risk table — the shared intelligence panel is
+  // reused here so both pages show identical analysis.
+  const [openVendor, setOpenVendor] = useState(null)
 
   useEffect(() => {
     let alive = true
@@ -194,10 +198,15 @@ export default function VendorNetwork() {
                 </thead>
                 <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                   {data.vendors.map((v) => (
-                    <tr key={v.vendor_name} className="transition hover:bg-gray-50 dark:hover:bg-gray-700/40">
+                    <tr
+                      key={v.vendor_name}
+                      onClick={() => setOpenVendor({ vendorKey: v.vendor_key, vendorName: v.vendor_name })}
+                      className="cursor-pointer transition hover:bg-gray-50 dark:hover:bg-gray-700/40"
+                    >
                       <td className="max-w-[16rem] px-4 py-3">
                         <p className="truncate font-semibold text-gray-900 dark:text-white" title={v.vendor_name}>{v.vendor_name}</p>
                         {v.raw_names.length > 1 && <p className="truncate text-xs text-gray-400" title={v.raw_names.join(", ")}>a.k.a. {v.raw_names.slice(1).join(", ")}</p>}
+                        <p className="mt-0.5 text-[0.625rem] text-blue-600 dark:text-blue-400">Open performance &amp; risk analysis →</p>
                       </td>
                       <td className="px-4 py-3 text-right text-gray-700 dark:text-gray-300">{v.active_contracts}</td>
                       <td className="px-4 py-3 text-right font-medium text-gray-800 dark:text-gray-200">{formatMoney(v.total_value)}</td>
@@ -224,6 +233,14 @@ export default function VendorNetwork() {
             <strong>Method &amp; limits:</strong> {data.method} Flags are investigative leads for auditors — they are not proof of wrongdoing.
           </p>
         </>
+      )}
+
+      {openVendor && (
+        <VendorIntelPanel
+          vendorKey={openVendor.vendorKey}
+          vendorName={openVendor.vendorName}
+          onClose={() => setOpenVendor(null)}
+        />
       )}
     </div>
     </div>

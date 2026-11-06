@@ -138,6 +138,30 @@ try:
         _conn.execute(_sql_text(
             "CREATE INDEX IF NOT EXISTS idx_expenditures_vendor ON expenditures (vendor)"
         ))
+        # Expression indexes for the normalized vendor/work keys used by the
+        # vendor-intelligence aggregations. Without them the work-key joins
+        # against projects / recommended_works / completed_works degrade to
+        # full scans with a function call per row (measured: 78s → 0.01s).
+        _conn.execute(_sql_text(
+            "CREATE INDEX IF NOT EXISTS idx_expenditures_vendor_norm "
+            "ON expenditures (normkey(vendor))"
+        ))
+        _conn.execute(_sql_text(
+            "CREATE INDEX IF NOT EXISTS idx_expenditures_vendor_date "
+            "ON expenditures (normkey(vendor), expenditure_date)"
+        ))
+        _conn.execute(_sql_text(
+            "CREATE INDEX IF NOT EXISTS idx_projects_workkey "
+            "ON projects (normkey(project_name), normkey(constituency), normkey(state))"
+        ))
+        _conn.execute(_sql_text(
+            "CREATE INDEX IF NOT EXISTS idx_recommended_workkey "
+            "ON recommended_works (normkey(work_description), normkey(constituency), normkey(state))"
+        ))
+        _conn.execute(_sql_text(
+            "CREATE INDEX IF NOT EXISTS idx_completed_workkey "
+            "ON completed_works (normkey(work_description), normkey(constituency), normkey(state))"
+        ))
 except Exception:
     pass  # index is an optimization, never a startup blocker
 
@@ -459,6 +483,13 @@ app.include_router(admin_data_router)
 
 # Universal MPLADS AI Assistant (role-aware Q&A over live data + knowledge base)
 app.include_router(assistant_router)
+
+# Vendor performance & audit intelligence (per-vendor performance, behaviour,
+# risk explanation, relationship network, comparison, grounded analyst).
+# Included before the legacy /vendor-intelligence/{vendor_key} route so the
+# fixed sub-paths (/compare, /behaviour-scan) are matched first.
+from vendor_intel import router as vendor_intel_router
+app.include_router(vendor_intel_router)
 
 # =========================================================
 # CORS CONFIGURATION (production-safe)

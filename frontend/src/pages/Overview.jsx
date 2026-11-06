@@ -199,14 +199,14 @@ const Overview = memo(function Overview({
   }, [fy, house])
 
   const pageClasses = darkMode
-    ? "bg-[#0a0a0c] text-[#f3f4f6]"
-    : "bg-[#f8fafc] text-[#151c27]"
+    ? "bg-[#171b20] text-[#f1f3f5]"
+    : "bg-[#f4f5f6] text-[#30343A]"
 
   const cardClasses = darkMode
-    ? "bg-[#17181c] border-[#2a2a2f]"
-    : "bg-white border-[#d9dee8]"
+    ? "bg-[#222831] border-[#2c3540]"
+    : "bg-white border-[#dde1e5]"
 
-  const mutedText = darkMode ? "text-[#9ca3af]" : "text-[#64748b]"
+  const mutedText = darkMode ? "text-[#aab3bd]" : "text-[#69717c]"
 
   const topStates = stateData.slice(0, 6)
   const maxProjectsInState = topStates.length > 0
@@ -309,7 +309,7 @@ const Overview = memo(function Overview({
 
       {/* AI NARRATIVE INSIGHTS BANNER */}
       {narratives.length > 0 && (
-        <div className="mb-7 rounded-xl border border-blue-200 bg-gradient-to-r from-blue-50 via-white to-blue-50/50 p-5 shadow-sm dark:border-blue-900/60 dark:from-[#191a1f] dark:via-[#17181c] dark:to-[#141418]">
+        <div className="mb-7 rounded-xl border border-blue-200 bg-gradient-to-r from-blue-50 via-white to-blue-50/50 p-5 shadow-sm dark:border-blue-900/60 dark:from-[#222831] dark:via-[#222831] dark:to-[#1c2127]">
           <div className="mb-3 flex items-center gap-2">
             <span className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-600 text-xs text-white">✨</span>
             <h3 className="text-xs font-bold uppercase tracking-wider text-blue-950 dark:text-blue-200">
@@ -320,7 +320,7 @@ const Overview = memo(function Overview({
             {narratives.map((item, idx) => (
               <div
                 key={idx}
-                className="rounded-lg border border-blue-100 bg-white/80 p-3 shadow-2xs dark:border-gray-700/60 dark:bg-[#0a0a0c]/70"
+                className="rounded-lg border border-blue-100 bg-white/80 p-3 shadow-2xs dark:border-gray-700/60 dark:bg-[#171b20]/70"
               >
                 <div className="flex items-center gap-2">
                   <span className="text-sm">

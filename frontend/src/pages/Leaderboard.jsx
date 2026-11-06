@@ -13,7 +13,7 @@ function computeScore(s) {
   return Math.round(Math.min(Math.max(raw, 0), 100))
 }
 
-const MEDALS = ["#FFD700", "#C0C0C0", "#CD7F32"]
+const MEDALS = ["#8493A5", "#A5B2C1", "#CBD2D9"]
 
 export default function Leaderboard({ darkMode }) {
   const [states, setStates] = useState([])
@@ -36,15 +36,15 @@ export default function Leaderboard({ darkMode }) {
     return () => { active = false }
   }, [])
 
-  const pageBg = darkMode ? "text-[#f3f4f6]" : "text-[#151c27]"
-  const cardBg = darkMode ? "bg-[#17181c] border-[#2a2a2f]" : "bg-white border-[#d9dee8]"
-  const mutedText = darkMode ? "text-[#9ca3af]" : "text-[#64748b]"
+  const pageBg = darkMode ? "text-[#f1f3f5]" : "text-[#30343A]"
+  const cardBg = darkMode ? "bg-[#222831] border-[#2c3540]" : "bg-white border-[#dde1e5]"
+  const mutedText = darkMode ? "text-[#aab3bd]" : "text-[#69717c]"
 
   return (
-    <div className={`mx-auto max-w-5xl space-y-5 ${pageBg}`}>
+    <div className={`mx-auto max-w-5xl space-y-6 px-4 pt-6 pb-10 sm:px-6 sm:pt-8 lg:px-8 lg:pt-10 ${pageBg}`}>
       <div>
         <h1 className="text-2xl sm:text-3xl font-bold">State Transparency Leaderboard</h1>
-        <p className={`mt-1 text-sm ${mutedText}`}>
+        <p className={`mt-2 text-sm ${mutedText}`}>
           States ranked by a composite score of fund utilization, physical progress, and audit safety.
         </p>
       </div>
@@ -61,7 +61,7 @@ export default function Leaderboard({ darkMode }) {
         </div>
       )}
 
-      <div className="space-y-3">
+      <div className="space-y-4">
         {states.map((s, i) => (
           <div
             key={s.state}
@@ -70,7 +70,7 @@ export default function Leaderboard({ darkMode }) {
             <div className="flex items-center gap-4">
               <div
                 className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full font-bold text-white"
-                style={{ backgroundColor: i < 3 ? MEDALS[i] : (darkMode ? "#2a2a2f" : "#e2e8f0"), color: i < 3 ? "#111" : undefined }}
+                style={{ backgroundColor: i < 3 ? MEDALS[i] : (darkMode ? "#2c3540" : "#dde1e5"), color: i < 3 ? "#171b20" : undefined }}
               >
                 {i + 1}
               </div>

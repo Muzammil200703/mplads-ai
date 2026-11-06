@@ -486,6 +486,51 @@ export async function getVendorProfile(vendorKey) {
     request(`/vendor-intelligence/${encodeURIComponent(vendorKey)}`))
 }
 
+// ── Vendor performance & audit intelligence (derived analysis) ──────────
+// Each endpoint aggregates one vendor (or a small comparison set) on demand;
+// nothing here mutates a vendor record.
+
+export async function getVendorPerformance(vendorKey, params = {}) {
+  const query = buildQuery(params)
+  return cachedGet(`vendor_performance_${vendorKey}_${query}`, 300000, () =>
+    request(`/vendor-intelligence/${encodeURIComponent(vendorKey)}/performance${query}`))
+}
+
+export async function getVendorActivity(vendorKey, params = {}) {
+  const query = buildQuery(params)
+  return request(`/vendor-intelligence/${encodeURIComponent(vendorKey)}/activity${query}`)
+}
+
+export async function getVendorRiskAnalysis(vendorKey, params = {}) {
+  const query = buildQuery(params)
+  return cachedGet(`vendor_risk_${vendorKey}_${query}`, 300000, () =>
+    request(`/vendor-intelligence/${encodeURIComponent(vendorKey)}/risk-analysis${query}`))
+}
+
+export async function getVendorRelationships(vendorKey, params = {}) {
+  const query = buildQuery(params)
+  return cachedGet(`vendor_relations_${vendorKey}_${query}`, 300000, () =>
+    request(`/vendor-intelligence/${encodeURIComponent(vendorKey)}/relationships${query}`))
+}
+
+export async function getVendorComparison(keys = [], params = {}) {
+  const query = buildQuery({ keys: keys.join(","), ...params })
+  return request(`/vendor-intelligence/compare${query}`)
+}
+
+export async function getVendorBehaviourScan(params = {}) {
+  const query = buildQuery(params)
+  return cachedGet(`vendor_scan_${query}`, 240000, () =>
+    request(`/vendor-intelligence/behaviour-scan${query}`))
+}
+
+export async function askVendorAssistant(vendorKey, question, house) {
+  return request(`/vendor-intelligence/${encodeURIComponent(vendorKey)}/assistant`, {
+    method: "POST",
+    body: JSON.stringify({ question, house: house || null }),
+  })
+}
+
 // ═══════════════ AI AUDIT & VERIFICATION (SIH 26102) ═══════════════
 
 export async function getAuditQueue(params = {}) {

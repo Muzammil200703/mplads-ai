@@ -1,4 +1,5 @@
-import { memo, useCallback, useEffect, useId, useMemo, useRef, useState } from "react"
+import { memo, useCallback, useEffect, useId, useMemo, useRef, useState, useSyncExternalStore } from "react"
+import { createPortal } from "react-dom"
 import { geoMercator, geoPath } from "d3-geo"
 import { getStateMapMetrics } from "../services/api"
 import { formatCrore, formatNumber } from "../utils/format"
@@ -14,7 +15,8 @@ import { formatCrore, formatNumber } from "../utils/format"
  * never by display name. No project-level rows reach the browser.
  *
  * Overview mode navigates on click. State Intelligence passes onSelectState
- * to select in place and show the expanded state panel; both modes use the
+ * to select in place and show the expanded state panel (an inline card on
+ * desktop, a viewport-level bottom sheet below 1024px); both modes use the
  * same boundaries, metric definitions, colours and aggregation response.
  *
  * Honesty rules implemented here:
@@ -25,6 +27,33 @@ import { formatCrore, formatNumber } from "../utils/format"
 
 const MAP_WIDTH = 640
 const MAP_HEIGHT = 640
+
+/**
+ * Selected-state details presentation.
+ * - Below 1024px (phones and tablets): a viewport-level bottom sheet
+ *   (portalled to <body>) so the card can never be clipped by the
+ *   overflow-hidden map frame or hidden below the legend/ranking column. The
+ *   sheet has a fixed header and one internal scroll area, so every statistic
+ *   stays reachable on short screens.
+ * - Desktop (>=1024px): the original inline panel below the map, unchanged.
+ */
+function useMediaQuery(query) {
+  const subscribe = useCallback(
+    (onChange) => {
+      if (typeof window === "undefined") return () => {}
+      const mq = window.matchMedia(query)
+      mq.addEventListener("change", onChange)
+      return () => mq.removeEventListener("change", onChange)
+    },
+    [query]
+  )
+  const getSnapshot = useCallback(
+    () =>
+      typeof window !== "undefined" && window.matchMedia(query).matches,
+    [query]
+  )
+  return useSyncExternalStore(subscribe, getSnapshot, () => false)
+}
 
 const METRICS = [
   {
@@ -61,18 +90,18 @@ const METRICS = [
 
 const PALETTES = {
   light: {
-    total_projects: ["#e8f0fe", "#c3d9fb", "#8bb6f4", "#4b86e8", "#1f4fb0"],
-    total_expenditure: ["#f1edff", "#d9cdfd", "#b69ef8", "#8866e8", "#5a35b8"],
-    fund_utilization: ["#e7f8f6", "#c0eee9", "#7bd9d0", "#2fb3a8", "#0b7f79"],
-    completed_projects: ["#eaf8ef", "#c8efd6", "#8cdda9", "#44c074", "#177a41"],
-    high_risk_projects: ["#fff5e8", "#ffe2bd", "#ffbe73", "#f28a2e", "#d64545"],
+    total_projects: ["#edf0f4", "#c3cdd8", "#a5b2c1", "#69798d", "#46566a"],
+    total_expenditure: ["#f0f2f5", "#d4dbe3", "#b0bdca", "#8493a5", "#5a6776"],
+    fund_utilization: ["#eef2f5", "#d5dfe8", "#b2c4d2", "#8fa3b4", "#54687e"],
+    completed_projects: ["#e9f6f0", "#ceebdf", "#a3dac3", "#43ae87", "#269b71"],
+    high_risk_projects: ["#fef7ea", "#fdebcb", "#f8be5f", "#f59e0b", "#e14b4b"],
   },
   dark: {
-    total_projects: ["#17243b", "#1d3557", "#285184", "#3674bf", "#5da5ff"],
-    total_expenditure: ["#231d3a", "#322858", "#483a7e", "#6351ac", "#8f74e8"],
-    fund_utilization: ["#102c2a", "#16423e", "#1d615a", "#2a8b80", "#48c4b5"],
-    completed_projects: ["#112a1b", "#184225", "#216231", "#2f8c49", "#4fc679"],
-    high_risk_projects: ["#332015", "#552d16", "#8a4618", "#bd611c", "#e65555"],
+    total_projects: ["#2c3540", "#3b4959", "#54687e", "#8493a5", "#a5b2c1"],
+    total_expenditure: ["#333f4c", "#44505e", "#5a6776", "#8493a5", "#b0bdca"],
+    fund_utilization: ["#2c3540", "#3c4b5b", "#54687e", "#8fa3b4", "#a9bac9"],
+    completed_projects: ["#123b2c", "#175c45", "#1f8661", "#43ae87", "#74c4a5"],
+    high_risk_projects: ["#2a2318", "#3a2f1a", "#b2720a", "#f59e0b", "#e46666"],
   },
 }
 
@@ -254,14 +283,14 @@ function freshnessMessage(freshness) {
 function noDataPatternStyle(darkMode) {
   return darkMode
     ? {
-        backgroundColor: "#24252b",
+        backgroundColor: "#2c3540",
         backgroundImage:
-          "repeating-linear-gradient(45deg, transparent, transparent 3px, #3b3d47 3px, #3b3d47 4px)",
+          "repeating-linear-gradient(45deg, transparent, transparent 3px, #39434E 3px, #39434E 4px)",
       }
     : {
-        backgroundColor: "#eef1f6",
+        backgroundColor: "#eceff2",
         backgroundImage:
-          "repeating-linear-gradient(45deg, transparent, transparent 3px, #cfd6e2 3px, #cfd6e2 4px)",
+          "repeating-linear-gradient(45deg, transparent, transparent 3px, #cbd2d9 3px, #cbd2d9 4px)",
       }
 }
 
@@ -291,12 +320,16 @@ const GeographicDistribution = memo(function GeographicDistribution({
   const [selectedCode, setSelectedCode] = useState(selectedStateCode || null)
   const mapRef = useRef(null)
   const titleId = useId()
+  const sheetTitleId = useId()
   const noDataPatternId = useId().replace(/:/g, "")
+  // Bottom sheet for phone and tablet widths; desktop keeps the existing
+  // inline panel below the map.
+  const isCompact = useMediaQuery("(max-width: 1023px)")
 
   const cardClasses = darkMode
-    ? "bg-[#17181c] border-[#2a2a2f]"
-    : "bg-white border-[#d9dee8]"
-  const mutedText = darkMode ? "text-[#9ca3af]" : "text-[#64748b]"
+    ? "bg-[#222831] border-[#2c3540]"
+    : "bg-white border-[#dde1e5]"
+  const mutedText = darkMode ? "text-[#aab3bd]" : "text-[#69717c]"
   const palette = PALETTES[darkMode ? "dark" : "light"][metric]
   const selectedMetric = METRICS.find((item) => item.id === metric) || METRICS[0]
   const selectionEnabled = typeof onSelectState === "function"
@@ -431,6 +464,7 @@ const GeographicDistribution = memo(function GeographicDistribution({
         navigateToState(code, fallbackName)
         return
       }
+      setHover(null)
       setSelectedCode(code)
       const state = statesByCode.get(code)
       onSelectState(
@@ -445,13 +479,33 @@ const GeographicDistribution = memo(function GeographicDistribution({
     [fy, house, navigateToState, onSelectState, selectionEnabled, statesByCode]
   )
 
+  const clearSelection = useCallback(() => {
+    setHover(null)
+    // Dismiss the map's own detail panel. Parent page filters stay untouched,
+    // matching the pre-existing inline "Clear selection" behavior.
+    setSelectedCode(null)
+  }, [])
+
+  // Esc dismisses the mobile sheet from anywhere in the dialog.
+  useEffect(() => {
+    if (!isCompact || !selectedCode) return undefined
+    const handler = (event) => {
+      if (event.key === "Escape") clearSelection()
+    }
+    window.addEventListener("keydown", handler)
+    return () => window.removeEventListener("keydown", handler)
+  }, [clearSelection, isCompact, selectedCode])
+
   const showHover = useCallback((event, code) => {
     const rect = mapRef.current?.getBoundingClientRect()
     if (!rect) return
     const x = event.clientX - rect.left
     const y = event.clientY - rect.top
+    // Measured worst-case tooltip footprint at the app's 125% root font size
+    // (the card is ~301px tall). The tooltip now lives outside the clipped map
+    // frame, and this keeps its initial placement on-screen as well.
     const tooltipWidth = 252
-    const tooltipHeight = 224
+    const tooltipHeight = 320
     const left = x + 16 + tooltipWidth > rect.width
       ? Math.max(8, x - tooltipWidth - 16)
       : x + 16
@@ -463,7 +517,7 @@ const GeographicDistribution = memo(function GeographicDistribution({
 
   const handlePathFocus = useCallback((code) => {
     const rect = mapRef.current?.getBoundingClientRect()
-    setHover({ code, left: 12, top: Math.max(12, (rect?.height || 320) - 236) })
+    setHover({ code, left: 12, top: Math.max(12, (rect?.height || 320) - 332) })
   }, [])
 
   const hoveredFeature = hover
@@ -488,6 +542,183 @@ const GeographicDistribution = memo(function GeographicDistribution({
     : selectedState?.total_projects
       ? (selectedState.risk_scored_projects / selectedState.total_projects) * 100
       : null
+
+  const renderSelectionContent = (sheet) => (
+    <>
+      <div
+        className={
+          sheet
+            ? "sticky top-0 z-10 -mx-4 mb-3 flex items-start justify-between gap-3 border-b border-gray-100 bg-white px-4 pb-3 pt-4 dark:border-gray-700/60 dark:bg-[#222831]"
+            : "flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between"
+        }
+      >
+        <div className="min-w-0">
+          <p className="text-[0.625rem] font-bold uppercase tracking-wider text-gray-400">
+            Selected state
+          </p>
+          <h3
+            id={sheet ? sheetTitleId : undefined}
+            className="mt-0.5 text-lg font-bold"
+          >
+            {selectedName}
+          </h3>
+          <p className={`mt-0.5 text-[0.6875rem] ${mutedText}`}>
+            {house && house !== "All" ? house : "All Houses"} · {fy || "All FY"} · State-level aggregate, not a project location
+          </p>
+          {sheet && (
+            <p className={`mt-1 text-[0.625rem] ${mutedText}`}>
+              Scroll inside this panel to see every statistic.
+            </p>
+          )}
+        </div>
+        <button
+          type="button"
+          onClick={clearSelection}
+          autoFocus={sheet}
+          aria-label={sheet ? "Close state details" : undefined}
+          className={
+            sheet
+              ? "shrink-0 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-[0.6875rem] font-bold text-gray-600 shadow-sm transition hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:border-gray-700 dark:bg-[#222831] dark:text-gray-300 dark:hover:bg-gray-800"
+              : "self-start rounded-md border border-gray-200 px-2.5 py-1 text-[0.6875rem] font-bold text-gray-500 transition hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+          }
+        >
+          {sheet ? "✕ Close" : "Clear selection"}
+        </button>
+      </div>
+
+      {selectedState ? (
+        <>
+          {(!selectedState.has_projects && !selectedState.has_risk_scores) && (
+            <p className="mt-3 rounded-lg border border-amber-500/40 bg-amber-500/10 p-2.5 text-[0.6875rem] text-amber-800 dark:text-amber-300">
+              No state-level records are available for this House/FY scope. Figures are shown as unavailable, never as claimed zeroes.
+            </p>
+          )}
+          <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-5">
+            <div className="rounded-lg border border-blue-200 bg-blue-50/60 p-2.5 dark:border-blue-900/50 dark:bg-blue-950/20">
+              <p className="text-[0.5625rem] font-bold uppercase tracking-wider text-blue-600 dark:text-blue-300">
+                {selectedMetric.shortLabel}
+              </p>
+              <p className="mt-1 font-mono text-base font-bold">
+                {formatMetricValue(metric, selectedMetricValue)}
+              </p>
+              <p className={`text-[0.5625rem] ${mutedText}`}>{selectedMetric.unit}</p>
+            </div>
+            <div className="rounded-lg border border-gray-100 p-2.5 dark:border-gray-700/60">
+              <p className="text-[0.5625rem] uppercase tracking-wide text-gray-400">Total projects</p>
+              <p className="mt-1 font-mono text-sm font-bold">
+                {selectedState.has_projects ? formatNumber(selectedState.total_projects) : "Not recorded"}
+              </p>
+            </div>
+            <div className="rounded-lg border border-gray-100 p-2.5 dark:border-gray-700/60">
+              <p className="text-[0.5625rem] uppercase tracking-wide text-gray-400">Total expenditure</p>
+              <p className="mt-1 font-mono text-sm font-bold">
+                {selectedState.has_expenditure ? `₹${formatCrore(selectedState.total_expenditure)} Cr` : "Not recorded"}
+              </p>
+            </div>
+            <div className="rounded-lg border border-gray-100 p-2.5 dark:border-gray-700/60">
+              <p className="text-[0.5625rem] uppercase tracking-wide text-gray-400">Fund utilization</p>
+              <p className="mt-1 font-mono text-sm font-bold">
+                {Number.isFinite(selectedState.fund_utilization_percentage)
+                  ? `${Number(selectedState.fund_utilization_percentage).toFixed(1)}%`
+                  : "Not available"}
+              </p>
+            </div>
+            <div className="rounded-lg border border-gray-100 p-2.5 dark:border-gray-700/60">
+              <p className="text-[0.5625rem] uppercase tracking-wide text-gray-400">Completed projects</p>
+              <p className="mt-1 font-mono text-sm font-bold">
+                {selectedState.has_projects ? formatNumber(selectedState.completed_projects) : "Not recorded"}
+              </p>
+            </div>
+            <div className="rounded-lg border border-gray-100 p-2.5 dark:border-gray-700/60">
+              <p className="text-[0.5625rem] uppercase tracking-wide text-gray-400">Ongoing projects</p>
+              <p className="mt-1 font-mono text-sm font-bold">
+                {selectedState.has_projects && Number.isFinite(selectedState.ongoing_projects)
+                  ? formatNumber(selectedState.ongoing_projects)
+                  : "Not available"}
+              </p>
+            </div>
+            <div className="rounded-lg border border-red-100 p-2.5 dark:border-red-900/40">
+              <p className="text-[0.5625rem] uppercase tracking-wide text-red-400">High-risk projects</p>
+              <p className="mt-1 font-mono text-sm font-bold text-red-600 dark:text-red-400">
+                {selectedState.has_risk_scores ? formatNumber(selectedState.high_risk_projects) : "Not assessed"}
+              </p>
+            </div>
+            <div className="rounded-lg border border-gray-100 p-2.5 dark:border-gray-700/60">
+              <p className="text-[0.5625rem] uppercase tracking-wide text-gray-400">Completion rate</p>
+              <p className="mt-1 font-mono text-sm font-bold">
+                {Number.isFinite(selectedCompletionRate) ? `${selectedCompletionRate.toFixed(1)}%` : "Not available"}
+              </p>
+              <p className={`text-[0.5625rem] ${mutedText}`}>Completed ÷ total projects</p>
+            </div>
+            <div className="rounded-lg border border-gray-100 p-2.5 dark:border-gray-700/60 col-span-2 sm:col-span-1">
+              <p className="text-[0.5625rem] uppercase tracking-wide text-gray-400">Risk-score coverage</p>
+              <p className="mt-1 font-mono text-sm font-bold">
+                {Number.isFinite(selectedRiskCoverage) ? `${selectedRiskCoverage.toFixed(1)}%` : "Not available"}
+              </p>
+              <p className={`text-[0.5625rem] ${mutedText}`}>
+                {selectedState.has_projects && Number.isFinite(selectedState.risk_scored_projects)
+                  ? `${formatNumber(selectedState.risk_scored_projects)} of ${formatNumber(selectedState.total_projects)} projects scored`
+                  : "No project coverage recorded"}
+              </p>
+            </div>
+          </div>
+
+          <div className={`mt-3 grid gap-2 rounded-lg border border-gray-100 bg-gray-50/70 p-3 text-[0.6875rem] dark:border-gray-700/60 dark:bg-white/5 sm:grid-cols-2 ${mutedText}`}>
+            <p>
+              <span className="font-bold text-gray-600 dark:text-gray-300">Payment coverage:</span>{" "}
+              {selectedState.has_expenditure
+                ? `${formatNumber(selectedState.transactions)} recorded ledger transactions.`
+                : "No recorded ledger data for this House/FY scope."}
+            </p>
+            <p>
+              <span className="font-bold text-gray-600 dark:text-gray-300">Data freshness:</span>{" "}
+              {freshnessMessage(dataFreshness)}
+            </p>
+            <p className="sm:col-span-2">
+              <span className="font-bold text-gray-600 dark:text-gray-300">Average recorded physical progress:</span>{" "}
+              {Number.isFinite(selectedState.average_completion_percentage)
+                ? `${Number(selectedState.average_completion_percentage).toFixed(1)}%`
+                : "Not available"}
+              {" "}<span className="ml-1 text-[0.625rem]">(completion rate above is completed ÷ total; the two definitions differ)</span>
+            </p>
+          </div>
+
+          {(onApplyState || onOpenState) && (
+            <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+              {onApplyState && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onApplyState(selectedState)
+                    if (sheet) clearSelection()
+                  }}
+                  className="rounded-lg bg-blue-600 px-3 py-2 text-xs font-bold text-white transition hover:bg-blue-700"
+                >
+                  Apply state as page filter
+                </button>
+              )}
+              {onOpenState && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onOpenState(selectedState)
+                    if (sheet) clearSelection()
+                  }}
+                  className="rounded-lg border border-blue-200 px-3 py-2 text-xs font-bold text-blue-700 transition hover:bg-blue-50 dark:border-blue-800 dark:text-blue-300 dark:hover:bg-blue-950/30"
+                >
+                  Open detailed state view
+                </button>
+              )}
+            </div>
+          )}
+        </>
+      ) : (
+        <p className={`mt-3 rounded-lg border border-dashed border-gray-200 p-3 text-xs dark:border-gray-700 ${mutedText}`}>
+          No state-level aggregate is available for this selection. The boundary is known, but the data is not — it is not being shown as zero.
+        </p>
+      )}
+    </>
+  )
 
   return (
     <section
@@ -558,9 +789,10 @@ const GeographicDistribution = memo(function GeographicDistribution({
       <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_290px]">
         {/* MAP */}
         <div className="flex min-w-0 flex-col gap-1.5">
+          <div className="relative">
           <div
             ref={mapRef}
-            className="relative min-h-[280px] overflow-hidden rounded-lg border border-gray-200 bg-gradient-to-b from-slate-50 to-white dark:border-gray-700/60 dark:from-[#0d0e12] dark:to-[#121318]"
+            className="relative min-h-[280px] overflow-hidden rounded-lg border border-gray-200 bg-gradient-to-b from-slate-50 to-white dark:border-gray-700/60 dark:from-[#171b20] dark:to-[#171b20]"
           >
             <svg
             viewBox={`0 0 ${MAP_WIDTH} ${MAP_HEIGHT}`}
@@ -579,14 +811,14 @@ const GeographicDistribution = memo(function GeographicDistribution({
                 <rect
                   width="6"
                   height="6"
-                  fill={darkMode ? "#24252b" : "#eef1f6"}
+                  fill={darkMode ? "#2c3540" : "#eceff2"}
                 />
                 <line
                   x1="0"
                   y1="0"
                   x2="0"
                   y2="6"
-                  stroke={darkMode ? "#3b3d47" : "#cfd6e2"}
+                  stroke={darkMode ? "#39434E" : "#cbd2d9"}
                   strokeWidth="2"
                 />
               </pattern>
@@ -610,10 +842,10 @@ const GeographicDistribution = memo(function GeographicDistribution({
                   stroke={
                     isHovered || isSelected
                       ? darkMode
-                        ? "#93c5fd"
-                        : "#1d4ed8"
+                        ? "#b0bdca"
+                        : "#46566a"
                       : darkMode
-                        ? "#0a0a0c"
+                        ? "#171b20"
                         : "#ffffff"
                   }
                   strokeWidth={isHovered || isSelected ? 2 : 1}
@@ -652,10 +884,30 @@ const GeographicDistribution = memo(function GeographicDistribution({
             })}
           </svg>
 
+          {loading && (
+            <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/55 backdrop-blur-[1px] dark:bg-[#171b20]/55">
+              <div className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-semibold shadow-sm dark:border-gray-700 dark:bg-[#222831]">
+                <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-solid border-blue-600 border-r-transparent" />
+                Loading state aggregates…
+              </div>
+            </div>
+          )}
+
+          {!geo && !geoError && (
+            <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/55 backdrop-blur-[1px] dark:bg-[#171b20]/55">
+              <div className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-semibold shadow-sm dark:border-gray-700 dark:bg-[#222831]">
+                <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-solid border-blue-600 border-r-transparent" />
+                Loading India boundaries…
+              </div>
+            </div>
+          )}
+
+          </div>
+
           {/* HOVER / FOCUS TOOLTIP */}
           {hover && (
             <div
-              className="pointer-events-none absolute z-20 w-[240px] rounded-xl border border-gray-200 bg-white/95 p-3 text-[#151c27] shadow-soft-lg backdrop-blur dark:border-gray-700 dark:bg-[#17181c]/95 dark:text-[#f3f4f6] sm:w-[252px]"
+              className="pointer-events-none absolute z-20 w-[240px] rounded-xl border border-gray-200 bg-white/95 p-3 text-[#30343A] shadow-soft-lg backdrop-blur dark:border-gray-700 dark:bg-[#222831]/95 dark:text-[#f1f3f5] sm:w-[252px]"
               style={{ left: hover.left, top: hover.top }}
             >
               <div className="flex items-start justify-between gap-2">
@@ -719,25 +971,6 @@ const GeographicDistribution = memo(function GeographicDistribution({
               </p>
             </div>
           )}
-
-          {loading && (
-            <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/55 backdrop-blur-[1px] dark:bg-[#0d0e12]/55">
-              <div className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-semibold shadow-sm dark:border-gray-700 dark:bg-[#17181c]">
-                <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-solid border-blue-600 border-r-transparent" />
-                Loading state aggregates…
-              </div>
-            </div>
-          )}
-
-          {!geo && !geoError && (
-            <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/55 backdrop-blur-[1px] dark:bg-[#0d0e12]/55">
-              <div className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-semibold shadow-sm dark:border-gray-700 dark:bg-[#17181c]">
-                <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-solid border-blue-600 border-r-transparent" />
-                Loading India boundaries…
-              </div>
-            </div>
-          )}
-
           </div>
 
           <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-0.5 px-1 text-[0.5625rem] leading-snug">
@@ -864,155 +1097,44 @@ const GeographicDistribution = memo(function GeographicDistribution({
         </aside>
       </div>
 
-      {selectionEnabled && selectedCode && (
+      {selectionEnabled && selectedCode && !isCompact && (
         <div className={`mt-4 rounded-xl border p-4 shadow-sm ${cardClasses}`}>
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-            <div className="min-w-0">
-              <p className="text-[0.625rem] font-bold uppercase tracking-wider text-gray-400">
-                Selected state
-              </p>
-              <h3 className="mt-0.5 text-lg font-bold">{selectedName}</h3>
-              <p className={`mt-0.5 text-[0.6875rem] ${mutedText}`}>
-                {house && house !== "All" ? house : "All Houses"} · {fy || "All FY"} · State-level aggregate, not a project location
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => setSelectedCode(null)}
-              className="self-start rounded-md border border-gray-200 px-2.5 py-1 text-[0.6875rem] font-bold text-gray-500 transition hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
-            >
-              Clear selection
-            </button>
-          </div>
-
-          {selectedState ? (
-            <>
-              {(!selectedState.has_projects && !selectedState.has_risk_scores) && (
-                <p className="mt-3 rounded-lg border border-amber-500/40 bg-amber-500/10 p-2.5 text-[0.6875rem] text-amber-800 dark:text-amber-300">
-                  No state-level records are available for this House/FY scope. Figures are shown as unavailable, never as claimed zeroes.
-                </p>
-              )}
-              <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-5">
-                <div className="rounded-lg border border-blue-200 bg-blue-50/60 p-2.5 dark:border-blue-900/50 dark:bg-blue-950/20">
-                  <p className="text-[0.5625rem] font-bold uppercase tracking-wider text-blue-600 dark:text-blue-300">
-                    {selectedMetric.shortLabel}
-                  </p>
-                  <p className="mt-1 font-mono text-base font-bold">
-                    {formatMetricValue(metric, selectedMetricValue)}
-                  </p>
-                  <p className={`text-[0.5625rem] ${mutedText}`}>{selectedMetric.unit}</p>
-                </div>
-                <div className="rounded-lg border border-gray-100 p-2.5 dark:border-gray-700/60">
-                  <p className="text-[0.5625rem] uppercase tracking-wide text-gray-400">Total projects</p>
-                  <p className="mt-1 font-mono text-sm font-bold">
-                    {selectedState.has_projects ? formatNumber(selectedState.total_projects) : "Not recorded"}
-                  </p>
-                </div>
-                <div className="rounded-lg border border-gray-100 p-2.5 dark:border-gray-700/60">
-                  <p className="text-[0.5625rem] uppercase tracking-wide text-gray-400">Total expenditure</p>
-                  <p className="mt-1 font-mono text-sm font-bold">
-                    {selectedState.has_expenditure ? `₹${formatCrore(selectedState.total_expenditure)} Cr` : "Not recorded"}
-                  </p>
-                </div>
-                <div className="rounded-lg border border-gray-100 p-2.5 dark:border-gray-700/60">
-                  <p className="text-[0.5625rem] uppercase tracking-wide text-gray-400">Fund utilization</p>
-                  <p className="mt-1 font-mono text-sm font-bold">
-                    {Number.isFinite(selectedState.fund_utilization_percentage)
-                      ? `${Number(selectedState.fund_utilization_percentage).toFixed(1)}%`
-                      : "Not available"}
-                  </p>
-                </div>
-                <div className="rounded-lg border border-gray-100 p-2.5 dark:border-gray-700/60">
-                  <p className="text-[0.5625rem] uppercase tracking-wide text-gray-400">Completed projects</p>
-                  <p className="mt-1 font-mono text-sm font-bold">
-                    {selectedState.has_projects ? formatNumber(selectedState.completed_projects) : "Not recorded"}
-                  </p>
-                </div>
-                <div className="rounded-lg border border-gray-100 p-2.5 dark:border-gray-700/60">
-                  <p className="text-[0.5625rem] uppercase tracking-wide text-gray-400">Ongoing projects</p>
-                  <p className="mt-1 font-mono text-sm font-bold">
-                    {selectedState.has_projects && Number.isFinite(selectedState.ongoing_projects)
-                      ? formatNumber(selectedState.ongoing_projects)
-                      : "Not available"}
-                  </p>
-                </div>
-                <div className="rounded-lg border border-red-100 p-2.5 dark:border-red-900/40">
-                  <p className="text-[0.5625rem] uppercase tracking-wide text-red-400">High-risk projects</p>
-                  <p className="mt-1 font-mono text-sm font-bold text-red-600 dark:text-red-400">
-                    {selectedState.has_risk_scores ? formatNumber(selectedState.high_risk_projects) : "Not assessed"}
-                  </p>
-                </div>
-                <div className="rounded-lg border border-gray-100 p-2.5 dark:border-gray-700/60">
-                  <p className="text-[0.5625rem] uppercase tracking-wide text-gray-400">Completion rate</p>
-                  <p className="mt-1 font-mono text-sm font-bold">
-                    {Number.isFinite(selectedCompletionRate) ? `${selectedCompletionRate.toFixed(1)}%` : "Not available"}
-                  </p>
-                  <p className={`text-[0.5625rem] ${mutedText}`}>Completed ÷ total projects</p>
-                </div>
-                <div className={`rounded-lg border border-gray-100 p-2.5 dark:border-gray-700/60 col-span-2 sm:col-span-1`}>
-                  <p className="text-[0.5625rem] uppercase tracking-wide text-gray-400">Risk-score coverage</p>
-                  <p className="mt-1 font-mono text-sm font-bold">
-                    {Number.isFinite(selectedRiskCoverage) ? `${selectedRiskCoverage.toFixed(1)}%` : "Not available"}
-                  </p>
-                  <p className={`text-[0.5625rem] ${mutedText}`}>
-                    {selectedState.has_projects && Number.isFinite(selectedState.risk_scored_projects)
-                      ? `${formatNumber(selectedState.risk_scored_projects)} of ${formatNumber(selectedState.total_projects)} projects scored`
-                      : "No project coverage recorded"}
-                  </p>
-                </div>
-              </div>
-
-              <div className={`mt-3 grid gap-2 rounded-lg border border-gray-100 bg-gray-50/70 p-3 text-[0.6875rem] dark:border-gray-700/60 dark:bg-white/5 sm:grid-cols-2 ${mutedText}`}>
-                <p>
-                  <span className="font-bold text-gray-600 dark:text-gray-300">Payment coverage:</span>{" "}
-                  {selectedState.has_expenditure
-                    ? `${formatNumber(selectedState.transactions)} recorded ledger transactions.`
-                    : "No recorded ledger data for this House/FY scope."}
-                </p>
-                <p>
-                  <span className="font-bold text-gray-600 dark:text-gray-300">Data freshness:</span>{" "}
-                  {freshnessMessage(dataFreshness)}
-                </p>
-                <p className="sm:col-span-2">
-                  <span className="font-bold text-gray-600 dark:text-gray-300">Average recorded physical progress:</span>{" "}
-                  {Number.isFinite(selectedState.average_completion_percentage)
-                    ? `${Number(selectedState.average_completion_percentage).toFixed(1)}%`
-                    : "Not available"}
-                  {" "}<span className="ml-1 text-[0.625rem]">(completion rate above is completed ÷ total; the two definitions differ)</span>
-                </p>
-              </div>
-
-              {(onApplyState || onOpenState) && (
-                <div className="mt-3 flex flex-col gap-2 sm:flex-row">
-                  {onApplyState && (
-                    <button
-                      type="button"
-                      onClick={() => onApplyState(selectedState)}
-                      className="rounded-lg bg-blue-600 px-3 py-2 text-xs font-bold text-white transition hover:bg-blue-700"
-                    >
-                      Apply state as page filter
-                    </button>
-                  )}
-                  {onOpenState && (
-                    <button
-                      type="button"
-                      onClick={() => onOpenState(selectedState)}
-                      className="rounded-lg border border-blue-200 px-3 py-2 text-xs font-bold text-blue-700 transition hover:bg-blue-50 dark:border-blue-800 dark:text-blue-300 dark:hover:bg-blue-950/30"
-                    >
-                      Open detailed state view
-                    </button>
-                  )}
-                </div>
-              )}
-            </>
-          ) : (
-            <p className={`mt-3 rounded-lg border border-dashed border-gray-200 p-3 text-xs dark:border-gray-700 ${mutedText}`}>
-              No state-level aggregate is available for this selection. The boundary is known, but the data is not — it is not being shown as zero.
-            </p>
-          )}
+          {renderSelectionContent(false)}
         </div>
       )}
 
+      {selectionEnabled && selectedCode && isCompact && typeof document !== "undefined" &&
+        createPortal(
+          <div className="fixed inset-0 z-[100] flex items-end justify-center">
+            <button
+              type="button"
+              aria-label="Close state details"
+              onClick={clearSelection}
+              className="absolute inset-0 h-full w-full cursor-default bg-black/40 backdrop-blur-[1px]"
+            />
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby={sheetTitleId}
+              className={`relative flex w-full max-w-lg flex-col overflow-hidden rounded-t-2xl border border-b-0 shadow-2xl ${cardClasses}`}
+              style={{ maxHeight: "min(88dvh, 720px)" }}
+            >
+              <div
+                className="mx-auto mt-2 h-1 w-10 shrink-0 rounded-full bg-gray-300 dark:bg-gray-600"
+                aria-hidden="true"
+              />
+              <div
+                className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4"
+                style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}
+              >
+                {renderSelectionContent(true)}
+              </div>
+            </div>
+          </div>,
+          // Mount inside the app shell (not <body>) so the sheet inherits the
+          // active light/dark theme without duplicating every dark: variant.
+          document.getElementById("root")?.firstElementChild || document.body
+        )}
     </section>
   )
 })

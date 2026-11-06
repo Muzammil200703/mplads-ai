@@ -181,22 +181,22 @@ const AuditPriority = memo(function AuditPriority({ fy, drillDownParams, onClear
   const totalPages = Math.max(1, Math.ceil(totalCount / rowsPerPage))
 
   return (
-    <div className="min-h-full bg-[#f9f9ff] p-4 sm:p-6 text-[#151c27] transition-colors duration-200 dark:bg-[#0a0a0c] dark:text-[#f3f4f6]">
+    <div className="min-h-full bg-[#f4f5f6] p-4 sm:p-6 text-[#30343A] transition-colors duration-200 dark:bg-[#171b20] dark:text-[#f1f3f5]">
       <div className="mx-auto max-w-[1440px] space-y-4 sm:space-y-5">
 
         {/* ═══ HEADER ═══ */}
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h2 className="text-2xl font-bold text-[#031632] dark:text-white">Audit Priority</h2>
+            <h2 className="text-2xl font-bold text-[#30343A] dark:text-white">Audit Priority</h2>
             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400 max-w-3xl">
               Rank flagged projects by audit urgency, financial exposure, and risk — P1–P4 priority tiers built from the
               composite priority score (risk score, financial exposure, the financial/physical progress mismatch and the
               evidence gap — with a floor applied from the stored risk classification) so auditors know what to review first.
             </p>
           </div>
-          <div className="rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-right shadow-sm dark:border-gray-700 dark:bg-[#17181c]">
+          <div className="rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-right shadow-sm dark:border-gray-700 dark:bg-[#222831]">
             <p className="text-[0.625rem] font-bold uppercase tracking-wider text-gray-400">Total priority projects</p>
-            <p className="font-mono text-2xl font-bold text-[#031632] dark:text-white">{(summary.total_flagged || 0).toLocaleString("en-IN")}</p>
+            <p className="font-mono text-2xl font-bold text-[#30343A] dark:text-white">{(summary.total_flagged || 0).toLocaleString("en-IN")}</p>
             <p className="mt-0.5 text-[0.625rem] text-gray-400">
               Funds under review: <span className="font-mono font-bold">{money(summary.total_sanctioned_under_review)}</span>
             </p>
@@ -204,7 +204,7 @@ const AuditPriority = memo(function AuditPriority({ fy, drillDownParams, onClear
         </div>
 
         {/* ═══ DISCLAIMER ═══ */}
-        <div className="rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-[0.6875rem] text-gray-500 dark:border-gray-700 dark:bg-[#17181c] dark:text-gray-400">
+        <div className="rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-[0.6875rem] text-gray-500 dark:border-gray-700 dark:bg-[#222831] dark:text-gray-400">
           Projects are ranked using financial discrepancies, physical progress, expenditure patterns, and detected
           anomalies. A high priority score indicates that a project deserves review; it does not by itself establish
           wrongdoing. Priority scoring adds no new data — it only orders the works that existing detection has flagged.
@@ -219,8 +219,8 @@ const AuditPriority = memo(function AuditPriority({ fy, drillDownParams, onClear
               <button
                 key={code}
                 onClick={() => { setFilterTier(filterTier === code ? "" : code); setCurrentPage(1) }}
-                className={`rounded-xl border bg-white p-4 text-left shadow-sm transition dark:bg-[#17181c] ${
-                  filterTier === code ? "border-[#031632] ring-1 ring-[#031632]/20 dark:border-blue-500" : "border-gray-200 hover:border-gray-300 dark:border-gray-700"
+                className={`rounded-xl border bg-white p-4 text-left shadow-sm transition dark:bg-[#222831] ${
+                  filterTier === code ? "border-[#46566a] ring-1 ring-[#46566a]/20 dark:border-blue-500" : "border-gray-200 hover:border-gray-300 dark:border-gray-700"
                 }`}
               >
                 <div className="flex items-center justify-between">
@@ -238,7 +238,7 @@ const AuditPriority = memo(function AuditPriority({ fy, drillDownParams, onClear
         </div>
 
         {/* ═══ SECONDARY STATS ═══ */}
-        <div className="flex flex-wrap items-center gap-x-5 gap-y-1 rounded-lg border border-gray-200 bg-white px-4 py-2 text-[0.6875rem] text-gray-500 dark:border-gray-700 dark:bg-[#17181c] dark:text-gray-400">
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-1 rounded-lg border border-gray-200 bg-white px-4 py-2 text-[0.6875rem] text-gray-500 dark:border-gray-700 dark:bg-[#222831] dark:text-gray-400">
           <span>High risk level: <span className="font-mono font-bold text-red-600 dark:text-red-400">{(summary.high_risk || 0).toLocaleString("en-IN")}</span></span>
           <span>Medium risk level: <span className="font-mono font-bold text-amber-600 dark:text-amber-400">{(summary.medium_risk || 0).toLocaleString("en-IN")}</span></span>
           <span>ML outliers: <span className="font-mono font-bold text-purple-600 dark:text-purple-400">{(summary.ml_anomalies || 0).toLocaleString("en-IN")}</span></span>
@@ -246,19 +246,19 @@ const AuditPriority = memo(function AuditPriority({ fy, drillDownParams, onClear
         </div>
 
         {/* ═══ FILTERS ═══ */}
-        <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-[#17181c]">
+        <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-[#222831]">
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-6">
             <div>
               <label className="block text-[0.625rem] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Search</label>
               <input value={searchQuery} onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1) }}
                 onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); fetchData() } }}
                 placeholder="Project name or ID..."
-                className="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-2xs outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-gray-600 dark:bg-[#0a0a0c] dark:text-white" />
+                className="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-2xs outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-gray-600 dark:bg-[#171b20] dark:text-white" />
             </div>
             <div>
               <label className="block text-[0.625rem] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">House</label>
               <select value={filterHouse} onChange={(e) => { setFilterHouse(e.target.value); setCurrentPage(1) }}
-                className="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-2xs outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-gray-600 dark:bg-[#0a0a0c] dark:text-white">
+                className="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-2xs outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-gray-600 dark:bg-[#171b20] dark:text-white">
                 <option value="">All Houses</option>
                 <option value="Lok Sabha">Lok Sabha</option>
                 <option value="Rajya Sabha">Rajya Sabha</option>
@@ -267,7 +267,7 @@ const AuditPriority = memo(function AuditPriority({ fy, drillDownParams, onClear
             <div>
               <label className="block text-[0.625rem] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Priority Tier</label>
               <select value={filterTier} onChange={(e) => { setFilterTier(e.target.value); setCurrentPage(1) }}
-                className="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-2xs outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-gray-600 dark:bg-[#0a0a0c] dark:text-white">
+                className="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-2xs outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-gray-600 dark:bg-[#171b20] dark:text-white">
                 <option value="">All Tiers</option>
                 <option value="P1">P1 — Immediate Review</option>
                 <option value="P2">P2 — High Priority</option>
@@ -278,7 +278,7 @@ const AuditPriority = memo(function AuditPriority({ fy, drillDownParams, onClear
             <div>
               <label className="block text-[0.625rem] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Risk Level</label>
               <select value={filterSeverity} onChange={(e) => { setFilterSeverity(e.target.value); setCurrentPage(1) }}
-                className="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-2xs outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-gray-600 dark:bg-[#0a0a0c] dark:text-white">
+                className="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-2xs outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-gray-600 dark:bg-[#171b20] dark:text-white">
                 <option value="">All Levels</option>
                 <option value="High">High Risk</option>
                 <option value="Medium">Medium Risk</option>
@@ -288,7 +288,7 @@ const AuditPriority = memo(function AuditPriority({ fy, drillDownParams, onClear
             <div>
               <label className="block text-[0.625rem] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">State</label>
               <select value={filterState} onChange={(e) => { setFilterState(e.target.value); setCurrentPage(1) }}
-                className="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-2xs outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-gray-600 dark:bg-[#0a0a0c] dark:text-white">
+                className="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-2xs outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-gray-600 dark:bg-[#171b20] dark:text-white">
                 <option value="">All States</option>
                 {states.map((s) => <option key={s} value={s}>{s}</option>)}
               </select>
@@ -297,13 +297,13 @@ const AuditPriority = memo(function AuditPriority({ fy, drillDownParams, onClear
               <label className="block text-[0.625rem] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Constituency</label>
               <select value={filterConstituency} disabled={!filterState}
                 onChange={(e) => { setFilterConstituency(e.target.value); setCurrentPage(1) }}
-                className="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-2xs outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:opacity-50 dark:border-gray-600 dark:bg-[#0a0a0c] dark:text-white">
+                className="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-2xs outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:opacity-50 dark:border-gray-600 dark:bg-[#171b20] dark:text-white">
                 <option value="">{filterState ? "All Constituencies" : "Select State"}</option>
                 {constituencies.map((c) => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
             <div className="flex items-end">
-              <button onClick={handleReset} className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-xs font-bold text-gray-700 transition hover:bg-gray-50 dark:border-gray-600 dark:bg-[#0a0a0c] dark:text-gray-200">Reset Filters</button>
+              <button onClick={handleReset} className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-xs font-bold text-gray-700 transition hover:bg-gray-50 dark:border-gray-600 dark:bg-[#171b20] dark:text-gray-200">Reset Filters</button>
             </div>
           </div>
           {/* Sort */}
@@ -323,7 +323,7 @@ const AuditPriority = memo(function AuditPriority({ fy, drillDownParams, onClear
                 else { setSortBy(opt.value); setSortDir(opt.value === "id" || opt.value === "state" || opt.value === "audit_priority" ? "asc" : "desc") }
                 setCurrentPage(1)
               }}
-                className={`rounded-lg px-3 py-1.5 text-[0.6875rem] font-bold transition ${sortBy === opt.value ? "bg-[#031632] text-white dark:bg-blue-600" : "border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:bg-[#17181c] dark:text-gray-300"}`}>
+                className={`rounded-lg px-3 py-1.5 text-[0.6875rem] font-bold transition ${sortBy === opt.value ? "bg-[#46566a] text-white dark:bg-blue-600" : "border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:bg-[#222831] dark:text-gray-300"}`}>
                 {opt.label}{sortBy === opt.value && <span className="ml-1">{sortDir === "asc" ? "↑" : "↓"}</span>}
               </button>
             ))}
@@ -336,18 +336,18 @@ const AuditPriority = memo(function AuditPriority({ fy, drillDownParams, onClear
         )}
 
         {/* ═══ PRIORITY LIST ═══ */}
-        <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-[#17181c]">
+        <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-[#222831]">
           {loading ? (
             <>
               <div className="hidden lg:block divide-y divide-gray-100 dark:divide-gray-700/60">
                 {Array.from({ length: 6 }).map((_, i) => (
                   <div key={i} className="flex items-center gap-4 px-5 py-4">
-                    <div className="animate-pulse rounded bg-gray-200/80 dark:bg-[#232329]/80 h-8 w-8 shrink-0" />
+                    <div className="animate-pulse rounded bg-gray-200/80 dark:bg-[#2c3540]/80 h-8 w-8 shrink-0" />
                     <div className="flex-1 space-y-2">
-                      <div className="animate-pulse rounded bg-gray-200/80 dark:bg-[#232329]/80 h-4 w-2/3" />
-                      <div className="animate-pulse rounded bg-gray-200/80 dark:bg-[#232329]/80 h-3 w-1/3" />
+                      <div className="animate-pulse rounded bg-gray-200/80 dark:bg-[#2c3540]/80 h-4 w-2/3" />
+                      <div className="animate-pulse rounded bg-gray-200/80 dark:bg-[#2c3540]/80 h-3 w-1/3" />
                     </div>
-                    <div className="animate-pulse rounded-full bg-gray-200/80 dark:bg-[#232329]/80 h-6 w-16" />
+                    <div className="animate-pulse rounded-full bg-gray-200/80 dark:bg-[#2c3540]/80 h-6 w-16" />
                   </div>
                 ))}
               </div>
@@ -375,7 +375,7 @@ const AuditPriority = memo(function AuditPriority({ fy, drillDownParams, onClear
                   const isExpanded = expanded === p.project_id
 
                   return (
-                    <div key={p.project_id} className="cursor-pointer transition hover:bg-blue-50/30 dark:hover:bg-[#253247]" onClick={() => handleOpenDetail(p)}>
+                    <div key={p.project_id} className="cursor-pointer transition hover:bg-blue-50/30 dark:hover:bg-[#2c3540]" onClick={() => handleOpenDetail(p)}>
                       <div className="flex items-stretch gap-0">
                       {/* Priority Rank */}
                       <div className={`flex w-16 flex-shrink-0 flex-col items-center justify-center border-r ${isCritical ? "border-red-200 bg-red-50 dark:border-red-900/40 dark:bg-red-950/20" : "border-gray-100 dark:border-gray-700/60"}`}>
@@ -445,17 +445,17 @@ const AuditPriority = memo(function AuditPriority({ fy, drillDownParams, onClear
 
                         {/* Audit intelligence row */}
                         <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-3">
-                          <div className="rounded-lg bg-gray-50 px-2.5 py-1.5 dark:bg-[#101014]">
+                          <div className="rounded-lg bg-gray-50 px-2.5 py-1.5 dark:bg-[#1c2127]">
                             <p className="text-[0.5625rem] font-bold uppercase tracking-wider text-gray-400">Main anomaly</p>
                             <p className="text-[0.625rem] font-semibold text-gray-700 dark:text-gray-200">{p.primary_anomaly}</p>
                           </div>
-                          <div className="rounded-lg bg-gray-50 px-2.5 py-1.5 dark:bg-[#101014]">
+                          <div className="rounded-lg bg-gray-50 px-2.5 py-1.5 dark:bg-[#1c2127]">
                             <p className="text-[0.5625rem] font-bold uppercase tracking-wider text-gray-400">Evidence gap</p>
                             <p className="text-[0.625rem] font-semibold text-gray-700 dark:text-gray-200" title={p.evidence_gap?.summary}>
                               {p.evidence_gap?.missing_count ?? 0} item(s) unavailable
                             </p>
                           </div>
-                          <div className="rounded-lg bg-gray-50 px-2.5 py-1.5 dark:bg-[#101014]">
+                          <div className="rounded-lg bg-gray-50 px-2.5 py-1.5 dark:bg-[#1c2127]">
                             <p className="text-[0.5625rem] font-bold uppercase tracking-wider text-gray-400">Recommended action</p>
                             <p className="text-[0.625rem] font-semibold text-gray-700 dark:text-gray-200">{p.recommended_action}</p>
                           </div>
@@ -469,7 +469,7 @@ const AuditPriority = memo(function AuditPriority({ fy, drillDownParams, onClear
                           {isExpanded ? "Hide priority explanation" : "Why this priority?"}
                         </button>
                         {isExpanded && (
-                          <div className="mt-2 rounded-lg border border-gray-200 bg-gray-50 p-2.5 dark:border-gray-700 dark:bg-[#101014]">
+                          <div className="mt-2 rounded-lg border border-gray-200 bg-gray-50 p-2.5 dark:border-gray-700 dark:bg-[#1c2127]">
                             <ul className="space-y-1">
                               {(p.explanation || []).map((exp, i) => (
                                 <li key={i} className="flex items-start gap-1.5 text-[0.625rem] text-gray-600 dark:text-gray-300">
@@ -510,7 +510,7 @@ const AuditPriority = memo(function AuditPriority({ fy, drillDownParams, onClear
                   const isCritical = p.tier === "P1"
 
                   return (
-                    <div key={p.project_id} className="p-4 cursor-pointer transition hover:bg-blue-50/30 dark:hover:bg-[#253247]" onClick={() => handleOpenDetail(p)}>
+                    <div key={p.project_id} className="p-4 cursor-pointer transition hover:bg-blue-50/30 dark:hover:bg-[#2c3540]" onClick={() => handleOpenDetail(p)}>
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-1.5 flex-wrap">
@@ -551,7 +551,7 @@ const AuditPriority = memo(function AuditPriority({ fy, drillDownParams, onClear
                         <div className="flex justify-between"><span className="text-gray-500">Spent</span><span className="font-mono font-semibold">{formatMoney(expenditure)}</span></div>
                         <div className="flex justify-between"><span className="text-gray-500">Progress</span><span className="font-mono font-semibold">{p.completion_percentage}%</span></div>
                       </div>
-                      <div className="mt-2 rounded-lg bg-gray-50 px-2.5 py-1.5 dark:bg-[#101014]">
+                      <div className="mt-2 rounded-lg bg-gray-50 px-2.5 py-1.5 dark:bg-[#1c2127]">
                         <p className="text-[0.5625rem] font-bold uppercase tracking-wider text-gray-400">Main anomaly · action</p>
                         <p className="text-[0.625rem] font-semibold text-gray-700 dark:text-gray-200">{p.primary_anomaly}</p>
                         <p className="mt-0.5 text-[0.625rem] text-gray-500 dark:text-gray-400">{p.recommended_action}</p>
@@ -562,7 +562,7 @@ const AuditPriority = memo(function AuditPriority({ fy, drillDownParams, onClear
               </div>
 
               {/* ═══ PAGINATION ═══ */}
-              <div className="flex flex-wrap items-center justify-between gap-4 border-t border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-[#141418]">
+              <div className="flex flex-wrap items-center justify-between gap-4 border-t border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-[#1c2127]">
                 <span className="text-xs text-gray-600 dark:text-gray-400">
                   Showing {totalCount === 0 ? 0 : (currentPage - 1) * rowsPerPage + 1} to{" "}
                   {Math.min(currentPage * rowsPerPage, totalCount)} of{" "}
@@ -570,10 +570,10 @@ const AuditPriority = memo(function AuditPriority({ fy, drillDownParams, onClear
                 </span>
                 <div className="flex items-center gap-2">
                   <button disabled={currentPage === 1} onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                    className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 disabled:opacity-40 dark:border-gray-600 dark:bg-[#17181c] dark:text-gray-200">← Prev</button>
+                    className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 disabled:opacity-40 dark:border-gray-600 dark:bg-[#222831] dark:text-gray-200">← Prev</button>
                   <span className="font-mono text-xs font-bold">{currentPage} / {totalPages}</span>
                   <button disabled={currentPage >= totalPages} onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                    className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 disabled:opacity-40 dark:border-gray-600 dark:bg-[#17181c] dark:text-gray-200">Next →</button>
+                    className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 disabled:opacity-40 dark:border-gray-600 dark:bg-[#222831] dark:text-gray-200">Next →</button>
                 </div>
               </div>
             </>
@@ -594,7 +594,7 @@ const AuditPriority = memo(function AuditPriority({ fy, drillDownParams, onClear
 
         return (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 sm:p-4 backdrop-blur-2xs" onClick={() => { setSelectedProject(null); window.dispatchEvent(new CustomEvent("assistant-project-context", { detail: { projectId: null } })) }}>
-          <div onClick={(e) => e.stopPropagation()} className="flex max-h-[90vh] sm:max-h-[85vh] w-full sm:max-w-2xl flex-col rounded-t-2xl sm:rounded-2xl border border-gray-200 bg-white shadow-soft-lg dark:border-gray-700 dark:bg-[#17181c]">
+          <div onClick={(e) => e.stopPropagation()} className="flex max-h-[90vh] sm:max-h-[85vh] w-full sm:max-w-2xl flex-col rounded-t-2xl sm:rounded-2xl border border-gray-200 bg-white shadow-soft-lg dark:border-gray-700 dark:bg-[#222831]">
             {/* Header */}
             <div className="flex items-start justify-between border-b border-gray-200 p-5 dark:border-gray-700">
               <div className="min-w-0 flex-1">
@@ -630,7 +630,7 @@ const AuditPriority = memo(function AuditPriority({ fy, drillDownParams, onClear
               ) : (
                 <>
                   {/* Risk Score */}
-                  <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-[#0a0a0c]">
+                  <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-[#171b20]">
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-[0.625rem] font-bold uppercase tracking-wider text-gray-400">Risk Score</p>
@@ -657,7 +657,7 @@ const AuditPriority = memo(function AuditPriority({ fy, drillDownParams, onClear
                   </div>
 
                   {/* Financial Overview */}
-                  <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-[#0a0a0c]">
+                  <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-[#171b20]">
                     <h4 className="mb-3 text-xs font-bold uppercase tracking-wider text-gray-400">Financial Overview</h4>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                       <div><p className="text-[0.625rem] font-bold uppercase text-gray-400">Sanctioned</p><p className="font-mono text-sm font-bold text-blue-700 dark:text-blue-400">{formatMoney(sanctioned)}</p></div>
@@ -682,7 +682,7 @@ const AuditPriority = memo(function AuditPriority({ fy, drillDownParams, onClear
                         {reasons.map((reason, i) => {
                           const chip = getReasonChip(reason)
                           return (
-                            <div key={i} className="rounded-lg border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-[#17181c]">
+                            <div key={i} className="rounded-lg border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-[#222831]">
                               <div className="flex items-center gap-2 mb-1">
                                 <span className={`rounded px-1.5 py-0.5 text-[0.5625rem] font-bold ${chip.color}`}>{chip.label}</span>
                                 <span className="text-xs font-bold text-gray-800 dark:text-gray-200">{reason}</span>
@@ -718,7 +718,7 @@ const AuditPriority = memo(function AuditPriority({ fy, drillDownParams, onClear
 
                   {/* Evidence gap + recommended actions */}
                   {p.evidence_gap && (
-                    <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-[#0a0a0c]">
+                    <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-[#171b20]">
                       <h4 className="mb-2 text-xs font-bold uppercase tracking-wider text-gray-400">Evidence gap & recommended actions</h4>
                       <p className="text-[0.6875rem] text-gray-600 dark:text-gray-300">{p.evidence_gap.summary}</p>
                       {(p.evidence_gap.missing_labels || []).length > 0 && (
@@ -766,7 +766,7 @@ const AuditPriority = memo(function AuditPriority({ fy, drillDownParams, onClear
                   window.dispatchEvent(new CustomEvent("navigate-to-project", { detail: { query: String(p.project_id) } }))
                   setSelectedProject(null); window.dispatchEvent(new CustomEvent("assistant-project-context", { detail: { projectId: null } }))
                 }}
-                className="rounded-lg bg-[#031632] px-4 py-2 text-xs font-bold text-white dark:bg-blue-600">
+                className="rounded-lg bg-[#46566a] px-4 py-2 text-xs font-bold text-white dark:bg-blue-600">
                 View Full Project →
               </button>
             </div>

@@ -49,7 +49,7 @@ export function ModalShell({ title, onClose, children }) {
       aria-label={title}
     >
       <div
-        className="anim-card-in w-full max-w-2xl rounded-2xl border border-[#dcdde4] bg-white shadow-soft-lg dark:border-[#2e2e33] dark:bg-gray-900"
+        className="anim-card-in w-full max-w-2xl rounded-2xl border border-[#dde1e5] bg-white shadow-soft-lg dark:border-[#39434E] dark:bg-gray-900"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between border-b border-gray-200 px-5 py-3 dark:border-gray-700">

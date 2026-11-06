@@ -157,7 +157,6 @@ function TopBar({
   }, [])
 
   const navigation = [
-    "Overview",
     "Projects",
     "Risk Center",
     "Audit Priority",
@@ -167,7 +166,7 @@ function TopBar({
 
   return (
     <header
-      className="fixed left-0 right-0 top-0 z-[70] h-[64px] lg:h-[72px] border-b border-[#dcdde4] bg-[#f9f9ff] text-[#151c27] dark:border-[#2e2e33] dark:bg-[#0a0a0c] dark:text-[#f3f4f6] transition-colors duration-300"
+      className="fixed left-0 right-0 top-0 z-[70] h-[64px] lg:h-[72px] border-b border-[#dde1e5] bg-[#f4f5f6] text-[#30343A] dark:border-[#39434E] dark:bg-[#171b20] dark:text-[#f1f3f5] transition-colors duration-300"
     >
       <div
         className={`
@@ -185,19 +184,19 @@ flex h-full min-w-0 items-center gap-1.5 px-2 sm:gap-3 sm:px-4 lg:gap-4 lg:px-5 
           className="
             flex h-10 w-10 shrink-0 items-center
             justify-center rounded-lg
-            border border-[#dcdde4]
-            bg-[#f0f3ff]
-            text-[#031632]
+            border border-[#dde1e5]
+            bg-[#eceff2]
+            text-[#30343A]
             transition-all duration-200
-            hover:bg-[#e2e8f8]
-            hover:border-[#031632]
+            hover:bg-[#eceff2]
+            hover:border-[#46566a]
             hover:shadow-sm
             active:scale-95
-            dark:border-[#2e2e33]
-            dark:bg-[#17181c]
-            dark:text-[#f3f4f6]
-            dark:hover:bg-[#2a2a2f]
-            dark:hover:border-[#8293b5]
+            dark:border-[#39434E]
+            dark:bg-[#222831]
+            dark:text-[#f1f3f5]
+            dark:hover:bg-[#2c3540]
+            dark:hover:border-[#7c8795]
           "
           aria-label="Toggle sidebar"
           title="Toggle sidebar (Ctrl+B)"
@@ -206,7 +205,7 @@ flex h-full min-w-0 items-center gap-1.5 px-2 sm:gap-3 sm:px-4 lg:gap-4 lg:px-5 
         </button>
 
         {/* NAVIGATION */}
-        <nav className="hidden shrink-0 items-center gap-1 lg:gap-1.5 lg:flex">
+        <nav className="hidden shrink-0 items-center gap-1 xl:gap-1.5 xl:flex">
           {navigation.map((item) => {
             const active = currentPage === item
             return (
@@ -220,8 +219,8 @@ flex h-full min-w-0 items-center gap-1.5 px-2 sm:gap-3 sm:px-4 lg:gap-4 lg:px-5 
                   transition-all duration-150
                   ${
                     active
-                      ? `bg-[#f0f3ff] font-semibold text-[#031632] dark:bg-[#17181c] dark:text-white`
-                      : `text-[#44474d] hover:bg-[#eef1f8] hover:text-[#031632] dark:text-[#d1d5db] dark:hover:bg-[#17181c] dark:hover:text-white`
+                      ? `bg-[#eceff2] font-semibold text-[#30343A] dark:bg-[#222831] dark:text-white`
+                      : `text-[#69717c] hover:bg-[#eceff2] hover:text-[#30343A] dark:text-[#cbd2d9] dark:hover:bg-[#222831] dark:hover:text-white`
                   }
                 `}
               >
@@ -231,7 +230,7 @@ flex h-full min-w-0 items-center gap-1.5 px-2 sm:gap-3 sm:px-4 lg:gap-4 lg:px-5 
                     className="
                       absolute bottom-0 left-2 right-2
                       h-[2px] rounded-full
-                      bg-[#bb0011]
+                      bg-[#46566a]
                     "
                   />
                 )}
@@ -240,15 +239,15 @@ flex h-full min-w-0 items-center gap-1.5 px-2 sm:gap-3 sm:px-4 lg:gap-4 lg:px-5 
           })}
         </nav>
 
-        {/* SEARCH + HISTORY DROPDOWN — flexes into the space freed by moving
-            Reports out of the top nav (Reports stays available in the sidebar) */}
-        <div className="relative min-w-0 flex-[2_1_0%] max-w-[560px]" ref={historyRef}>
+        {/* SEARCH + HISTORY DROPDOWN — takes all horizontal space left between
+            the (left-aligned) navigation and the right-hand FY / sign-in cluster */}
+        <div className="relative min-w-0 flex-1" ref={historyRef}>
           <span
             className="
               pointer-events-none absolute inset-y-0 left-3
               flex items-center
-              text-[#75777e]
-              dark:text-[#9ca3af]
+              text-[#7c8795]
+              dark:text-[#aab3bd]
             "
           >
             <svg
@@ -286,16 +285,16 @@ flex h-full min-w-0 items-center gap-1.5 px-2 sm:gap-3 sm:px-4 lg:gap-4 lg:px-5 
             }}
             className="
               h-10 w-full rounded-lg
-              border border-[#dcdde4]
+              border border-[#dde1e5]
               bg-white
               pl-9 pr-3
-              text-sm text-[#151c27]
+              text-sm text-[#30343A]
               outline-none
-              placeholder:text-[#9ca3af]
-              focus:border-[#031632] focus:ring-1 focus:ring-[#031632]
-              dark:border-[#2e2e33] dark:bg-[#17181c] dark:text-[#f3f4f6]
-              dark:placeholder:text-[#6b7280]
-              dark:focus:border-[#8293b5] dark:focus:ring-[#8293b5]
+              placeholder:text-[#aab3bd]
+              focus:border-[#46566a] focus:ring-1 focus:ring-[#46566a]
+              dark:border-[#39434E] dark:bg-[#222831] dark:text-[#f1f3f5]
+              dark:placeholder:text-[#69717c]
+              dark:focus:border-[#7c8795] dark:focus:ring-[#7c8795]
             "
           />
 
@@ -306,33 +305,33 @@ flex h-full min-w-0 items-center gap-1.5 px-2 sm:gap-3 sm:px-4 lg:gap-4 lg:px-5 
                 pop-in-down
                 absolute left-0 right-0 top-full z-[80] mt-1
                 overflow-hidden rounded-xl
-                border border-[#e2e5ec]
+                border border-[#dde1e5]
                 bg-white
                 shadow-soft
-                dark:border-[#2e2e33] dark:bg-[#17181c]
+                dark:border-[#39434E] dark:bg-[#222831]
               "
             >
               {historyCleared ? (
-                <div className="px-4 py-3 text-xs text-[#9ca3af] dark:text-[#6b7280]">
+                <div className="px-4 py-3 text-xs text-[#aab3bd] dark:text-[#69717c]">
                   History cleared
                 </div>
               ) : history.length === 0 ? (
-                <div className="px-4 py-3 text-xs text-[#9ca3af] dark:text-[#6b7280]">
+                <div className="px-4 py-3 text-xs text-[#aab3bd] dark:text-[#69717c]">
                   No recent searches
                 </div>
               ) : (
                 <>
-                  <div className="flex items-center justify-between border-b border-[#f0f1f3] px-4 py-2 dark:border-[#2e2e33]">
-                    <span className="text-[0.6875rem] font-semibold uppercase tracking-wide text-[#9ca3af] dark:text-[#6b7280]">
+                  <div className="flex items-center justify-between border-b border-[#eceff2] px-4 py-2 dark:border-[#39434E]">
+                    <span className="text-[0.6875rem] font-semibold uppercase tracking-wide text-[#aab3bd] dark:text-[#69717c]">
                       Recent Searches
                     </span>
                     <button
                       onMouseDown={(e) => e.preventDefault()}
                       onClick={handleClearHistory}
                       className="
-                        text-[0.6875rem] font-medium text-[#bb0011]
-                        transition-colors hover:text-[#930010]
-                        dark:text-[#f87171] dark:hover:text-[#fca5a5]
+                        text-[0.6875rem] font-medium text-[#e14b4b]
+                        transition-colors hover:text-[#c43c3c]
+                        dark:text-[#ef9494] dark:hover:text-[#f7c9c9]
                       "
                     >
                       Clear History
@@ -347,14 +346,14 @@ flex h-full min-w-0 items-center gap-1.5 px-2 sm:gap-3 sm:px-4 lg:gap-4 lg:px-5 
                           className="
                             flex w-full items-center gap-3
                             px-4 py-2.5
-                            text-left text-sm text-[#2a2a2f]
+                            text-left text-sm text-[#2c3540]
                             transition-colors
-                            hover:bg-[#f5f7fa]
-                            dark:text-[#d1d5db]
-                            dark:hover:bg-[#2a2a2f]
+                            hover:bg-[#f4f5f6]
+                            dark:text-[#cbd2d9]
+                            dark:hover:bg-[#2c3540]
                           "
                         >
-                          <span className="shrink-0 text-[#9ca3af] dark:text-[#6b7280]">
+                          <span className="shrink-0 text-[#aab3bd] dark:text-[#69717c]">
                             🕒
                           </span>
                           <span className="truncate">{term}</span>
@@ -373,13 +372,13 @@ flex h-full min-w-0 items-center gap-1.5 px-2 sm:gap-3 sm:px-4 lg:gap-4 lg:px-5 
           className="
             hidden items-center gap-1.5
             whitespace-nowrap
-            lg:flex
+            2xl:flex
           "
         >
           <span
             className="
               text-[0.6875rem] font-semibold uppercase tracking-wide
-              text-[#75777e] dark:text-[#6b7280]
+              text-[#7c8795] dark:text-[#69717c]
             "
           >
             FY
@@ -389,12 +388,12 @@ flex h-full min-w-0 items-center gap-1.5 px-2 sm:gap-3 sm:px-4 lg:gap-4 lg:px-5 
             onChange={(e) => onFYChange && onFYChange(e.target.value)}
             className="
               h-10 rounded-lg
-              border border-[#dcdde4] bg-white
-              px-3 text-sm font-medium text-[#031632]
+              border border-[#dde1e5] bg-white
+              px-3 text-sm font-medium text-[#30343A]
               outline-none
-              focus:border-[#031632] focus:ring-1 focus:ring-[#031632]
-              dark:border-[#2e2e33] dark:bg-[#17181c] dark:text-[#f3f4f6]
-              dark:focus:border-[#8293b5] dark:focus:ring-[#8293b5]
+              focus:border-[#46566a] focus:ring-1 focus:ring-[#46566a]
+              dark:border-[#39434E] dark:bg-[#222831] dark:text-[#f1f3f5]
+              dark:focus:border-[#7c8795] dark:focus:ring-[#7c8795]
             "
           >
             <option value="">All FY</option>

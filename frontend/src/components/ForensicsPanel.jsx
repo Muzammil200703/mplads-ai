@@ -29,13 +29,13 @@ export function FlagPill({ label }) {
 }
 
 function ScoreDial({ score, severity }) {
-  const color = severity === "Critical" ? "#dc2626" : severity === "Moderate" ? "#d97706" : "#16a34a"
+  const color = severity === "Critical" ? "#e14b4b" : severity === "Moderate" ? "#f59e0b" : "#269b71"
   const angle = Math.round((Math.min(100, Math.max(0, score)) / 100) * 360)
   return (
     <div className="flex flex-col items-center">
       <div
         className="flex h-20 w-20 items-center justify-center rounded-full"
-        style={{ background: `conic-gradient(${color} ${angle}deg, #e5e7eb ${angle}deg)` }}
+        style={{ background: `conic-gradient(${color} ${angle}deg, #dde1e5 ${angle}deg)` }}
         role="img"
         aria-label={`Risk index ${score} of 100`}
       >

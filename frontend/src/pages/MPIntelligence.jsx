@@ -66,9 +66,9 @@ export default function MPIntelligence({ darkMode, drillDownParams, onClearDrill
     if (onClearDrillDown) onClearDrillDown()
   }
 
-  const pageBg = darkMode ? "text-[#f3f4f6]" : "text-[#151c27]"
-  const cardBg = darkMode ? "bg-[#17181c] border-[#2a2a2f]" : "bg-white border-[#d9dee8]"
-  const mutedText = darkMode ? "text-[#9ca3af]" : "text-[#64748b]"
+  const pageBg = darkMode ? "text-[#f1f3f5]" : "text-[#30343A]"
+  const cardBg = darkMode ? "bg-[#222831] border-[#2c3540]" : "bg-white border-[#dde1e5]"
+  const mutedText = darkMode ? "text-[#aab3bd]" : "text-[#69717c]"
 
   return (
     <div className={`min-h-full p-4 sm:p-6 ${pageBg}`}>
@@ -251,8 +251,8 @@ function MPDetail({ mpId, darkMode, onBack }) {
     return () => { active = false }
   }, [mpId])
 
-  const cardBg = darkMode ? "bg-[#17181c] border-[#2a2a2f]" : "bg-white border-[#d9dee8]"
-  const mutedText = darkMode ? "text-[#9ca3af]" : "text-[#64748b]"
+  const cardBg = darkMode ? "bg-[#222831] border-[#2c3540]" : "bg-white border-[#dde1e5]"
+  const mutedText = darkMode ? "text-[#aab3bd]" : "text-[#69717c]"
 
   const works = useMemo(() => {
     if (!d?.works) return []

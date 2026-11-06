@@ -423,8 +423,8 @@ return (
     <div
       className={`h-[100dvh] overflow-hidden ${
         darkMode
-          ? "dark bg-[#0a0a0c] text-[#f3f4f6]"
-          : "bg-[#f9f9ff] text-[#151c27]"
+          ? "dark bg-[#171b20] text-[#f1f3f5]"
+          : "bg-[#f4f5f6] text-[#30343A]"
       }`}
     >
       {isMobile && mobileDrawerOpen && (

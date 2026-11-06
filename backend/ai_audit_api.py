@@ -32,7 +32,7 @@ import ai_audit
 import auth
 import models
 from auth import require_capability
-from database import SessionLocal
+from database import SessionLocal, normkey
 
 
 def get_db():
@@ -741,6 +741,9 @@ def vendor_network(
                     + (10 if v["total_value"] > 5_000_000 else 0))
         vendors_out.append({
             "vendor_name": v["vendor_name"],
+            # Normalized key so the network table can open the shared vendor
+            # intelligence panel (same key the /vendor-intelligence routes use).
+            "vendor_key": normkey(v["vendor_name"]),
             "raw_names": [],  # variants detail dropped from list view (memory)
             "active_contracts": v["contracts"],
             "total_value": round(v["total_value"], 0),

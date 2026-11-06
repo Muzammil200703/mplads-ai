@@ -20,9 +20,211 @@
 
   /* Soft diffuse shadows for floating elements — large blur, low opacity,
      slight vertical offset (iOS浮层 feel) instead of sharp dark shadows. */
-  --shadow-soft: 0 8px 30px rgba(3, 22, 50, 0.10), 0 2px 8px rgba(3, 22, 50, 0.05);
-  --shadow-soft-lg: 0 16px 50px rgba(3, 22, 50, 0.16), 0 4px 14px rgba(3, 22, 50, 0.07);
-  --shadow-soft-sm: 0 2px 10px rgba(3, 22, 50, 0.07);
+  --shadow-soft: 0 8px 30px rgba(48, 52, 58, 0.10), 0 2px 8px rgba(48, 52, 58, 0.05);
+  --shadow-soft-lg: 0 16px 50px rgba(48, 52, 58, 0.16), 0 4px 14px rgba(48, 52, 58, 0.07);
+  --shadow-soft-sm: 0 2px 10px rgba(48, 52, 58, 0.07);
+
+  /* ═══ Colour palette: Slate · Silver · White ═══════════════════════════
+     Single source of truth for the app's colour identity. Every Tailwind
+     colour utility in the components resolves through these tokens, so the
+     palette changes here and nowhere else — sizes, spacing, radii, shadows
+     and layout are untouched.
+
+     Each scale keeps the lightness progression of the scale it replaces, so
+     existing light-mode (50–400) and dark-mode (600–950) usages keep working
+     with the same roles: 50–100 = tinted surfaces, 200–300 = borders and
+     subtle text, 400–500 = secondary text, 600–700 = accents, 800–950 =
+     dark surfaces. */
+
+  /* Neutral slate — primary text, surfaces and borders */
+  --color-gray-50: #f6f7f8;
+  --color-gray-100: #eceff2;
+  --color-gray-200: #dde1e5;
+  --color-gray-300: #cbd2d9;
+  --color-gray-400: #8493a5;
+  --color-gray-500: #69717c;
+  --color-gray-600: #59616c;
+  --color-gray-700: #39434e;
+  --color-gray-800: #2c3540;
+  --color-gray-900: #222831;
+  --color-gray-950: #171b20;
+
+  /* Slate shares the neutral scale */
+  --color-slate-50: #f6f7f8;
+  --color-slate-100: #eceff2;
+  --color-slate-200: #dde1e5;
+  --color-slate-300: #cbd2d9;
+  --color-slate-400: #8493a5;
+  --color-slate-500: #69717c;
+  --color-slate-600: #59616c;
+  --color-slate-700: #39434e;
+  --color-slate-800: #2c3540;
+  --color-slate-900: #222831;
+  --color-slate-950: #171b20;
+
+  /* Primary accent — deep slate blue (was blue) */
+  --color-blue-50: #edf0f4;
+  --color-blue-100: #dee4ea;
+  --color-blue-200: #c3cdd8;
+  --color-blue-300: #a5b2c1;
+  --color-blue-400: #8a9aad;
+  --color-blue-500: #69798d;
+  --color-blue-600: #46566a;
+  --color-blue-700: #3b4959;
+  --color-blue-800: #333f4c;
+  --color-blue-900: #2c3742;
+  --color-blue-950: #1b222a;
+
+  /* Indigo rides the same accent ramp */
+  --color-indigo-50: #edf0f4;
+  --color-indigo-100: #dee4ea;
+  --color-indigo-200: #c3cdd8;
+  --color-indigo-300: #a5b2c1;
+  --color-indigo-400: #8a9aad;
+  --color-indigo-500: #69798d;
+  --color-indigo-600: #46566a;
+  --color-indigo-700: #3b4959;
+  --color-indigo-800: #333f4c;
+  --color-indigo-900: #2c3742;
+  --color-indigo-950: #1b222a;
+
+  /* Silver — secondary accent (was purple/violet) */
+  --color-purple-50: #f0f2f5;
+  --color-purple-100: #e3e7ec;
+  --color-purple-200: #cbd3dc;
+  --color-purple-300: #b0bdca;
+  --color-purple-400: #9aa8b7;
+  --color-purple-500: #8493a5;
+  --color-purple-600: #6e7c8c;
+  --color-purple-700: #5a6776;
+  --color-purple-800: #4b5765;
+  --color-purple-900: #3c4653;
+  --color-purple-950: #232a32;
+
+  --color-violet-50: #f0f2f5;
+  --color-violet-100: #e3e7ec;
+  --color-violet-200: #cbd3dc;
+  --color-violet-300: #b0bdca;
+  --color-violet-400: #9aa8b7;
+  --color-violet-500: #8493a5;
+  --color-violet-600: #6e7c8c;
+  --color-violet-700: #5a6776;
+  --color-violet-800: #4b5765;
+  --color-violet-900: #3c4653;
+  --color-violet-950: #232a32;
+
+  /* Steel (was cyan/teal/sky) — charts and secondary data */
+  --color-teal-50: #eef2f5;
+  --color-teal-100: #dfe7ee;
+  --color-teal-200: #c6d3de;
+  --color-teal-300: #a9bac9;
+  --color-teal-400: #8fa3b4;
+  --color-teal-500: #6f849a;
+  --color-teal-600: #54687e;
+  --color-teal-700: #47596c;
+  --color-teal-800: #3c4b5b;
+  --color-teal-900: #33404d;
+  --color-teal-950: #1e252d;
+
+  --color-cyan-50: #eef2f5;
+  --color-cyan-100: #dfe7ee;
+  --color-cyan-200: #c6d3de;
+  --color-cyan-300: #a9bac9;
+  --color-cyan-400: #8fa3b4;
+  --color-cyan-500: #6f849a;
+  --color-cyan-600: #54687e;
+  --color-cyan-700: #47596c;
+  --color-cyan-800: #3c4b5b;
+  --color-cyan-900: #33404d;
+  --color-cyan-950: #1e252d;
+
+  --color-sky-50: #eef2f5;
+  --color-sky-100: #dfe7ee;
+  --color-sky-200: #c6d3de;
+  --color-sky-300: #a9bac9;
+  --color-sky-400: #8fa3b4;
+  --color-sky-500: #6f849a;
+  --color-sky-600: #54687e;
+  --color-sky-700: #47596c;
+  --color-sky-800: #3c4b5b;
+  --color-sky-900: #33404d;
+  --color-sky-950: #1e252d;
+
+  /* Success (meaning preserved) */
+  --color-green-50: #e9f6f0;
+  --color-green-100: #ceebdf;
+  --color-green-200: #a3dac3;
+  --color-green-300: #74c4a5;
+  --color-green-400: #43ae87;
+  --color-green-500: #269b71;
+  --color-green-600: #1f8661;
+  --color-green-700: #1b7053;
+  --color-green-800: #175c45;
+  --color-green-900: #134a38;
+  --color-green-950: #0c2a20;
+
+  --color-emerald-50: #e9f6f0;
+  --color-emerald-100: #ceebdf;
+  --color-emerald-200: #a3dac3;
+  --color-emerald-300: #74c4a5;
+  --color-emerald-400: #43ae87;
+  --color-emerald-500: #269b71;
+  --color-emerald-600: #1f8661;
+  --color-emerald-700: #1b7053;
+  --color-emerald-800: #175c45;
+  --color-emerald-900: #134a38;
+  --color-emerald-950: #0c2a20;
+
+  /* Danger (meaning preserved) */
+  --color-red-50: #fdedec;
+  --color-red-100: #fbdad9;
+  --color-red-200: #f6b9b7;
+  --color-red-300: #ee9492;
+  --color-red-400: #e76e6c;
+  --color-red-500: #e14b4b;
+  --color-red-600: #c93f3f;
+  --color-red-700: #ab3535;
+  --color-red-800: #8c2c2c;
+  --color-red-900: #6e2323;
+  --color-red-950: #3d1414;
+
+  /* Warning (meaning preserved) */
+  --color-amber-50: #fef7ea;
+  --color-amber-100: #fdecc9;
+  --color-amber-200: #fbd696;
+  --color-amber-300: #f8be5f;
+  --color-amber-400: #f6ac34;
+  --color-amber-500: #f59e0b;
+  --color-amber-600: #d98a08;
+  --color-amber-700: #b2720a;
+  --color-amber-800: #8c5a0b;
+  --color-amber-900: #6e470b;
+  --color-amber-950: #3d2706;
+
+  --color-orange-50: #fef7ea;
+  --color-orange-100: #fdecc9;
+  --color-orange-200: #fbd696;
+  --color-orange-300: #f8be5f;
+  --color-orange-400: #f6ac34;
+  --color-orange-500: #f59e0b;
+  --color-orange-600: #d98a08;
+  --color-orange-700: #b2720a;
+  --color-orange-800: #8c5a0b;
+  --color-orange-900: #6e470b;
+  --color-orange-950: #3d2706;
+
+  /* Highlight — silver, used sparingly */
+  --color-yellow-50: #f6f8fa;
+  --color-yellow-100: #eceff3;
+  --color-yellow-200: #dde2e8;
+  --color-yellow-300: #cbd3dc;
+  --color-yellow-400: #a9b6c4;
+  --color-yellow-500: #8493a5;
+  --color-yellow-600: #6e7c8c;
+  --color-yellow-700: #5a6776;
+  --color-yellow-800: #4b5765;
+  --color-yellow-900: #3c4653;
+  --color-yellow-950: #232a32;
 }
 
 @custom-variant dark (&:where(.dark, .dark *));
@@ -220,10 +422,10 @@ textarea.assistant-input::-webkit-scrollbar {
   scrollbar-color: transparent transparent;
 }
 .sidebar-scroll.sidebar-scrolling {
-  scrollbar-color: rgba(3, 22, 50, 0.3) transparent;
+  scrollbar-color: rgba(48, 52, 58, 0.3) transparent;
 }
 .dark .sidebar-scroll.sidebar-scrolling {
-  scrollbar-color: rgba(243, 244, 246, 0.32) transparent;
+  scrollbar-color: rgba(241, 243, 245, 0.32) transparent;
 }
 .sidebar-scroll::-webkit-scrollbar {
   width: 8px;
@@ -238,10 +440,10 @@ textarea.assistant-input::-webkit-scrollbar {
   background-color: transparent;
 }
 .sidebar-scroll.sidebar-scrolling::-webkit-scrollbar-thumb {
-  background-color: rgba(3, 22, 50, 0.3);
+  background-color: rgba(48, 52, 58, 0.3);
 }
 .dark .sidebar-scroll.sidebar-scrolling::-webkit-scrollbar-thumb {
-  background-color: rgba(243, 244, 246, 0.32);
+  background-color: rgba(241, 243, 245, 0.32);
 }
 @media (prefers-reduced-motion: no-preference) {
   .sidebar-scroll {

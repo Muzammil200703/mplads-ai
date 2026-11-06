@@ -68,11 +68,11 @@ function MyDistrictInner({ onOpenProject }) {
   }
 
   return (
-    <div className="min-h-full bg-[#f9f9ff] p-4 text-[#151c27] transition-colors duration-200 sm:p-6 dark:bg-[#0a0a0c] dark:text-gray-100">
+    <div className="min-h-full bg-[#f4f5f6] p-4 text-[#30343A] transition-colors duration-200 sm:p-6 dark:bg-[#171b20] dark:text-gray-100">
       <div className="mx-auto max-w-[1440px] space-y-4">
         <div className="mb-1">
-          <h2 className="text-2xl font-bold text-[#031632] dark:text-[#f3f4f6]">My District</h2>
-          <p className="mt-1 text-sm text-[#44474d] dark:text-[#9ca3af]">
+          <h2 className="text-2xl font-bold text-[#30343A] dark:text-[#f1f3f5]">My District</h2>
+          <p className="mt-1 text-sm text-[#69717c] dark:text-[#aab3bd]">
             Projects and auditor inquiries for {summary?.scope || `your assigned area (${user?.assigned_district || user?.assigned_state || "not assigned yet"})`}.
             You can view project data and respond to inquiries — risk scores and audit flags are managed by auditors.
           </p>
@@ -85,7 +85,7 @@ function MyDistrictInner({ onOpenProject }) {
           </div>
         )}
         {loading && (
-          <div className="rounded-xl border border-[#dcdde4] bg-white p-8 text-center text-sm text-[#44474d] dark:border-[#2e2e33] dark:bg-[#0a0a0c] dark:text-[#9ca3af]">Loading your district…</div>
+          <div className="rounded-xl border border-[#dde1e5] bg-white p-8 text-center text-sm text-[#69717c] dark:border-[#39434E] dark:bg-[#171b20] dark:text-[#aab3bd]">Loading your district…</div>
         )}
 
         {!loading && summary && (
@@ -98,56 +98,56 @@ function MyDistrictInner({ onOpenProject }) {
                 { label: "Open inquiries", value: summary.open_inquiries, icon: "✉️" },
                 { label: "Total sanctioned", value: formatMoney(summary.total_sanctioned), icon: "💰" },
               ].map((c) => (
-                <div key={c.label} className="rounded-xl border border-[#dcdde4] bg-white p-4 dark:border-[#2e2e33] dark:bg-[#0a0a0c]">
-                  <p className="text-xs font-bold uppercase tracking-wide text-[#44474d]/70 dark:text-[#9ca3af]/70">{c.icon} {c.label}</p>
-                  <p className="mt-1 truncate text-xl font-extrabold text-[#031632] dark:text-[#f3f4f6]" title={String(c.value)}>{c.value}</p>
+                <div key={c.label} className="rounded-xl border border-[#dde1e5] bg-white p-4 dark:border-[#39434E] dark:bg-[#171b20]">
+                  <p className="text-xs font-bold uppercase tracking-wide text-[#69717c]/70 dark:text-[#aab3bd]/70">{c.icon} {c.label}</p>
+                  <p className="mt-1 truncate text-xl font-extrabold text-[#30343A] dark:text-[#f1f3f5]" title={String(c.value)}>{c.value}</p>
                 </div>
               ))}
             </div>
 
             {/* Inquiries */}
-            <div className="rounded-xl border border-[#dcdde4] bg-white p-4 dark:border-[#2e2e33] dark:bg-[#0a0a0c]">
-              <h3 className="mb-3 text-lg font-bold text-[#031632] dark:text-[#f3f4f6]">Auditor inquiries ({inquiries?.total ?? 0})</h3>
+            <div className="rounded-xl border border-[#dde1e5] bg-white p-4 dark:border-[#39434E] dark:bg-[#171b20]">
+              <h3 className="mb-3 text-lg font-bold text-[#30343A] dark:text-[#f1f3f5]">Auditor inquiries ({inquiries?.total ?? 0})</h3>
               {inquiries && inquiries.items.length === 0 && (
-                <p className="text-sm text-[#44474d] dark:text-[#9ca3af]">No inquiries for your district yet. When an auditor issues one, it appears here for your official response.</p>
+                <p className="text-sm text-[#69717c] dark:text-[#aab3bd]">No inquiries for your district yet. When an auditor issues one, it appears here for your official response.</p>
               )}
               <div className="space-y-2.5">
                 {(inquiries?.items || []).map((i) => (
-                  <div key={i.inquiry_id} className="rounded-lg border border-[#dcdde4] p-3 dark:border-[#2e2e33]">
+                  <div key={i.inquiry_id} className="rounded-lg border border-[#dde1e5] p-3 dark:border-[#39434E]">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className={`rounded px-2 py-0.5 text-xs font-bold uppercase ${INQ_BADGE[i.status] || ""}`}>{i.status}</span>
-                      <span className="rounded bg-[#f0f3ff] px-2 py-0.5 font-mono text-xs font-bold text-[#031632] dark:bg-[#17181c] dark:text-[#f3f4f6]">#{i.project_id}</span>
-                      <span className="min-w-0 flex-1 truncate text-[0.9375rem] font-semibold text-[#031632] dark:text-[#f3f4f6]">{i.project_name || "Project"}</span>
+                      <span className="rounded bg-[#eceff2] px-2 py-0.5 font-mono text-xs font-bold text-[#30343A] dark:bg-[#222831] dark:text-[#f1f3f5]">#{i.project_id}</span>
+                      <span className="min-w-0 flex-1 truncate text-[0.9375rem] font-semibold text-[#30343A] dark:text-[#f1f3f5]">{i.project_name || "Project"}</span>
                     </div>
-                    <p className="mt-2 text-sm text-[#151c27] dark:text-gray-200"><span className="font-bold">Auditor asks:</span> {i.question}</p>
+                    <p className="mt-2 text-sm text-[#30343A] dark:text-gray-200"><span className="font-bold">Auditor asks:</span> {i.question}</p>
                     {i.status !== "open" && i.response_text && (
-                      <p className="mt-1 rounded bg-gray-50 p-2 text-sm text-[#44474d] dark:bg-[#17181c] dark:text-[#9ca3af]">
+                      <p className="mt-1 rounded bg-gray-50 p-2 text-sm text-[#69717c] dark:bg-[#222831] dark:text-[#aab3bd]">
                         <span className="font-bold">Your response ({i.responded_by_name}, {i.responded_at?.replace("T", " ").slice(0, 16)}):</span> {i.response_text}
                       </p>
                     )}
                     <div className="mt-2 flex items-center gap-2">
-                      <button onClick={() => onOpenProject?.(i.project_id)} className="rounded-lg border border-[#dcdde4] px-3 py-1.5 text-xs font-bold text-[#031632] transition hover:bg-[#f0f3ff] dark:border-[#2e2e33] dark:text-[#f3f4f6] dark:hover:bg-[#17181c]">View project</button>
+                      <button onClick={() => onOpenProject?.(i.project_id)} className="rounded-lg border border-[#dde1e5] px-3 py-1.5 text-xs font-bold text-[#30343A] transition hover:bg-[#eceff2] dark:border-[#39434E] dark:text-[#f1f3f5] dark:hover:bg-[#222831]">View project</button>
                       {i.status === "open" && (
-                        <button onClick={() => { setShowRespond(i.inquiry_id); setResponseText("") }} className="rounded-lg bg-[#031632] px-3 py-1.5 text-xs font-bold text-white transition hover:bg-[#0a2545] dark:bg-blue-600 dark:hover:bg-blue-500">
+                        <button onClick={() => { setShowRespond(i.inquiry_id); setResponseText("") }} className="rounded-lg bg-[#46566a] px-3 py-1.5 text-xs font-bold text-white transition hover:bg-[#37455a] dark:bg-blue-600 dark:hover:bg-blue-500">
                           Respond officially
                         </button>
                       )}
                     </div>
                     {showRespond === i.inquiry_id && (
-                      <div className="mt-3 rounded-lg border border-[#dcdde4] bg-[#f9f9ff] p-3 dark:border-[#2e2e33] dark:bg-[#0d0d10]">
-                        <label className="text-xs font-bold uppercase tracking-wide text-[#44474d] dark:text-[#9ca3af]">Official response / status update</label>
+                      <div className="mt-3 rounded-lg border border-[#dde1e5] bg-[#f4f5f6] p-3 dark:border-[#39434E] dark:bg-[#1c2127]">
+                        <label className="text-xs font-bold uppercase tracking-wide text-[#69717c] dark:text-[#aab3bd]">Official response / status update</label>
                         <textarea
                           value={responseText}
                           onChange={(e) => setResponseText(e.target.value)}
                           rows={3}
                           placeholder="Describe the verified ground status, actions taken, or clarifications…"
-                          className="mt-1.5 w-full rounded-lg border border-[#dcdde4] bg-white p-2 text-sm dark:border-[#2e2e33] dark:bg-[#0a0a0c] dark:text-gray-100"
+                          className="mt-1.5 w-full rounded-lg border border-[#dde1e5] bg-white p-2 text-sm dark:border-[#39434E] dark:bg-[#171b20] dark:text-gray-100"
                         />
                         <div className="mt-2 flex gap-2">
-                          <button disabled={busy || !responseText.trim()} onClick={() => respondToInquiry(i)} className="rounded-lg bg-[#031632] px-3 py-1.5 text-xs font-bold text-white disabled:opacity-50 dark:bg-blue-600">Submit response</button>
-                          <button onClick={() => setShowRespond(null)} className="rounded-lg border border-[#dcdde4] px-3 py-1.5 text-xs font-bold dark:border-[#2e2e33]">Cancel</button>
+                          <button disabled={busy || !responseText.trim()} onClick={() => respondToInquiry(i)} className="rounded-lg bg-[#46566a] px-3 py-1.5 text-xs font-bold text-white disabled:opacity-50 dark:bg-blue-600">Submit response</button>
+                          <button onClick={() => setShowRespond(null)} className="rounded-lg border border-[#dde1e5] px-3 py-1.5 text-xs font-bold dark:border-[#39434E]">Cancel</button>
                         </div>
-                        <p className="mt-1.5 text-xs text-[#44474d]/70 dark:text-[#9ca3af]/70">Your response is recorded with your identity, role, and timestamp, and becomes part of the audit trail.</p>
+                        <p className="mt-1.5 text-xs text-[#69717c]/70 dark:text-[#aab3bd]/70">Your response is recorded with your identity, role, and timestamp, and becomes part of the audit trail.</p>
                       </div>
                     )}
                   </div>
@@ -156,23 +156,23 @@ function MyDistrictInner({ onOpenProject }) {
             </div>
 
             {/* District projects */}
-            <div className="rounded-xl border border-[#dcdde4] bg-white p-4 dark:border-[#2e2e33] dark:bg-[#0a0a0c]">
-              <h3 className="mb-3 text-lg font-bold text-[#031632] dark:text-[#f3f4f6]">Projects in {summary.scope || "your area"} ({projects?.total ?? 0})</h3>
+            <div className="rounded-xl border border-[#dde1e5] bg-white p-4 dark:border-[#39434E] dark:bg-[#171b20]">
+              <h3 className="mb-3 text-lg font-bold text-[#30343A] dark:text-[#f1f3f5]">Projects in {summary.scope || "your area"} ({projects?.total ?? 0})</h3>
               {projects && projects.items.length === 0 && (
-                <p className="text-sm text-[#44474d] dark:text-[#9ca3af]">{projects.message || "No projects found in your assigned area."}</p>
+                <p className="text-sm text-[#69717c] dark:text-[#aab3bd]">{projects.message || "No projects found in your assigned area."}</p>
               )}
               <div className="space-y-2">
                 {(projects?.items || []).map((p) => (
-                  <div key={p.project_id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[#dcdde4] px-3 py-2.5 dark:border-[#2e2e33]">
+                  <div key={p.project_id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[#dde1e5] px-3 py-2.5 dark:border-[#39434E]">
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-[0.875rem] font-semibold text-[#031632] dark:text-[#f3f4f6]">#{p.project_id} {p.project_name}</p>
-                      <p className="text-xs text-[#44474d] dark:text-[#9ca3af]">
+                      <p className="truncate text-[0.875rem] font-semibold text-[#30343A] dark:text-[#f1f3f5]">#{p.project_id} {p.project_name}</p>
+                      <p className="text-xs text-[#69717c] dark:text-[#aab3bd]">
                         {p.constituency || "N/A"} · sanctioned {formatMoney(p.sanctioned_amount)} · expenditure {formatMoney(p.expenditure)} · completion {p.completion_percentage ?? "—"}%
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
                       {p.risk_level && <span className={`rounded px-2 py-0.5 text-xs font-bold ${RISK_BADGE[p.risk_level] || "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300"}`}>{p.risk_level} {p.risk_score != null ? `· ${p.risk_score}` : ""}</span>}
-                      <button onClick={() => onOpenProject?.(p.project_id)} className="rounded-lg border border-[#dcdde4] px-3 py-1.5 text-xs font-bold text-[#031632] transition hover:bg-[#f0f3ff] dark:border-[#2e2e33] dark:text-[#f3f4f6] dark:hover:bg-[#17181c]">Open</button>
+                      <button onClick={() => onOpenProject?.(p.project_id)} className="rounded-lg border border-[#dde1e5] px-3 py-1.5 text-xs font-bold text-[#30343A] transition hover:bg-[#eceff2] dark:border-[#39434E] dark:text-[#f1f3f5] dark:hover:bg-[#222831]">Open</button>
                     </div>
                   </div>
                 ))}

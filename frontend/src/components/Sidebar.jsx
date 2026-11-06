@@ -48,12 +48,12 @@ function NavRow({ icon, label, href, active, onNavigate, collapsed, badge, onCli
         transition-colors duration-200
         ${collapsed ? "justify-center" : "justify-start"}
         ${active
-          ? "bg-[#f0f3ff] text-[#031632] dark:bg-[#17181c] dark:text-white"
-          : "text-[#44474d] hover:bg-[#e2e8f8] hover:text-[#031632] dark:text-[#d1d5db] dark:hover:bg-[#17181c] dark:hover:text-white"}
+          ? "bg-[#eceff2] text-[#30343A] dark:bg-[#222831] dark:text-white"
+          : "text-[#69717c] hover:bg-[#eceff2] hover:text-[#30343A] dark:text-[#cbd2d9] dark:hover:bg-[#222831] dark:hover:text-white"}
         `}
     >
       {active && (
-        <span className="fade-in-200 absolute right-0 top-1/2 h-8 w-1 -translate-y-1/2 rounded-l bg-[#bb0011]" aria-hidden="true" />
+        <span className="fade-in-200 absolute right-0 top-1/2 h-8 w-1 -translate-y-1/2 rounded-l bg-[#46566a]" aria-hidden="true" />
       )}
       <span className={ICON_COL}>
         <IconFor icon={icon} />
@@ -83,7 +83,7 @@ function SectionHeading({ label, collapsed }) {
     <div
       className={`
         flex h-8 min-h-8 flex-none items-end pl-12 pr-3 pb-1 text-[0.625rem] font-bold uppercase tracking-wider
-        text-[#44474d]/60 dark:text-[#9ca3af]/60
+        text-[#69717c]/60 dark:text-[#aab3bd]/60
         ${collapsed ? "hidden" : ""}
       `}
     >
@@ -190,20 +190,20 @@ function Sidebar({
   if (isMobile) {
     return (
       <>
-        <aside className={`fixed left-0 top-0 z-[60] flex h-screen min-h-0 w-64 flex-col border-r border-[#dcdde4] bg-[#f9f9ff] text-[#151c27] dark:border-[#2e2e33] dark:bg-[#0a0a0c] dark:text-[#f3f4f6] transition-transform duration-300 ease-in-out px-4 ${isOpen ? "translate-x-0" : "-translate-x-full"}`}>
+        <aside className={`fixed left-0 top-0 z-[60] flex h-screen min-h-0 w-64 flex-col border-r border-[#dde1e5] bg-[#f4f5f6] text-[#30343A] dark:border-[#39434E] dark:bg-[#171b20] dark:text-[#f1f3f5] transition-transform duration-300 ease-in-out px-4 ${isOpen ? "translate-x-0" : "-translate-x-full"}`}>
           <div className="flex min-w-0 flex-none items-center gap-3 pb-4 pt-1">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#1a2b48] text-lg leading-none text-white dark:bg-[#2f2f36]">🏛</div>
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#2c3540] text-lg leading-none text-white dark:bg-[#39434E]">🏛</div>
             <div className="min-w-0 overflow-hidden">
-              <h1 className="whitespace-nowrap text-lg font-bold text-[#031632] dark:text-[#f3f4f6]">MPLADS Insight</h1>
-              <p className="whitespace-nowrap text-xs text-[#44474d] dark:text-[#9ca3af]">Auditor Portal</p>
+              <h1 className="whitespace-nowrap text-lg font-bold text-[#30343A] dark:text-[#f1f3f5]">MPLADS Insight</h1>
+              <p className="whitespace-nowrap text-xs text-[#69717c] dark:text-[#aab3bd]">Auditor Portal</p>
             </div>
           </div>
           <nav ref={navRef} className="sidebar-scroll min-h-0 flex-1 overflow-y-auto overflow-x-hidden pb-2">
             <div className="flex flex-col gap-1">
               {mainNav.map((item) => <NavRow key={item.name} icon={item.icon} label={item.name} href={item.href} active={currentPage === item.href} onNavigate={onNavigate} badge={item.badge} collapsed={collapsed} />)}
-              {auditNav.length > 0 && <div className="my-2 border-t border-[#dcdde4] dark:border-[#2e2e33]" role="separator" aria-label="Audit section" />}
+              {auditNav.length > 0 && <div className="my-2 border-t border-[#dde1e5] dark:border-[#39434E]" role="separator" aria-label="Audit section" />}
               {auditNav.map((item) => <NavRow key={item.name} icon={item.icon} label={item.name} href={item.href} active={currentPage === item.href} onNavigate={onNavigate} badge={item.badge} collapsed={collapsed} />)}
-              {vendorNav.length > 0 && <div className="my-2 border-t border-[#dcdde4] dark:border-[#2e2e33]" role="separator" aria-label="Vendor section" />}
+              {vendorNav.length > 0 && <div className="my-2 border-t border-[#dde1e5] dark:border-[#39434E]" role="separator" aria-label="Vendor section" />}
               {vendorNav.map((item) => <NavRow key={item.name} icon={item.icon} label={item.name} href={item.href} active={currentPage === item.href} onNavigate={onNavigate} badge={item.badge} collapsed={collapsed} />)}
             {workspaceNav.length > 0 && (
               <>
@@ -211,7 +211,7 @@ function Sidebar({
                 {workspaceNav.map((item) => <NavRow key={item.name} icon={item.icon} label={item.name} href={item.href} active={currentPage === item.href} onNavigate={onNavigate} collapsed={collapsed} />)}
               </>
             )}
-              <div className="mt-2 flex flex-col gap-1 border-t border-[#dcdde4] pt-2 dark:border-[#2e2e33]">
+              <div className="mt-2 flex flex-col gap-1 border-t border-[#dde1e5] pt-2 dark:border-[#39434E]">
                 {bottomNav.map((item) => <NavRow key={item.label} icon={item.icon} label={item.label} href={item.href} active={currentPage === item.href} onNavigate={onNavigate} onClick={item.label === "Support" ? onSupportClick : undefined} collapsed={collapsed} />)}
               </div>
             </div>
@@ -222,20 +222,20 @@ function Sidebar({
   }
 
   return (
-    <aside className={`fixed left-0 top-0 z-30 hidden h-screen min-h-0 flex-col border-r border-[#dcdde4] bg-[#f9f9ff] text-[#151c27] dark:border-[#2e2e33] dark:bg-[#0a0a0c] dark:text-[#f3f4f6] transition-all duration-300 ease-in-out lg:flex ${collapsed ? "w-16 px-2" : "w-60 px-4"}`}>
+    <aside className={`fixed left-0 top-0 z-30 hidden h-screen min-h-0 flex-col border-r border-[#dde1e5] bg-[#f4f5f6] text-[#30343A] dark:border-[#39434E] dark:bg-[#171b20] dark:text-[#f1f3f5] transition-all duration-300 ease-in-out lg:flex ${collapsed ? "w-16 px-2" : "w-60 px-4"}`}>
       <div className={`flex min-w-0 flex-none items-center pb-4 pt-1 ${collapsed ? "justify-center gap-0" : "gap-3"}`}>
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#1a2b48] text-lg leading-none text-white dark:bg-[#2f2f36]">🏛</div>
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#2c3540] text-lg leading-none text-white dark:bg-[#39434E]">🏛</div>
         <div className={`overflow-hidden transition-all duration-300 ${collapsed ? "w-0 opacity-0" : "w-auto opacity-100"}`}>
-          <h1 className="whitespace-nowrap text-lg font-bold text-[#031632] dark:text-[#f3f4f6]">MPLADS Insight</h1>
-          <p className="whitespace-nowrap text-xs text-[#44474d] dark:text-[#9ca3af]">Auditor Portal</p>
+          <h1 className="whitespace-nowrap text-lg font-bold text-[#30343A] dark:text-[#f1f3f5]">MPLADS Insight</h1>
+          <p className="whitespace-nowrap text-xs text-[#69717c] dark:text-[#aab3bd]">Auditor Portal</p>
         </div>
       </div>
       <nav ref={navRef} className="sidebar-scroll min-h-0 flex-1 overflow-y-auto overflow-x-hidden pb-2">
         <div className="flex flex-col gap-1">
           {mainNav.map((item) => <NavRow key={item.name} icon={item.icon} label={item.name} href={item.href} active={currentPage === item.href} onNavigate={onNavigate} badge={item.badge} collapsed={collapsed} />)}
-          <div className="my-2 border-t border-[#dcdde4] dark:border-[#2e2e33]" role="separator" aria-label="Audit section" />
+          <div className="my-2 border-t border-[#dde1e5] dark:border-[#39434E]" role="separator" aria-label="Audit section" />
           {auditNav.map((item) => <NavRow key={item.name} icon={item.icon} label={item.name} href={item.href} active={currentPage === item.href} onNavigate={onNavigate} badge={item.badge} collapsed={collapsed} />)}
-          {auditNav.length > 0 && <div className="my-2 border-t border-[#dcdde4] dark:border-[#2e2e33]" role="separator" aria-label="Vendor section" />}
+          {auditNav.length > 0 && <div className="my-2 border-t border-[#dde1e5] dark:border-[#39434E]" role="separator" aria-label="Vendor section" />}
           {vendorNav.map((item) => <NavRow key={item.name} icon={item.icon} label={item.name} href={item.href} active={currentPage === item.href} onNavigate={onNavigate} badge={item.badge} collapsed={collapsed} />)}
           {workspaceNav.length > 0 && (
             <>
@@ -243,7 +243,7 @@ function Sidebar({
               {workspaceNav.map((item) => <NavRow key={item.name} icon={item.icon} label={item.name} href={item.href} active={currentPage === item.href} onNavigate={onNavigate} collapsed={collapsed} />)}
             </>
           )}
-          <div className="mt-2 flex flex-col gap-1 border-t border-[#dcdde4] pt-2 dark:border-[#2e2e33]">
+          <div className="mt-2 flex flex-col gap-1 border-t border-[#dde1e5] pt-2 dark:border-[#39434E]">
             {bottomNav.map((item) => <NavRow key={item.label} icon={item.icon} label={item.label} href={item.href} active={currentPage === item.href} onNavigate={onNavigate} onClick={item.label === "Support" ? onSupportClick : undefined} collapsed={collapsed} />)}
           </div>
         </div>

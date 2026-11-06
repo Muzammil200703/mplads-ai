@@ -80,7 +80,7 @@ function FaqItem({ item, isOpen, onToggle }) {
       className={`rounded-lg border transition-colors duration-200 ${
         isOpen
           ? "border-blue-200 bg-blue-50/50 dark:border-blue-800/50 dark:bg-blue-950/20"
-          : "border-gray-200 bg-white hover:border-gray-300 dark:border-gray-700 dark:bg-[#17181c] dark:hover:border-gray-600"
+          : "border-gray-200 bg-white hover:border-gray-300 dark:border-gray-700 dark:bg-[#222831] dark:hover:border-gray-600"
       }`}
     >
       <button
@@ -145,11 +145,11 @@ export default function FAQ() {
   )
 
   return (
-    <div className="min-h-full bg-[#f9f9ff] p-4 sm:p-6 text-[#151c27] transition-colors duration-200 dark:bg-[#0a0a0c] dark:text-gray-100">
+    <div className="min-h-full bg-[#f4f5f6] p-4 sm:p-6 text-[#30343A] transition-colors duration-200 dark:bg-[#171b20] dark:text-gray-100">
       <div className="mx-auto max-w-3xl space-y-6">
         {/* Header */}
         <div>
-          <h2 className="text-2xl font-bold text-[#031632] dark:text-white">
+          <h2 className="text-2xl font-bold text-[#30343A] dark:text-white">
             Frequently Asked Questions
           </h2>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
