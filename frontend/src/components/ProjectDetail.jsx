@@ -277,7 +277,7 @@ function SaveProjectButton({ projectId }) {
   )
 }
 
-function ProjectDetail({ projectId, onClose }) {
+function ProjectDetail({ projectId, onClose, initialTab }) {
   const { user, hasRole, can } = useAuth()
   const [detail, setDetail] = useState(null)
   const [similar, setSimilar] = useState(null)
@@ -332,7 +332,10 @@ function ProjectDetail({ projectId, onClose }) {
     setLoading(true)
     setDetail(null)
     setSimilar(null)
-    setActiveTab("overview")
+    // Assistant tab deep-links: only allowlisted tab ids are honored; anything
+    // else falls back to the default overview tab.
+    const ALLOWED_TABS = ["overview", "financial", "risk", "forensics", "audit", "timeline", "similar", "dna"]
+    setActiveTab(ALLOWED_TABS.includes(initialTab) ? initialTab : "overview")
     setTimeline(null)
     setActivity(null)
     // The open global assistant follows this modal: switching projects
@@ -340,7 +343,6 @@ function ProjectDetail({ projectId, onClose }) {
     window.dispatchEvent(new CustomEvent("assistant-project-context", { detail: { projectId } }))
     setInvestigation(null)
     setAuditSection("evidence")
-
     Promise.all([
       getProjectDetail(projectId),
       getSimilarProjects(projectId, 5).catch(() => null),
@@ -366,7 +368,7 @@ function ProjectDetail({ projectId, onClose }) {
     }).finally(() => {
       setLoading(false)
     })
-  }, [projectId])
+  }, [projectId, initialTab])
 
   // Name for the assistant's context indicator (cosmetic; the id is what the
   // backend resolves). Fires whenever a different project's detail arrives.

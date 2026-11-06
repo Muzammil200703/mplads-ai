@@ -9,6 +9,9 @@ import {
   startInvestigation,
   updateInvestigation,
   updateEvidenceItem,
+  updateFindingReview,
+  addFindingAction,
+  getInvestigationReport,
 } from "../services/api"
 import { formatMoney } from "../utils/format"
 import { parseReasons } from "../utils/reasons"
@@ -335,13 +338,80 @@ const ITEM_STATUS_STYLE = {
   "Not Applicable": "border-gray-400 bg-gray-100 text-gray-600 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300",
 }
 
+const FINDING_STATUS_STYLE = {
+  "Open": "border-gray-300 text-gray-600 dark:border-gray-600 dark:text-gray-300",
+  "Under review": "border-blue-400 bg-blue-50 text-blue-700 dark:border-blue-700 dark:bg-blue-950/30 dark:text-blue-300",
+  "Clarification requested": "border-amber-400 bg-amber-50 text-amber-700 dark:border-amber-700 dark:bg-amber-950/30 dark:text-amber-300",
+  "Evidence received": "border-cyan-400 bg-cyan-50 text-cyan-700 dark:border-cyan-700 dark:bg-cyan-950/30 dark:text-cyan-300",
+  "Verified": "border-green-400 bg-green-50 text-green-700 dark:border-green-700 dark:bg-green-950/30 dark:text-green-300",
+  "Not substantiated": "border-slate-400 bg-slate-50 text-slate-600 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-300",
+  "Resolved": "border-emerald-400 bg-emerald-50 text-emerald-700 dark:border-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300",
+}
+
+const FINDING_CLASS_STYLE = {
+  confirmed_data_inconsistency: "bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300",
+  potential_concern: "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300",
+  missing_information: "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300",
+}
+
+const WORKSPACE_TABS = [
+  ["overview", "Overview / final review"],
+  ["dossier", "Project dossier"],
+  ["findings", "Findings"],
+  ["evidence", "Evidence"],
+  ["actions", "Actions"],
+  ["history", "History"],
+]
+
+const dateShort = (value) => value ? String(value).replace("T", " ").slice(0, 16) : "—"
+const safeUrl = (value) => /^https?:\/\//i.test(String(value || "")) ? value : null
+
+function DossierField({ label, value }) {
+  const shown = value === 0 ? "0" : (value ?? "Not available in the source dataset")
+  return (
+    <div>
+      <p className="text-[0.75rem] font-bold uppercase tracking-wider text-gray-400">{label}</p>
+      <p className="mt-0.5 text-[0.9375rem] text-gray-800 dark:text-gray-200">{shown}</p>
+    </div>
+  )
+}
+
+function EvidenceRecords({ records = [] }) {
+  if (!records.length) return <p className="text-[0.875rem] text-gray-400">No record references were returned.</p>
+  return (
+    <div className="space-y-1.5">
+      {records.map((record, index) => (
+        <div key={`${record.reference || "record"}-${index}`} className="rounded border border-gray-200 bg-gray-50 px-2.5 py-2 dark:border-gray-700 dark:bg-gray-900/40">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="rounded bg-gray-200 px-1.5 py-0.5 text-[0.7rem] font-bold uppercase text-gray-500 dark:bg-gray-700 dark:text-gray-300">{record.type || "record"}</span>
+            <code className="text-[0.8rem] font-semibold text-blue-700 dark:text-blue-300">{record.reference || "reference unavailable"}</code>
+          </div>
+          <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5">
+            {Object.entries(record.fields || {}).map(([key, value]) => (
+              <span key={key} className="text-[0.8rem] text-gray-500 dark:text-gray-400">
+                <span className="font-semibold">{key}:</span> {Array.isArray(value) ? value.join("; ") : String(value ?? "—")}
+              </span>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 export function InvestigationWorkspace({ projectId, onWorkspaceChange }) {
+  const { user, loading: authLoading, hasRole } = useAuth()
+  const canInvestigate = !!user && hasRole("analyst")
   const [ws, setWs] = useState(null)
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState("")
   const [note, setNote] = useState("")
   const [savedNote, setSavedNote] = useState(false)
+  const [tab, setTab] = useState("overview")
+  const [editingKey, setEditingKey] = useState(null)
+  const [drafts, setDrafts] = useState({})
+  const [reportBusy, setReportBusy] = useState(false)
 
   const apply = (payload) => {
     setWs(payload)
@@ -349,6 +419,11 @@ export function InvestigationWorkspace({ projectId, onWorkspaceChange }) {
   }
 
   useEffect(() => {
+    if (!canInvestigate) {
+      setLoading(false)
+      setWs(null)
+      return undefined
+    }
     let alive = true
     setLoading(true)
     setError("")
@@ -358,11 +433,11 @@ export function InvestigationWorkspace({ projectId, onWorkspaceChange }) {
         apply(data)
         setNote(data?.investigation?.note || "")
       })
-      .catch(() => alive && setError("Could not load the investigation workspace."))
+      .catch((e) => alive && setError(e?.message || "Could not load the investigation workspace."))
       .finally(() => alive && setLoading(false))
     return () => { alive = false }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projectId])
+  }, [projectId, canInvestigate])
 
   const handleStart = async () => {
     setBusy(true); setError("")
@@ -402,7 +477,90 @@ export function InvestigationWorkspace({ projectId, onWorkspaceChange }) {
     finally { setBusy(false) }
   }
 
-  if (loading) return <Spinner label="Loading investigation workspace..." />
+  const openReview = (finding) => {
+    setEditingKey(finding.key)
+    setDrafts((prev) => ({
+      ...prev,
+      [finding.key]: {
+        status: finding.review?.status || finding.status || "Open",
+        comment: finding.review?.comment || "",
+        evidence_reference: finding.review?.evidence_reference || "",
+        document_name: finding.review?.document_name || "",
+        document_url: finding.review?.document_url || "",
+        resolution: finding.review?.resolution || "",
+      },
+    }))
+  }
+
+  const setDraft = (findingKey, field, value) => {
+    setDrafts((prev) => ({
+      ...prev,
+      [findingKey]: { ...(prev[findingKey] || {}), [field]: value },
+    }))
+  }
+
+  const saveReview = async (findingKey) => {
+    setBusy(true); setError("")
+    try {
+      const draft = drafts[findingKey] || {}
+      const data = await updateFindingReview(projectId, findingKey, {
+        status: draft.status || undefined,
+        comment: draft.comment || undefined,
+        evidence_reference: draft.evidence_reference || undefined,
+        document_name: draft.document_name || undefined,
+        document_url: draft.document_url || undefined,
+        resolution: draft.resolution || undefined,
+      })
+      apply(data)
+      setEditingKey(null)
+    } catch (e) { setError(e?.message || "Could not save the finding review.") }
+    finally { setBusy(false) }
+  }
+
+  const addAction = async (findingKey) => {
+    setBusy(true); setError("")
+    try {
+      const data = await addFindingAction(projectId, findingKey)
+      apply(data)
+    } catch (e) { setError(e?.message || "Could not add the action item.") }
+    finally { setBusy(false) }
+  }
+
+  const askAssistant = () => {
+    window.dispatchEvent(new CustomEvent("assistant-project-context", { detail: { projectId } }))
+    window.dispatchEvent(new CustomEvent("assistant:open"))
+  }
+
+  const downloadReport = async () => {
+    setReportBusy(true); setError("")
+    try {
+      const report = await getInvestigationReport(projectId)
+      const blob = new Blob([report.body || ""], { type: "text/plain;charset=utf-8" })
+      const url = URL.createObjectURL(blob)
+      const anchor = document.createElement("a")
+      anchor.href = url
+      anchor.download = report.filename || `MPLADS-investigation-${projectId}.txt`
+      document.body.appendChild(anchor)
+      anchor.click()
+      anchor.remove()
+      URL.revokeObjectURL(url)
+    } catch (e) { setError(e?.message || "Could not generate the investigation report.") }
+    finally { setReportBusy(false) }
+  }
+
+  if (authLoading || loading) return <Spinner label="Loading investigation workspace..." />
+
+  if (!canInvestigate) {
+    return (
+      <Card>
+        <SectionTitle>Investigation workspace</SectionTitle>
+        <p className="text-[1rem] leading-relaxed text-gray-600 dark:text-gray-300">
+          Investigation records are restricted to signed-in Analysts, Auditors and Administrators.
+          Sign in with an authorized account to open the project dossier, evidence findings and review workflow.
+        </p>
+      </Card>
+    )
+  }
 
   const inv = ws?.investigation
 
@@ -411,9 +569,9 @@ export function InvestigationWorkspace({ projectId, onWorkspaceChange }) {
       <Card>
         <SectionTitle>AI Audit Investigation Workspace</SectionTitle>
         <p className="text-[1rem] leading-relaxed text-gray-600 dark:text-gray-300">
-          An investigation converts this project's detected anomalies into an evidence checklist that an auditor can
-          work through. The checklist items are recommended verification actions generated from the recorded values —
-          they are not allegations.
+          An investigation converts this project's detected anomalies into an evidence-linked dossier that an auditor can
+          review. The findings are generated from the recorded project, payment, risk and verification records — they are
+          not allegations.
         </p>
         {error && <p className="mt-2 text-[0.9375rem] font-semibold text-red-600 dark:text-red-400">{error}</p>}
         <button
@@ -427,8 +585,19 @@ export function InvestigationWorkspace({ projectId, onWorkspaceChange }) {
     )
   }
 
+  const dossier = ws.dossier || {}
+  const project = dossier.project || {}
+  const financial = dossier.financial || {}
+  const timeline = dossier.timeline || {}
+  const risk = dossier.risk || {}
+  const evidence = dossier.evidence || {}
+  const dq = dossier.data_quality || {}
+  const similar = dossier.similar_projects || {}
+  const findings = ws.findings || []
+  const unresolved = findings.filter((finding) => !["Verified", "Not substantiated", "Resolved"].includes(finding.status))
   const workflow = ws.workflow || []
   const progress = ws.progress_pct || 0
+  const transactions = financial.transactions || []
 
   return (
     <div className="space-y-3">
@@ -440,114 +609,424 @@ export function InvestigationWorkspace({ projectId, onWorkspaceChange }) {
 
       <Card>
         <SectionTitle
-          right={
-            <Chip className="bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300">
-              {inv.status}
-            </Chip>
-          }
+          right={<Chip className="bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300">{inv.status}</Chip>}
         >
-          Investigation status
+          Investigation workspace
         </SectionTitle>
-
-        {/* Workflow stepper */}
-        <div className="flex flex-wrap items-center gap-1.5">
-          {workflow.map((s, i) => (
-            <div key={s} className="flex items-center gap-1.5">
-              <button
-                onClick={() => handleStatus(s)}
-                disabled={busy}
-                className={`rounded-lg border px-2.5 py-1.5 text-[0.875rem] font-bold transition disabled:opacity-60 ${
-                  inv.status === s
-                    ? "border-blue-500 bg-blue-50 text-blue-700 dark:border-blue-700 dark:bg-blue-950/40 dark:text-blue-300"
-                    : "border-gray-200 text-gray-500 hover:border-gray-300 dark:border-gray-700 dark:text-gray-400"
-                }`}
-              >
-                {s}
-              </button>
-              {i < workflow.length - 1 && <span className="text-[0.8125rem] text-gray-300 dark:text-gray-600">→</span>}
-            </div>
-          ))}
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-[1.05rem] font-bold text-gray-900 dark:text-white">{project.project_name || `Project #${projectId}`}</p>
+            <p className="mt-0.5 text-[0.875rem] text-gray-500 dark:text-gray-400">
+              {[project.house, project.mp, project.constituency, project.state].filter(Boolean).join(" · ") || "Project location not recorded"}
+            </p>
+            <p className="mt-1 text-[0.8rem] text-gray-400">Investigation #{inv.id} · opened {dateShort(inv.created_at)}</p>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            <button
+              onClick={askAssistant}
+              className="rounded-lg border border-blue-300 bg-blue-50 px-3 py-1.5 text-[0.8125rem] font-bold text-blue-700 transition hover:bg-blue-100 dark:border-blue-800 dark:bg-blue-950/30 dark:text-blue-300"
+            >
+              Ask AI about this investigation
+            </button>
+            <button
+              onClick={downloadReport}
+              disabled={reportBusy}
+              className="rounded-lg border border-gray-300 px-3 py-1.5 text-[0.8125rem] font-bold text-gray-700 transition hover:bg-gray-50 disabled:opacity-50 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-800"
+            >
+              {reportBusy ? "Preparing..." : "Download preliminary report"}
+            </button>
+          </div>
         </div>
-
-        {/* Progress */}
-        <div className="mt-3">
-          <div className="flex items-center justify-between text-[0.8125rem] font-bold text-gray-400">
-            <span>Investigation progress</span>
-            <span className="font-mono">{progress}%</span>
+        <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+          <div className="rounded-lg bg-gray-50 p-2 dark:bg-gray-900/50">
+            <p className="text-[0.7rem] font-bold uppercase tracking-wider text-gray-400">Findings</p>
+            <p className="font-mono text-[1.1rem] font-bold text-gray-900 dark:text-white">{findings.length}</p>
           </div>
-          <div className="mt-1 h-2 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
-            <div className="h-full rounded-full bg-blue-600 transition-all duration-300" style={{ width: `${progress}%` }} />
+          <div className="rounded-lg bg-amber-50 p-2 dark:bg-amber-950/20">
+            <p className="text-[0.7rem] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">Unresolved</p>
+            <p className="font-mono text-[1.1rem] font-bold text-amber-700 dark:text-amber-300">{unresolved.length}</p>
           </div>
-          <p className="mt-1 text-[0.9375rem] leading-relaxed text-gray-500 dark:text-gray-400">
-            {ws.resolved_items} of {ws.total_items} checklist items resolved
-            {ws.discrepancies > 0 ? ` · ${ws.discrepancies} discrepancy note(s)` : ""}
-          </p>
+          <div className="rounded-lg bg-gray-50 p-2 dark:bg-gray-900/50">
+            <p className="text-[0.7rem] font-bold uppercase tracking-wider text-gray-400">Evidence items</p>
+            <p className="font-mono text-[1.1rem] font-bold text-gray-900 dark:text-white">{ws.pending_items ?? 0} pending</p>
+          </div>
+          <div className="rounded-lg bg-gray-50 p-2 dark:bg-gray-900/50">
+            <p className="text-[0.7rem] font-bold uppercase tracking-wider text-gray-400">Checklist progress</p>
+            <p className="font-mono text-[1.1rem] font-bold text-gray-900 dark:text-white">{progress}%</p>
+          </div>
         </div>
       </Card>
 
-      <Card>
-        <SectionTitle>Evidence checklist</SectionTitle>
-        <div className="space-y-2.5">
-          {ws.items.map((item) => (
-            <div key={item.item_key} className="rounded-lg border border-gray-200 p-2.5 dark:border-gray-700">
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <p className="text-[1rem] font-semibold text-gray-800 dark:text-gray-200">{item.label}</p>
-                  <p className="mt-0.5 text-[0.9375rem] leading-relaxed text-gray-500 dark:text-gray-400">{item.rationale}</p>
-                </div>
-                <Chip className={`flex-shrink-0 ${SEVERITY_STYLE[item.severity] || SEVERITY_STYLE.low}`}>
-                  {(item.severity || "").toUpperCase()}
-                </Chip>
-              </div>
-              <div className="mt-2 flex flex-wrap gap-1">
-                {ITEM_STATUSES.map((s) => (
+      <div className="flex gap-1 overflow-x-auto border-b border-gray-200 pb-1 dark:border-gray-700">
+        {WORKSPACE_TABS.map(([key, label]) => (
+          <button
+            key={key}
+            onClick={() => setTab(key)}
+            className={`whitespace-nowrap rounded-t-lg px-2.5 py-2 text-[0.8125rem] font-bold transition ${
+              tab === key
+                ? "bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300"
+                : "text-gray-500 hover:bg-gray-50 dark:text-gray-400 dark:hover:bg-gray-800"
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {tab === "overview" && (
+        <div className="space-y-3">
+          <Card className="border-blue-200 bg-blue-50/40 dark:border-blue-900/40 dark:bg-blue-950/10">
+            <SectionTitle right={<Chip className="bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300">PRELIMINARY</Chip>}>
+              Investigation summary
+            </SectionTitle>
+            <p className="whitespace-pre-line text-[0.9375rem] leading-relaxed text-gray-700 dark:text-gray-300">{ws.summary?.text || "Summary unavailable."}</p>
+          </Card>
+
+          <Card>
+            <SectionTitle>Final review / investigation status</SectionTitle>
+            <div className="flex flex-wrap items-center gap-1.5">
+              {workflow.map((status, index) => (
+                <div key={status} className="flex items-center gap-1.5">
                   <button
-                    key={s}
-                    onClick={() => handleItem(item.item_key, s)}
+                    onClick={() => handleStatus(status)}
                     disabled={busy}
-                    className={`rounded border px-2 py-1 text-[0.8125rem] font-bold transition disabled:opacity-60 ${
-                      item.status === s ? ITEM_STATUS_STYLE[s] : "border-gray-200 text-gray-400 hover:border-gray-300 dark:border-gray-700 dark:text-gray-500"
+                    className={`rounded-lg border px-2.5 py-1.5 text-[0.8125rem] font-bold transition disabled:opacity-60 ${
+                      inv.status === status
+                        ? "border-blue-500 bg-blue-50 text-blue-700 dark:border-blue-700 dark:bg-blue-950/40 dark:text-blue-300"
+                        : "border-gray-200 text-gray-500 hover:border-gray-300 dark:border-gray-700 dark:text-gray-400"
                     }`}
                   >
-                    {ITEM_STATUS_SHORT[s]}
+                    {status}
                   </button>
-                ))}
+                  {index < workflow.length - 1 && <span className="text-[0.8125rem] text-gray-300 dark:text-gray-600">→</span>}
+                </div>
+              ))}
+            </div>
+            <div className="mt-3">
+              <div className="flex items-center justify-between text-[0.8125rem] font-bold text-gray-400">
+                <span>Evidence checklist progress</span>
+                <span className="font-mono">{progress}%</span>
               </div>
-              <p className="mt-1 text-[0.8125rem] text-gray-400">
-                {item.category} · updated {item.updated_at ? item.updated_at.replace("T", " ").slice(0, 16) : "—"}
+              <div className="mt-1 h-2 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
+                <div className="h-full rounded-full bg-blue-600 transition-all duration-300" style={{ width: `${progress}%` }} />
+              </div>
+              <p className="mt-1 text-[0.875rem] text-gray-500 dark:text-gray-400">
+                {ws.resolved_items} of {ws.total_items} checklist items resolved · {ws.discrepancies} discrepancy note(s)
               </p>
             </div>
-          ))}
+            <label className="mt-3 block text-[0.8125rem] font-bold uppercase tracking-wider text-gray-400" htmlFor="investigation-note">Investigator note</label>
+            <textarea
+              id="investigation-note"
+              value={note}
+              onChange={(e) => { setNote(e.target.value); setSavedNote(false) }}
+              rows={3}
+              placeholder="Record verification steps, clarifications and the basis for the final review."
+              className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-[0.9375rem] text-gray-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-gray-600 dark:bg-[#0a0a0c] dark:text-white"
+            />
+            <div className="mt-2 flex items-center gap-2">
+              <button
+                onClick={handleSaveNote}
+                disabled={busy}
+                className="rounded-lg border border-gray-300 px-3 py-1.5 text-[0.8125rem] font-bold text-gray-700 transition hover:bg-gray-50 disabled:opacity-50 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-800"
+              >
+                {busy ? "Saving..." : "Save note"}
+              </button>
+              {savedNote && <span className="text-[0.8125rem] font-semibold text-green-600 dark:text-green-400">Saved</span>}
+              <span className="ml-auto font-mono text-[0.75rem] text-gray-400">Risk at start {inv.risk_score_at_start ?? "—"}</span>
+            </div>
+          </Card>
         </div>
-      </Card>
+      )}
 
-      <Card>
-        <SectionTitle>Investigation note</SectionTitle>
-        <textarea
-          value={note}
-          onChange={(e) => { setNote(e.target.value); setSavedNote(false) }}
-          rows={3}
-          placeholder="Record the verification steps taken (stored with this investigation only)."
-          className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-[1rem] text-gray-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-gray-600 dark:bg-[#0a0a0c] dark:text-white"
-        />
-        <div className="mt-2 flex items-center gap-2">
-          <button
-            onClick={handleSaveNote}
-            disabled={busy}
-            className="rounded-lg border border-gray-300 px-3 py-1.5 text-[0.875rem] font-bold text-gray-700 transition hover:bg-gray-50 disabled:opacity-50 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-800"
-          >
-            {busy ? "Saving..." : "Save note"}
-          </button>
-          {savedNote && <span className="text-[0.875rem] font-semibold text-green-600 dark:text-green-400">Saved</span>}
-          <span className="ml-auto font-mono text-[0.8125rem] text-gray-400">
-            Started {inv.created_at ? inv.created_at.replace("T", " ").slice(0, 16) : "—"} · risk at start {inv.risk_score_at_start ?? "—"}
-          </span>
+      {tab === "dossier" && (
+        <div className="space-y-3">
+          <Card>
+            <SectionTitle>Project and location</SectionTitle>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <DossierField label="Work" value={project.project_name} />
+              <DossierField label="Project ID" value={`#${project.project_id ?? projectId}`} />
+              <DossierField label="Description" value={project.description} />
+              <DossierField label="MP / House" value={[project.mp, project.house].filter(Boolean).join(" · ")} />
+              <DossierField label="State / district / constituency" value={[project.state, project.district, project.constituency].filter(Boolean).join(" · ")} />
+              <DossierField label="Category / financial year" value={[project.project_type, project.fy].filter(Boolean).join(" · ")} />
+              <DossierField label="Status / completion" value={`${project.status || "Not recorded"} · ${project.completion_percentage ?? "Not recorded"}%`} />
+              <DossierField label="Recommendation date" value={timeline.recommendation_date_display} />
+              <DossierField label="Approximate start" value={timeline.approx_start_date_display} />
+              <DossierField label="Sanction reference" value={dossier.sanction?.sanction_reference || dossier.sanction?.note} />
+            </div>
+            <p className="mt-2 text-[0.8rem] leading-relaxed text-gray-400">{project.description_note || dossier.sanction?.note}</p>
+          </Card>
+
+          <Card>
+            <SectionTitle right={<Chip className="bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{financial.transaction_count || 0} linked rows</Chip>}>
+              Financial position and complete linked expenditure
+            </SectionTitle>
+            <div className="grid gap-2 sm:grid-cols-4">
+              <DossierField label="Sanctioned" value={financial.sanctioned_display} />
+              <DossierField label="Linked expenditure" value={financial.expenditure_display} />
+              <DossierField label="Utilization" value={financial.utilization_pct != null ? `${financial.utilization_pct}%` : null} />
+              <DossierField label="Transaction sum shown" value={financial.transaction_total_display} />
+            </div>
+            {financial.reconciliation_note && <p className="mt-2 rounded bg-amber-50 p-2 text-[0.8rem] text-amber-700 dark:bg-amber-950/20 dark:text-amber-300">{financial.reconciliation_note}</p>}
+            <p className="mt-2 text-[0.8rem] text-gray-500 dark:text-gray-400">
+              Work-key linkage: {financial.work_key_rows || 1} catalogue row(s) · {financial.has_expenditure ? "payment ledger linked" : "no linked payment ledger"}.
+              {" "}Payment states: {Object.entries(financial.payment_status_summary || {}).map(([key, value]) => `${key} (${value})`).join(", ") || "not recorded"}.
+            </p>
+            <div className="mt-3 overflow-x-auto">
+              <table className="w-full min-w-[620px] text-left text-[0.8125rem]">
+                <thead className="border-b border-gray-200 text-[0.7rem] uppercase tracking-wider text-gray-400 dark:border-gray-700">
+                  <tr><th className="py-1.5 pr-2">Record</th><th className="py-1.5 pr-2">Date</th><th className="py-1.5 pr-2">Amount</th><th className="py-1.5 pr-2">Vendor</th><th className="py-1.5">Payment status</th></tr>
+                </thead>
+                <tbody>
+                  {transactions.map((tx) => (
+                    <tr key={tx.reference || tx.id} className="border-b border-gray-100 last:border-0 dark:border-gray-800">
+                      <td className="py-1.5 pr-2 font-mono text-[0.75rem] text-blue-700 dark:text-blue-300">{tx.reference || `expenditures.id=${tx.id}`}</td>
+                      <td className="py-1.5 pr-2 text-gray-600 dark:text-gray-300">{tx.date || "—"}</td>
+                      <td className="py-1.5 pr-2 font-semibold text-gray-800 dark:text-gray-200">{tx.amount_display || formatMoney(tx.amount || 0)}</td>
+                      <td className="py-1.5 pr-2 text-gray-600 dark:text-gray-300">{tx.vendor || "Not recorded"}</td>
+                      <td className="py-1.5 text-gray-600 dark:text-gray-300">{tx.payment_status || "Not recorded"}</td>
+                    </tr>
+                  ))}
+                  {!transactions.length && <tr><td colSpan={5} className="py-2 text-gray-400">No dated linked transaction rows are available.</td></tr>}
+                </tbody>
+              </table>
+            </div>
+            {financial.transactions_truncated && <p className="mt-1 text-[0.8rem] text-amber-600 dark:text-amber-400">This view is bounded to 1,000 rows; the project-level total remains the aggregate above.</p>}
+          </Card>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Card>
+              <SectionTitle>Risk and ML explanations</SectionTitle>
+              <div className="flex flex-wrap gap-2">
+                <Chip className="bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">Risk {risk.score ?? "—"}</Chip>
+                <Chip className="bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{risk.level || "Unranked"}</Chip>
+                <Chip className={risk.ml_anomaly ? SEVERITY_STYLE.medium : STATUS_STYLE.not_available}>{risk.ml_anomaly ? "ML outlier" : "No ML flag"}</Chip>
+              </div>
+              {risk.reasons?.length > 0 ? <ul className="mt-2 space-y-1 text-[0.8125rem] text-gray-600 dark:text-gray-300">{risk.reasons.map((reason, i) => <li key={i}>• {reason}</li>)}</ul> : <p className="mt-2 text-[0.8125rem] text-gray-400">No rule indicators recorded.</p>}
+              {risk.shap_explanations?.length > 0 && (
+                <div className="mt-2 border-t border-gray-100 pt-2 dark:border-gray-800">
+                  <p className="text-[0.7rem] font-bold uppercase tracking-wider text-gray-400">SHAP model factors</p>
+                  {risk.shap_explanations.slice(0, 6).map((factor, i) => <p key={i} className="text-[0.8125rem] text-gray-500 dark:text-gray-400">• {factor.label || factor.feature || "factor"}: {factor.impact ?? factor.value ?? "—"}</p>)}
+                </div>
+              )}
+            </Card>
+            <Card>
+              <SectionTitle>Vendors and similar projects</SectionTitle>
+              <p className="text-[0.8125rem] text-gray-500 dark:text-gray-400">Vendors linked to this work</p>
+              {dossier.vendors?.length > 0 ? <ul className="mt-1 space-y-1 text-[0.875rem] text-gray-700 dark:text-gray-200">{dossier.vendors.map((vendor, i) => <li key={i}>• {vendor.vendor || vendor.name || String(vendor)}</li>)}</ul> : <p className="text-[0.875rem] text-gray-400">No vendor name is recorded on the linked payment rows.</p>}
+              <p className="mt-3 text-[0.8125rem] text-gray-500 dark:text-gray-400">Peer group · {similar.peer_count ?? 0} comparable projects ({similar.scope || "state"} scope)</p>
+              {(similar.interpretations || []).slice(0, 2).map((line, i) => <p key={i} className="mt-1 text-[0.8125rem] text-amber-700 dark:text-amber-300">{line}</p>)}
+              {(similar.metrics || []).slice(0, 4).map((metric) => (
+                <p key={metric.metric} className="mt-0.5 text-[0.8rem] text-gray-500 dark:text-gray-400">
+                  {metric.label}: project {metric.project_value} {metric.unit}, peer median {metric.peer_median} {metric.unit}
+                </p>
+              ))}
+              {(similar.comparable_projects || []).slice(0, 3).map((peer) => (
+                <p key={peer.id} className="mt-1 text-[0.8rem] text-gray-600 dark:text-gray-300">
+                  #{peer.id} {peer.project_name} · {peer.constituency || "—"} · sanction {peer.sanctioned_amount != null ? formatMoney(peer.sanctioned_amount) : "—"} · risk {peer.risk_score ?? "—"}
+                </p>
+              ))}
+              {!similar.comparable_projects?.length && <p className="mt-1 text-[0.8125rem] text-gray-400">No comparable project rows were returned for this peer group.</p>}
+            </Card>
+          </div>
+
+          <Card>
+            <SectionTitle>Data quality</SectionTitle>
+            <div className="grid gap-1 sm:grid-cols-2">
+              {(dq.checks || []).slice(0, 10).map((check, i) => <p key={i} className="text-[0.8125rem] text-gray-600 dark:text-gray-300">{check.ok ? "✓" : "⚠"} {check.text}</p>)}
+            </div>
+            {dq.warnings?.length > 0 && <p className="mt-2 text-[0.8125rem] text-amber-700 dark:text-amber-300">{dq.warnings.slice(0, 4).join(" · ")}</p>}
+            <p className="mt-1 text-[0.8rem] text-gray-400">{dq.limitation || "Data-quality assessment is limited to the available fields."}</p>
+          </Card>
         </div>
-      </Card>
+      )}
 
-      <p className="text-[0.8125rem] leading-relaxed text-gray-400">
-        Checklist items and their rationale are generated from this project's recorded values and detected anomalies.
-        Marking an item "Discrepancy Found" records your finding against this case only.
+      {tab === "findings" && (
+        <Card>
+          <SectionTitle right={<Chip className="bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{unresolved.length} unresolved</Chip>}>
+            Evidence-linked findings
+          </SectionTitle>
+          <p className="mb-3 text-[0.8125rem] leading-relaxed text-gray-500 dark:text-gray-400">
+            Findings are recomputed from the current database records. A risk indicator is a review trigger; only a human reviewer can verify or close a finding.
+          </p>
+          <div className="space-y-3">
+            {findings.map((finding) => (
+              <div key={finding.key} className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="text-[1rem] font-bold text-gray-900 dark:text-white">{finding.title}</p>
+                    <div className="mt-1 flex flex-wrap gap-1">
+                      <Chip className={FINDING_CLASS_STYLE[finding.classification] || FINDING_CLASS_STYLE.missing_information}>{finding.classification_label}</Chip>
+                      <Chip className={SEVERITY_STYLE[finding.severity] || SEVERITY_STYLE.unknown}>{String(finding.severity || "unknown").toUpperCase()}</Chip>
+                      <Chip className={FINDING_STATUS_STYLE[finding.status] || FINDING_STATUS_STYLE.Open}>{finding.status}</Chip>
+                    </div>
+                  </div>
+                  <button onClick={() => openReview(finding)} disabled={busy} className="rounded-lg border border-gray-300 px-2.5 py-1 text-[0.75rem] font-bold text-gray-700 transition hover:bg-gray-50 disabled:opacity-50 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-800">
+                    Review finding
+                  </button>
+                </div>
+                <p className="mt-2 text-[0.875rem] leading-relaxed text-gray-600 dark:text-gray-300">{finding.explanation}</p>
+                <div className="mt-2 grid gap-1 text-[0.8rem] text-gray-500 dark:text-gray-400 sm:grid-cols-2">
+                  <p><span className="font-bold">Source:</span> {finding.source}</p>
+                  <p><span className="font-bold">Suggested verification:</span> {finding.suggested_action}</p>
+                  {Object.keys(finding.amounts || {}).length > 0 && <p><span className="font-bold">Amounts:</span> {Object.entries(finding.amounts).map(([k, v]) => `${k}: ${typeof v === "number" ? formatMoney(v) : v}`).join(" · ")}</p>}
+                  {Object.keys(finding.dates || {}).length > 0 && <p><span className="font-bold">Dates:</span> {Object.entries(finding.dates).map(([k, v]) => `${k}: ${v || "—"}`).join(" · ")}</p>}
+                </div>
+                {finding.limitations?.length > 0 && <p className="mt-1 text-[0.8rem] leading-relaxed text-amber-700 dark:text-amber-300">Limitations: {finding.limitations.join(" ")}</p>}
+                <details className="mt-2 rounded border border-gray-200 bg-gray-50 p-2 dark:border-gray-700 dark:bg-gray-900/40">
+                  <summary className="cursor-pointer text-[0.8rem] font-bold text-gray-600 dark:text-gray-300">Supporting records ({finding.evidence?.records?.length || 0})</summary>
+                  <div className="mt-2"><EvidenceRecords records={finding.evidence?.records || []} /></div>
+                </details>
+                {finding.review?.reviewer_name && <p className="mt-1 text-[0.75rem] text-gray-400">Last reviewed by {finding.review.reviewer_name} · {dateShort(finding.review.updated_at)}</p>}
+                {(finding.review?.comment || finding.review?.evidence_reference || finding.review?.document_name || finding.review?.resolution) && (
+                  <div className="mt-1 rounded border border-gray-100 bg-gray-50 p-2 text-[0.8rem] text-gray-600 dark:border-gray-800 dark:bg-gray-900/40 dark:text-gray-300">
+                    {finding.review?.comment && <p><span className="font-bold">Review comment:</span> {finding.review.comment}</p>}
+                    {finding.review?.evidence_reference && <p><span className="font-bold">Evidence reference:</span> {finding.review.evidence_reference}</p>}
+                    {finding.review?.document_name && <p><span className="font-bold">Document:</span> {finding.review.document_name}{safeUrl(finding.review.document_url) ? <> · <a href={safeUrl(finding.review.document_url)} target="_blank" rel="noreferrer" className="text-blue-700 underline dark:text-blue-300">open</a></> : null}</p>}
+                    {finding.review?.resolution && <p><span className="font-bold">Resolution:</span> {finding.review.resolution}</p>}
+                  </div>
+                )}
+                {editingKey === finding.key && (
+                  <div className="mt-2 rounded-lg border border-blue-200 bg-blue-50/40 p-2 dark:border-blue-900/40 dark:bg-blue-950/10">
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      <label className="text-[0.75rem] font-bold uppercase tracking-wider text-gray-400">Review status
+                        <select value={drafts[finding.key]?.status || "Open"} onChange={(e) => setDraft(finding.key, "status", e.target.value)} className="mt-1 w-full rounded border border-gray-300 bg-white px-2 py-1.5 text-[0.8125rem] font-normal normal-case text-gray-800 dark:border-gray-600 dark:bg-[#0a0a0c] dark:text-gray-200">
+                          {(ws.finding_status_options || []).map((status) => <option key={status} value={status}>{status}</option>)}
+                        </select>
+                      </label>
+                      <label className="text-[0.75rem] font-bold uppercase tracking-wider text-gray-400">Evidence reference
+                        <input value={drafts[finding.key]?.evidence_reference || ""} onChange={(e) => setDraft(finding.key, "evidence_reference", e.target.value)} placeholder="e.g. verification_reports.id=..." className="mt-1 w-full rounded border border-gray-300 bg-white px-2 py-1.5 text-[0.8125rem] font-normal normal-case text-gray-800 dark:border-gray-600 dark:bg-[#0a0a0c] dark:text-gray-200" />
+                      </label>
+                    </div>
+                    <label className="mt-2 block text-[0.75rem] font-bold uppercase tracking-wider text-gray-400">Review comment
+                      <textarea value={drafts[finding.key]?.comment || ""} onChange={(e) => setDraft(finding.key, "comment", e.target.value)} rows={2} className="mt-1 w-full rounded border border-gray-300 bg-white px-2 py-1.5 text-[0.8125rem] font-normal normal-case text-gray-800 dark:border-gray-600 dark:bg-[#0a0a0c] dark:text-gray-200" />
+                    </label>
+                    <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                      <label className="text-[0.75rem] font-bold uppercase tracking-wider text-gray-400">Supporting document name
+                        <input value={drafts[finding.key]?.document_name || ""} onChange={(e) => setDraft(finding.key, "document_name", e.target.value)} placeholder="Measurement book / clarification letter" className="mt-1 w-full rounded border border-gray-300 bg-white px-2 py-1.5 text-[0.8125rem] font-normal normal-case text-gray-800 dark:border-gray-600 dark:bg-[#0a0a0c] dark:text-gray-200" />
+                      </label>
+                      <label className="text-[0.75rem] font-bold uppercase tracking-wider text-gray-400">Document URL
+                        <input value={drafts[finding.key]?.document_url || ""} onChange={(e) => setDraft(finding.key, "document_url", e.target.value)} placeholder="https://..." className="mt-1 w-full rounded border border-gray-300 bg-white px-2 py-1.5 text-[0.8125rem] font-normal normal-case text-gray-800 dark:border-gray-600 dark:bg-[#0a0a0c] dark:text-gray-200" />
+                      </label>
+                    </div>
+                    <label className="mt-2 block text-[0.75rem] font-bold uppercase tracking-wider text-gray-400">Resolution explanation (required for Verified / Not substantiated / Resolved)
+                      <textarea value={drafts[finding.key]?.resolution || ""} onChange={(e) => setDraft(finding.key, "resolution", e.target.value)} rows={2} className="mt-1 w-full rounded border border-gray-300 bg-white px-2 py-1.5 text-[0.8125rem] font-normal normal-case text-gray-800 dark:border-gray-600 dark:bg-[#0a0a0c] dark:text-gray-200" />
+                    </label>
+                    <div className="mt-2 flex gap-1.5">
+                      <button onClick={() => saveReview(finding.key)} disabled={busy} className="rounded bg-blue-600 px-3 py-1.5 text-[0.75rem] font-bold text-white disabled:opacity-50">{busy ? "Saving..." : "Save review"}</button>
+                      <button onClick={() => setEditingKey(null)} disabled={busy} className="rounded border border-gray-300 px-3 py-1.5 text-[0.75rem] font-bold text-gray-600 dark:border-gray-600 dark:text-gray-300">Cancel</button>
+                    </div>
+                  </div>
+                )}
+                {!finding.recommendations?.length && (
+                  <button onClick={() => addAction(finding.key)} disabled={busy || (ws.recommendations || []).find((r) => r.finding_key === finding.key)?.added} className="mt-2 rounded border border-gray-300 px-2.5 py-1 text-[0.75rem] font-bold text-gray-600 transition hover:bg-gray-50 disabled:opacity-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800">
+                    {(ws.recommendations || []).find((r) => r.finding_key === finding.key)?.added ? "Added as action item" : "Add suggested action"}
+                  </button>
+                )}
+              </div>
+            ))}
+            {!findings.length && <p className="text-[0.9375rem] text-gray-500">No findings were generated from the current records.</p>}
+          </div>
+        </Card>
+      )}
+
+      {tab === "evidence" && (
+        <div className="space-y-3">
+          <Card>
+            <SectionTitle right={<Chip className="bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{ws.total_items || 0} items</Chip>}>
+              Evidence checklist and action items
+            </SectionTitle>
+            <div className="space-y-2.5">
+              {(ws.items || []).map((item) => (
+                <div key={item.item_key} className="rounded-lg border border-gray-200 p-2.5 dark:border-gray-700">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="text-[0.9375rem] font-semibold text-gray-800 dark:text-gray-200">{item.label}</p>
+                      <p className="mt-0.5 text-[0.875rem] leading-relaxed text-gray-500 dark:text-gray-400">{item.rationale}</p>
+                    </div>
+                    <Chip className={`flex-shrink-0 ${SEVERITY_STYLE[item.severity] || SEVERITY_STYLE.low}`}>{(item.severity || "").toUpperCase()}</Chip>
+                  </div>
+                  <div className="mt-2 flex flex-wrap gap-1">
+                    {ITEM_STATUSES.map((status) => (
+                      <button key={status} onClick={() => handleItem(item.item_key, status)} disabled={busy} className={`rounded border px-2 py-1 text-[0.75rem] font-bold transition disabled:opacity-60 ${item.status === status ? ITEM_STATUS_STYLE[status] : "border-gray-200 text-gray-400 hover:border-gray-300 dark:border-gray-700 dark:text-gray-500"}`}>
+                        {ITEM_STATUS_SHORT[status]}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="mt-1 text-[0.75rem] text-gray-400">{item.category} · updated {dateShort(item.updated_at)}</p>
+                </div>
+              ))}
+            </div>
+          </Card>
+          <Card>
+            <SectionTitle>Ground evidence and documents</SectionTitle>
+            <div className="grid gap-2 sm:grid-cols-3">
+              <DossierField label="Verification reports" value={evidence.verification_count ?? 0} />
+              <DossierField label="Photo records" value={evidence.photo_records ?? 0} />
+              <DossierField label="Documents" value={(evidence.documents || []).length} />
+            </div>
+            {evidence.verification_reports?.length > 0 ? (
+              <div className="mt-3 space-y-2">
+                {evidence.verification_reports.map((report) => (
+                  <div key={report.id} className="rounded border border-gray-200 p-2 text-[0.8125rem] dark:border-gray-700">
+                    <p className="font-bold text-gray-700 dark:text-gray-200">{report.reference} · {dateShort(report.date)} · {report.status || report.review_status || "recorded"}</p>
+                    <p className="text-gray-600 dark:text-gray-300">{report.note || "No note recorded."}</p>
+                    <p className="text-gray-400">Reporter: {report.reporter_name || "not recorded"} · photo: {report.photo_hash_id || "none"}</p>
+                  </div>
+                ))}
+              </div>
+            ) : <p className="mt-2 text-[0.875rem] text-amber-700 dark:text-amber-300">No ground-verification reports are linked to this project.</p>}
+            <p className="mt-2 text-[0.8rem] leading-relaxed text-gray-400">{evidence.document_note || "No project-level document store is available in the source dataset."}</p>
+          </Card>
+        </div>
+      )}
+
+      {tab === "actions" && (
+        <Card>
+          <SectionTitle right={<Chip className="bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{ws.recommendations?.length || 0} recommendations</Chip>}>
+            Intelligent recommendations
+          </SectionTitle>
+          <p className="mb-3 text-[0.8125rem] leading-relaxed text-gray-500 dark:text-gray-400">
+            Each recommendation explains the finding behind it. Adding one creates a pending checklist action item; it does not execute any external action.
+          </p>
+          <div className="space-y-2">
+            {(ws.recommendations || []).map((recommendation) => (
+              <div key={recommendation.key} className="rounded-lg border border-gray-200 p-2.5 dark:border-gray-700">
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="text-[0.9375rem] font-bold text-gray-800 dark:text-gray-200">{recommendation.title}</p>
+                    <p className="mt-0.5 text-[0.8rem] text-gray-400">From: {recommendation.finding_title} · {recommendation.severity} priority</p>
+                  </div>
+                  <button onClick={() => addAction(recommendation.finding_key)} disabled={busy || recommendation.added} className="rounded border border-gray-300 px-2.5 py-1 text-[0.75rem] font-bold text-gray-600 transition hover:bg-gray-50 disabled:opacity-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800">
+                    {recommendation.added ? "Action item added" : "Add as action item"}
+                  </button>
+                </div>
+                <p className="mt-1 text-[0.8125rem] leading-relaxed text-gray-500 dark:text-gray-400">Why: {recommendation.why}</p>
+              </div>
+            ))}
+            {!ws.recommendations?.length && <p className="text-[0.9375rem] text-gray-500">No recommendations are currently generated.</p>}
+          </div>
+        </Card>
+      )}
+
+      {tab === "history" && (
+        <Card>
+          <SectionTitle>Investigation history</SectionTitle>
+          <div className="space-y-2">
+            {(ws.history || []).map((event, index) => (
+              <div key={event.id ?? `legacy-${index}`} className="border-l-2 border-gray-200 pl-2.5 dark:border-gray-700">
+                <p className="text-[0.875rem] font-bold text-gray-700 dark:text-gray-200">{event.label || event.event}</p>
+                <p className="text-[0.8rem] text-gray-500 dark:text-gray-400">{event.detail}</p>
+                <p className="text-[0.75rem] text-gray-400">{dateShort(event.created_at)} · {event.actor_name || "System"} ({event.actor_role || "system"})</p>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
+
+      <p className="text-[0.75rem] leading-relaxed text-gray-400">
+        Preliminary analysis from recorded data. Risk-model and rule indicators are review triggers, not confirmed allegations.
+        The assistant cannot change investigation records; only an authorized reviewer can set finding status.
       </p>
     </div>
   )

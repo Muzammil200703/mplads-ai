@@ -204,6 +204,7 @@ const RiskCenter = memo(function RiskCenter({ drillDownParams, onClearDrillDown,
     if (drillDownParams) {
       if (drillDownParams.risk_level) setFilterSeverity(drillDownParams.risk_level)
       if (drillDownParams.state) setFilterState(drillDownParams.state)
+      if (drillDownParams.house) setFilterHouse(drillDownParams.house)
       setCurrentPage(1)
       if (onClearDrillDown) onClearDrillDown()
     }

@@ -15,6 +15,7 @@ import json
 
 from database import engine, Base, SessionLocal
 import models
+import auth
 
 # SIH 26102 — AI Audit & Verification endpoints (new capability; mounts
 # alongside existing routes, modifies nothing)
@@ -25,6 +26,7 @@ import audit_intel
 import metrics as metrics_svc
 import metrics
 import mp_intelligence as mp_intel
+import state_geo
 import rec_info as rec_info_mod
 from schemas import ProjectCreate
 from ml.predictor import predict_risk
@@ -224,7 +226,7 @@ def _check_stale_progress(project, linked_expenditure: Optional[float] = None):
 # Python payload retained ~40-60MB of heap. It lives in a disk-backed SQLite
 # cache table instead (see _vendor_cache_* helpers), so filtering, sorting
 # and pagination run in SQL and the process retains nothing between requests.
-_CACHE_MAX_ENTRIES = 80
+_CACHE_MAX_ENTRIES = 200
 _cache: Dict[str, Any] = {}
 _cache_ttl: Dict[str, float] = {}
 # Vendor intelligence is derived from a single O(N) pass plus a per-work-key
@@ -258,6 +260,28 @@ def set_cached(key: str, value: Any):
     _cache[key] = value
     _cache_ttl[key] = time.time()
 
+# Single-flight guard for expensive cached builds. Without it, N concurrent
+# requests that all miss the same cache key each run the full aggregate (the
+# measured state-intelligence build is multi-second), then all write the same
+# value. Stripe locks keep the lock table bounded.
+_build_locks = [threading.Lock() for _ in range(64)]
+
+
+def cached_build(key: str, ttl_seconds: int, builder):
+    """Return the cached value, or build it exactly once across threads."""
+    cached = get_cached(key, ttl_seconds)
+    if cached is not None:
+        return cached
+    lock = _build_locks[hash(key) % len(_build_locks)]
+    with lock:
+        cached = get_cached(key, ttl_seconds)
+        if cached is not None:
+            return cached
+        value = builder()
+        set_cached(key, value)
+        return value
+
+
 def clear_cache(prefix: Optional[str] = None):
     global _cache, _cache_ttl
     with _match_cache_lock:
@@ -275,6 +299,13 @@ def clear_cache(prefix: Optional[str] = None):
     try:
         import ai_audit_api
         ai_audit_api.invalidate_benchmark_index()
+    except Exception:
+        pass
+    # Dataset/model changed: release cached SHAP attributions so repeated
+    # explanations are recomputed against the current inputs.
+    try:
+        from ml.predictor import clear_shap_cache
+        clear_shap_cache()
     except Exception:
         pass
     if prefix:
@@ -315,6 +346,20 @@ async def lifespan(app: FastAPI):
         conn.execute(text("CREATE INDEX IF NOT EXISTS idx_risk_level ON risk_scores(risk_level);"))
         conn.execute(text("CREATE INDEX IF NOT EXISTS idx_risk_score ON risk_scores(risk_score);"))
         conn.execute(text("CREATE INDEX IF NOT EXISTS idx_risk_ml ON risk_scores(ml_anomaly);"))
+        # Aggregate-path indexes justified by measured query plans:
+        #  • completed_works had no state index, so the per-state completion
+        #    rollup scanned all 43k rows and built a temp B-tree.
+        #  • state_linked_map groups project_rec_info by work_key; this
+        #    covering index answers it from the index (no temp B-tree, no row
+        #    lookups) and also backs rec_info's key lookups.
+        #  • house-filtered dashboards scan projects/expenditures by house.
+        conn.execute(text("CREATE INDEX IF NOT EXISTS idx_comp_state ON completed_works(state);"))
+        conn.execute(text(
+            "CREATE INDEX IF NOT EXISTS idx_pri_workkey_cover "
+            "ON project_rec_info(work_key, linked_expenditure, work_key_expenditure, project_id);"
+        ))
+        conn.execute(text("CREATE INDEX IF NOT EXISTS idx_exp_house_state ON expenditures(house, state);"))
+        conn.execute(text("CREATE INDEX IF NOT EXISTS idx_proj_house_fy ON projects(house, fy);"))
         # MP summary indexes for name-based search
         conn.execute(text("CREATE INDEX IF NOT EXISTS idx_mp_name ON mp_summaries(mp_name);"))
         conn.execute(text("CREATE INDEX IF NOT EXISTS idx_mp_const_state ON mp_summaries(constituency, state);"))
@@ -407,6 +452,10 @@ app = FastAPI(
 # cost anomaly, vendor network, /verify portal, audit actions)
 app.include_router(ai_audit_router)
 app.include_router(forensic_router)
+
+# Admin data management — CSV upload / validation / import / history.
+from admin_data_api import router as admin_data_router
+app.include_router(admin_data_router)
 
 # Universal MPLADS AI Assistant (role-aware Q&A over live data + knowledge base)
 app.include_router(assistant_router)
@@ -1422,6 +1471,347 @@ def dashboard_states(
             "unattributed_expenditure": round(spent - work_verified, 2),
         })
 
+    set_cached(cache_key, result)
+    return result
+
+
+@app.get("/dashboard/state-map", tags=["Dashboard"])
+def dashboard_state_map(
+    fy: Optional[str] = Query(None, description="Filter by financial year"),
+    house: Optional[str] = Query(None, description="House: 'Lok Sabha', 'Rajya Sabha', or omitted for All"),
+    db: Session = Depends(get_db),
+):
+    """State-level aggregates for the Overview India choropleth.
+
+    One row per state/UT (all 36 are returned so the map can distinguish a
+    recorded zero from an unavailable value). Metrics reuse the project
+    catalog (projects, sanctioned amount, recorded completion status), the
+    payment ledger (expenditure; every payment row counted once) and the
+    stored risk_scores table (high-risk count). No project-level rows are
+    sent to the browser.
+
+    State labels are normalised through state_geo.py and returned with their
+    ISO 3166-2 code; the frontend joins that code to the boundary GeoJSON.
+    Records whose state label cannot be matched (including NULL/blank) are
+    returned separately instead of being silently dropped.
+    """
+    house_norm = house if house in ("Lok Sabha", "Rajya Sabha") else None
+    cache_key = f"state_map_{fy or 'all'}_{house_norm or 'all'}"
+    cached = get_cached(cache_key, ttl_seconds=120)
+    if cached is not None:
+        return cached
+
+    def _bucket(raw_state):
+        key = (raw_state or "").strip() or "Unknown"
+        bucket = buckets.get(key)
+        if bucket is None:
+            bucket = {
+                "raw": key,
+                "total_projects": 0,
+                "completed_projects": 0,
+                "ongoing_projects": 0,
+                "sanctioned_amount": 0.0,
+                "completion_sum": 0.0,
+                "has_projects": False,
+                "total_expenditure": 0.0,
+                "transactions": 0,
+                "has_expenditure": False,
+                "high_risk_projects": 0,
+                "risk_scored_projects": 0,
+            }
+            buckets[key] = bucket
+        return bucket
+
+    buckets: Dict[str, Dict[str, Any]] = {}
+
+    # 1. Project catalog — one grouped query. COUNT(id) counts catalog rows
+    # once; the completed CASE is over the same rows (no join fan-out).
+    project_q = db.query(
+        models.Project.state.label("state"),
+        func.count(models.Project.id).label("total_projects"),
+        func.sum(case(
+            (func.lower(models.Project.status) == "completed", 1), else_=0
+        )).label("completed_projects"),
+        func.sum(case(
+            (func.lower(models.Project.status) == "ongoing", 1), else_=0
+        )).label("ongoing_projects"),
+        func.coalesce(
+            func.sum(models.Project.sanctioned_amount), 0.0
+        ).label("sanctioned_amount"),
+        func.coalesce(
+            func.sum(models.Project.completion_percentage), 0.0
+        ).label("completion_sum"),
+    )
+    if fy:
+        project_q = project_q.filter(models.Project.fy == fy)
+    if house_norm:
+        project_q = project_q.filter(models.Project.house == house_norm)
+    for row in project_q.group_by(models.Project.state).all():
+        bucket = _bucket(row.state)
+        bucket["total_projects"] += int(row.total_projects or 0)
+        bucket["completed_projects"] += int(row.completed_projects or 0)
+        bucket["ongoing_projects"] += int(row.ongoing_projects or 0)
+        bucket["sanctioned_amount"] += float(row.sanctioned_amount or 0.0)
+        bucket["completion_sum"] += float(row.completion_sum or 0.0)
+        bucket["has_projects"] = True
+
+    # 2. Payment ledger — the authoritative expenditure source. Grouped by
+    # the ledger's own state label and scoped by its own house column; each
+    # payment row appears once in exactly one group.
+    ledger_by_state = metrics_svc.state_ledger_map(
+        db, fy=fy, house=house_norm
+    )
+    for raw_state, values in ledger_by_state.items():
+        bucket = _bucket(raw_state)
+        bucket["total_expenditure"] += float(values.get("expenditure") or 0.0)
+        bucket["transactions"] += int(values.get("transactions") or 0)
+        bucket["has_expenditure"] = True
+
+    # 3. Stored risk results — reuse the existing risk_scores table. The
+    # join is one-to-one on project_id, so project counts cannot fan out.
+    risk_q = (
+        db.query(
+            models.Project.state.label("state"),
+            func.count(models.RiskScore.id).label("scored"),
+            func.sum(case(
+                (func.lower(models.RiskScore.risk_level) == "high", 1),
+                else_=0,
+            )).label("high_risk"),
+        )
+        .join(
+            models.RiskScore,
+            models.RiskScore.project_id == models.Project.id,
+        )
+    )
+    if fy:
+        risk_q = risk_q.filter(models.Project.fy == fy)
+    if house_norm:
+        risk_q = risk_q.filter(models.Project.house == house_norm)
+    for row in risk_q.group_by(models.Project.state).all():
+        bucket = _bucket(row.state)
+        bucket["risk_scored_projects"] += int(row.scored or 0)
+        bucket["high_risk_projects"] += int(row.high_risk or 0)
+
+    # 4. Which states have ever appeared in the expenditure ledger? A state
+    # that is absent from the ledger entirely has an UNKNOWN spend, while a
+    # state present in the ledger but with no rows in the selected FY/house
+    # has a genuine recorded zero.
+    ledger_codes = set()
+    for (raw_state,) in (
+        db.query(models.Expenditure.state)
+        .filter(
+            models.Expenditure.state.isnot(None),
+            models.Expenditure.state != "",
+        )
+        .distinct()
+        .all()
+    ):
+        code, _ = state_geo.normalize_state_label(raw_state)
+        if code:
+            ledger_codes.add(code)
+
+    states_by_code: Dict[str, Dict[str, Any]] = {}
+    for entry in state_geo.STATE_REGISTRY:
+        code = str(entry["code"])
+        states_by_code[code] = {
+            "state_code": code,
+            "state": str(entry["name"]),
+            "display_name": str(entry["name"]),
+            "drill_state": str(entry["name"]),
+            "_drill_projects": -1,
+            "total_projects": 0,
+            "completed_projects": 0,
+            "ongoing_projects": 0,
+            "sanctioned_amount": 0.0,
+            "completion_sum": 0.0,
+            "average_completion_percentage": None,
+            "completion_rate_percentage": None,
+            "has_projects": False,
+            "total_expenditure": 0.0,
+            "transactions": 0,
+            "has_expenditure": False,
+            "high_risk_projects": 0,
+            "risk_scored_projects": 0,
+            "has_risk_scores": False,
+        }
+
+    unmatched = []
+    for raw_state, bucket in buckets.items():
+        code, canonical = state_geo.normalize_state_label(raw_state)
+        if not code:
+            unmatched.append({
+                "state": raw_state,
+                "reason": (
+                    "missing_state"
+                    if raw_state == "Unknown"
+                    else "unmatched_state_name"
+                ),
+                "total_projects": (
+                    int(bucket["total_projects"])
+                    if bucket["has_projects"] else None
+                ),
+                "total_expenditure": (
+                    round(float(bucket["total_expenditure"]), 2)
+                    if bucket["has_expenditure"] else None
+                ),
+                "completed_projects": (
+                    int(bucket["completed_projects"])
+                    if bucket["has_projects"] else None
+                ),
+                "high_risk_projects": (
+                    int(bucket["high_risk_projects"])
+                    if bucket["risk_scored_projects"] else None
+                ),
+                "risk_scored_projects": int(bucket["risk_scored_projects"]),
+            })
+            continue
+
+        state = states_by_code[code]
+        state["total_projects"] += int(bucket["total_projects"])
+        state["completed_projects"] += int(bucket["completed_projects"])
+        state["ongoing_projects"] += int(bucket["ongoing_projects"])
+        state["sanctioned_amount"] += float(bucket["sanctioned_amount"])
+        state["completion_sum"] += float(bucket["completion_sum"])
+        state["total_expenditure"] += float(bucket["total_expenditure"])
+        state["transactions"] += int(bucket["transactions"])
+        state["high_risk_projects"] += int(bucket["high_risk_projects"])
+        state["risk_scored_projects"] += int(bucket["risk_scored_projects"])
+        state["has_projects"] = state["has_projects"] or bucket["has_projects"]
+        state["has_expenditure"] = (
+            state["has_expenditure"] or bucket["has_expenditure"]
+        )
+        # Prefer the recorded spelling that represents the most catalog rows
+        # so State Intelligence's existing state filter receives a label that
+        # actually exists in its table.
+        if raw_state != "Unknown" and (
+            state["_drill_projects"] < 0
+            or bucket["total_projects"] > state["_drill_projects"]
+        ):
+            state["drill_state"] = raw_state
+            state["_drill_projects"] = int(bucket["total_projects"])
+
+    for code, state in states_by_code.items():
+        # A state present anywhere in the payment ledger gets a real zero
+        # when the selected scope has no payments; a state never present in
+        # the ledger keeps NULL (unavailable), never a fabricated zero.
+        if code in ledger_codes:
+            state["has_expenditure"] = True
+        state["has_risk_scores"] = state["risk_scored_projects"] > 0
+
+        completion_sum = float(state.pop("completion_sum", 0.0))
+        if state["has_projects"]:
+            state["total_projects"] = int(state["total_projects"])
+            state["completed_projects"] = int(state["completed_projects"])
+            state["ongoing_projects"] = int(state["ongoing_projects"])
+            state["sanctioned_amount"] = round(
+                float(state["sanctioned_amount"]), 2
+            )
+            state["average_completion_percentage"] = round(
+                completion_sum / state["total_projects"], 2
+            ) if state["total_projects"] else None
+            state["completion_rate_percentage"] = round(
+                state["completed_projects"] / state["total_projects"] * 100.0, 2
+            ) if state["total_projects"] else None
+        else:
+            state["total_projects"] = None
+            state["completed_projects"] = None
+            state["ongoing_projects"] = None
+            state["completion_rate_percentage"] = None
+            state["sanctioned_amount"] = None
+
+        if state["has_expenditure"]:
+            state["total_expenditure"] = round(
+                float(state["total_expenditure"]), 2
+            )
+        else:
+            state["total_expenditure"] = None
+            state["transactions"] = 0
+
+        state["high_risk_projects"] = (
+            int(state["high_risk_projects"])
+            if state["has_risk_scores"] else None
+        )
+        state["risk_coverage_percentage"] = (
+            round(
+                state["risk_scored_projects"] / state["total_projects"] * 100.0,
+                2,
+            )
+            if state["has_projects"] and state["total_projects"]
+            else None
+        )
+
+        if (
+            state["has_projects"]
+            and state["has_expenditure"]
+            and state["sanctioned_amount"]
+            and state["sanctioned_amount"] > 0
+        ):
+            state["fund_utilization_percentage"] = round(
+                float(state["total_expenditure"])
+                / float(state["sanctioned_amount"])
+                * 100.0,
+                2,
+            )
+        else:
+            state["fund_utilization_percentage"] = None
+
+        state["has_data"] = bool(
+            state["has_projects"]
+            or state["has_expenditure"]
+            or state["has_risk_scores"]
+        )
+        state.pop("_drill_projects", None)
+
+    unmatched.sort(
+        key=lambda item: (item["total_projects"] or 0), reverse=True
+    )
+    states = list(states_by_code.values())
+
+    result = {
+        "scope": {
+            "fy": fy or "All",
+            "house": house_norm or "All",
+        },
+        "metric_definitions": {
+            "total_projects": (
+                "Works in the project catalog grouped by their recorded "
+                "state label."
+            ),
+            "total_expenditure": (
+                "Every payment in the expenditure ledger grouped by the "
+                "ledger's recorded state label; each payment counted once."
+            ),
+            "fund_utilization": (
+                "Ledger expenditure as a share of catalog sanctioned "
+                "amount. Values above 100% reflect ledger payments that "
+                "cannot be uniquely attributed to individual catalog works."
+            ),
+            "completed_projects": (
+                "Project-catalog works whose recorded status is Completed."
+            ),
+            "high_risk_projects": (
+                "Project-catalog works with a stored High risk level from "
+                "the existing risk engine."
+            ),
+        },
+        "states": states,
+        "unmatched": unmatched,
+        "meta": {
+            "states_total": len(states),
+            "states_with_data": sum(1 for s in states if s["has_data"]),
+            "unmatched_labels": [u["state"] for u in unmatched],
+            "unmatched_project_records": sum(
+                int(u["total_projects"] or 0) for u in unmatched
+            ),
+            "unmatched_expenditure": round(sum(
+                float(u["total_expenditure"] or 0.0) for u in unmatched
+            ), 2),
+            "note": (
+                "State-level aggregates from recorded state labels; "
+                "not GPS-based project locations."
+            ),
+        },
+    }
     set_cached(cache_key, result)
     return result
 
@@ -2560,6 +2950,17 @@ def get_vendor_intelligence(
         sort_field = "vendor_type"
     direction = "ASC" if str(sort_dir).lower() == "asc" else "DESC"
 
+    # Identical list/query/sort/page requests are common while an analyst
+    # scrolls or reopens the view. Cache the rendered page (bounded by the
+    # shared response cache; cleared on every data mutation).
+    cache_key = (
+        f"vendor_intelligence_{needle}_{vendor_type or ''}_"
+        f"{sort_field}_{direction}_{skip}_{limit}"
+    )
+    cached = get_cached(cache_key, ttl_seconds=120)
+    if cached is not None:
+        return cached
+
     total_vendors = int(db.execute(text(
         f"SELECT COUNT(*) FROM {_vendor_cache_table} {where_sql}"
     ), params).scalar() or 0)
@@ -2628,7 +3029,7 @@ def get_vendor_intelligence(
         "top10_share": round(float(srow["top10"]), 2),
     }
 
-    return {
+    result = {
         "data_source": "Current MPLADS expenditure dataset",
         "generated_from": ["projects", "expenditures", "risk_scores"],
         "normalization": "Vendor names use basic case, space, and punctuation normalization only; raw names are retained.",
@@ -2647,6 +3048,8 @@ def get_vendor_intelligence(
         "limit": limit,
         "vendors": vendors,
     }
+    set_cached(cache_key, result)
+    return result
 
 
 @app.get("/vendor-intelligence/{vendor_key}", tags=["Vendor Intelligence"])
@@ -3251,13 +3654,24 @@ def state_intelligence(
     house: Optional[str] = Query(None, description="House: 'Lok Sabha', 'Rajya Sabha', or omitted for All"),
     db: Session = Depends(get_db)
 ):
-    """Return detailed analytics for all states."""
+    """Return detailed analytics for all states.
+
+    Single-flight cached: several analysts opening dashboards at once wait for
+    ONE build instead of each running the multi-second aggregate. TTL is long
+    but clear_cache() runs on every data mutation, so results cannot go stale
+    after an import.
+    """
     house_norm = house if house in ("Lok Sabha", "Rajya Sabha") else None
     cache_key = f"state_intelligence_{fy or 'all'}_{house_norm or 'all'}"
-    cached = get_cached(cache_key, ttl_seconds=120)
-    if cached is not None:
-        return cached
+    return cached_build(
+        cache_key,
+        600,
+        lambda: _compute_state_intelligence(db, fy, house_norm),
+    )
 
+
+def _compute_state_intelligence(db: Session, fy: Optional[str], house_norm: Optional[str]):
+    """Build the state-intelligence payload (uncached, DB-facing)."""
     base_q = db.query(models.Project).filter(models.Project.state.isnot(None), models.Project.state != "")
     if fy:
         base_q = base_q.filter(models.Project.fy == fy)
@@ -3308,6 +3722,8 @@ def state_intelligence(
 
     result = []
     for row in rows:
+        code, canonical = state_geo.normalize_state_label(row.state)
+        total_projects = int(row.total_projects)
         sanctioned = float(row.total_sanctioned)
         spent = float(ledger_by_state.get(row.state, {}).get("expenditure", 0.0))
         utilization = (spent / sanctioned * 100) if sanctioned > 0 else 0.0
@@ -3315,11 +3731,19 @@ def state_intelligence(
         lk = linked_by_state.get(row.state, {})
         linked_total = float(lk.get("linked_total", 0.0))
         work_verified = float(lk.get("work_verified_total", 0.0))
+        risk_scored = int(risk.high_risk_count) if risk else 0
         result.append({
             "state": row.state,
-            "total_projects": int(row.total_projects),
+            "state_code": code,
+            "canonical_state": canonical,
+            "display_name": canonical if code else row.state,
+            "drill_state": row.state,
+            "total_projects": total_projects,
             "completed_projects": int(row.completed_projects),
             "ongoing_projects": int(row.ongoing_projects),
+            "completion_rate_percentage": round(
+                int(row.completed_projects) / total_projects * 100.0, 2
+            ) if total_projects else None,
             "total_sanctioned_amount": sanctioned,
             "total_expenditure": spent,
             "utilization_percentage": round(utilization, 2),
@@ -3327,6 +3751,10 @@ def state_intelligence(
             "high_risk_projects": int(risk.high_count) if risk else 0,
             "medium_risk_projects": int(risk.medium_count) if risk else 0,
             "ml_anomaly_projects": int(risk.ml_anomaly_count) if risk else 0,
+            "risk_scored_projects": risk_scored,
+            "risk_coverage_percentage": round(
+                risk_scored / total_projects * 100.0, 2
+            ) if total_projects else None,
             "project_linked_expenditure": linked_total,
             "work_verified_expenditure": work_verified,
             "projects_with_linked_expenditure": int(lk.get("linked_rows", 0)),
@@ -3341,7 +3769,6 @@ def state_intelligence(
             ),
         })
 
-    set_cached(cache_key, result)
     return result
 
 
@@ -3622,6 +4049,15 @@ class EvidenceItemUpdateRequest(BaseModel):
     status: str
 
 
+class FindingReviewRequest(BaseModel):
+    status: Optional[str] = Field(None, max_length=40)
+    comment: Optional[str] = Field(None, max_length=4000)
+    evidence_reference: Optional[str] = Field(None, max_length=4000)
+    document_name: Optional[str] = Field(None, max_length=240)
+    document_url: Optional[str] = Field(None, max_length=2000)
+    resolution: Optional[str] = Field(None, max_length=4000)
+
+
 # =========================================================
 # DETERMINISTIC-RESPONSE CACHE
 # The audit-intel endpoints below are pure functions of the static
@@ -3631,7 +4067,10 @@ class EvidenceItemUpdateRequest(BaseModel):
 # =========================================================
 _intel_cache: Dict[str, Any] = {}
 _intel_cache_lock = threading.Lock()
-_INTEL_CACHE_MAX = 4096
+# Audit dossiers are large (evidence + findings + history). 4096 entries could
+# retain hundreds of MB of response objects in a 512MB-class process; 512 still
+# covers every project an analyst re-opens in a session while bounding growth.
+_INTEL_CACHE_MAX = 512
 
 
 def _intel_cache_get(key: str):
@@ -3812,6 +4251,7 @@ def get_audit_case(
 def list_active_investigations(
     limit: int = Query(200, ge=1, le=1000),
     db: Session = Depends(get_db),
+    current: models.User = Depends(auth.require_role("analyst")),
 ):
     """List audit investigations in progress (workflow state only)."""
     return audit_intel.active_investigations(db, limit=limit)
@@ -3821,6 +4261,7 @@ def list_active_investigations(
 def get_project_investigation(
     project_id: int = Path(..., description="Project ID"),
     db: Session = Depends(get_db),
+    current: models.User = Depends(auth.require_role("analyst")),
 ):
     """Return the investigation workspace for a project, or a null investigation."""
     project = _project_or_404(db, project_id)
@@ -3847,6 +4288,7 @@ def get_project_investigation(
 def start_project_investigation(
     project_id: int = Path(..., description="Project ID"),
     db: Session = Depends(get_db),
+    current: models.User = Depends(auth.require_role("analyst")),
 ):
     """
     Start (or reopen) the audit investigation workspace for a project.
@@ -3855,7 +4297,7 @@ def start_project_investigation(
     project's data. Items are recommended verification actions, not allegations.
     """
     project = _project_or_404(db, project_id)
-    return audit_intel.start_investigation(db, project)
+    return audit_intel.start_investigation(db, project, actor=current)
 
 
 @app.patch("/investigations/{project_id}", tags=["Investigations"])
@@ -3863,12 +4305,13 @@ def patch_project_investigation(
     project_id: int = Path(..., description="Project ID"),
     payload: InvestigationUpdateRequest = None,
     db: Session = Depends(get_db),
+    current: models.User = Depends(auth.require_role("analyst")),
 ):
     """Update investigation workflow status and/or note."""
     project = _project_or_404(db, project_id)
     payload = payload or InvestigationUpdateRequest()
     try:
-        return audit_intel.update_investigation(db, project, payload.status, payload.note)
+        return audit_intel.update_investigation(db, project, payload.status, payload.note, actor=current)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
 
@@ -3879,6 +4322,7 @@ def patch_investigation_item(
     item_key: str = Path(..., description="Checklist item key"),
     payload: EvidenceItemUpdateRequest = None,
     db: Session = Depends(get_db),
+    current: models.User = Depends(auth.require_role("analyst")),
 ):
     """Mark one checklist item Pending / Verified / Discrepancy Found / Not Applicable."""
     project = _project_or_404(db, project_id)
@@ -3887,9 +4331,74 @@ def patch_investigation_item(
     if len(item_key) > 80:
         raise HTTPException(status_code=400, detail="item_key is too long")
     try:
-        return audit_intel.update_evidence_item(db, project, item_key, payload.status)
+        return audit_intel.update_evidence_item(db, project, item_key, payload.status, actor=current)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
+
+
+@app.patch("/investigations/{project_id}/findings/{finding_key}", tags=["Investigations"])
+def patch_investigation_finding(
+    project_id: int = Path(..., description="Project ID"),
+    finding_key: str = Path(..., description="Evidence-linked finding key"),
+    payload: FindingReviewRequest = None,
+    db: Session = Depends(get_db),
+    current: models.User = Depends(auth.require_role("analyst")),
+):
+    """Record a reviewer decision for one generated finding.
+
+    The finding itself is recomputed from live records; only this human review
+    decision is persisted. A reduced risk score never changes this status.
+    """
+    project = _project_or_404(db, project_id)
+    payload = payload or FindingReviewRequest()
+    if len(finding_key) > 80:
+        raise HTTPException(status_code=400, detail="finding_key is too long")
+    if all(value is None for value in (
+        payload.status, payload.comment, payload.evidence_reference,
+        payload.document_name, payload.document_url, payload.resolution,
+    )):
+        raise HTTPException(status_code=400, detail="Provide a review change")
+    try:
+        return audit_intel.update_finding_review(
+            db, project, finding_key, actor=current,
+            status_value=payload.status, comment=payload.comment,
+            evidence_reference=payload.evidence_reference,
+            document_name=payload.document_name, document_url=payload.document_url,
+            resolution=payload.resolution,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+@app.post("/investigations/{project_id}/findings/{finding_key}/action", tags=["Investigations"])
+def add_investigation_finding_action(
+    project_id: int = Path(..., description="Project ID"),
+    finding_key: str = Path(..., description="Evidence-linked finding key"),
+    db: Session = Depends(get_db),
+    current: models.User = Depends(auth.require_role("analyst")),
+):
+    """Convert a finding recommendation into an existing checklist action item."""
+    project = _project_or_404(db, project_id)
+    if len(finding_key) > 80:
+        raise HTTPException(status_code=400, detail="finding_key is too long")
+    try:
+        return audit_intel.add_recommendation_action(db, project, finding_key, actor=current)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+@app.get("/investigations/{project_id}/report", tags=["Investigations"])
+def get_investigation_report(
+    project_id: int = Path(..., description="Project ID"),
+    db: Session = Depends(get_db),
+    current: models.User = Depends(auth.require_role("analyst")),
+):
+    """Generate a downloadable preliminary investigation report from live records."""
+    project = _project_or_404(db, project_id)
+    try:
+        return audit_intel.compose_investigation_report(db, project)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
 
 
 # =========================================================
@@ -5170,19 +5679,24 @@ def get_benchmarking(
     state: Optional[str] = Query(None, description="State to benchmark"),
     constituency: Optional[str] = Query(None, description="Constituency to benchmark"),
     fy: Optional[str] = Query(None, description="Financial year filter"),
+    house: Optional[str] = Query(None, description="House: 'Lok Sabha', 'Rajya Sabha', or omitted for All"),
     db: Session = Depends(get_db),
 ):
     """Return benchmarking comparison for a state/constituency against national or state averages."""
     if not state and not constituency:
         raise HTTPException(status_code=400, detail="Provide at least a state or constituency")
 
-    cache_key = f"benchmark_{state or ''}_{constituency or ''}_{fy or 'all'}"
+    house_norm = house if house in ("Lok Sabha", "Rajya Sabha") else None
+    cache_key = (
+        f"benchmark_{state or ''}_{constituency or ''}_{fy or 'all'}_"
+        f"{house_norm or 'all'}"
+    )
     cached = get_cached(cache_key, ttl_seconds=120)
     if cached is not None:
         return cached
 
     # --- National average (authoritative: ledger expenditure via metrics_svc) ---
-    nat_stats = metrics_svc.portfolio_stats(db, fy=fy)
+    nat_stats = metrics_svc.portfolio_stats(db, fy=fy, house=house_norm)
 
     nat_sanctioned = float(nat_stats["sanctioned"])
     nat_expenditure = float(nat_stats["expenditure"])
@@ -5202,8 +5716,14 @@ def get_benchmarking(
         func.sum(case((models.RiskScore.risk_level.ilike("high"), 1), else_=0)).label("high_risk"),
         func.coalesce(func.avg(models.RiskScore.risk_score), 0).label("avg_risk_score"),
     )
+    if fy or house_norm:
+        nat_risk_q = nat_risk_q.join(
+            models.Project, models.RiskScore.project_id == models.Project.id
+        )
     if fy:
-        nat_risk_q = nat_risk_q.join(models.Project, models.RiskScore.project_id == models.Project.id).filter(models.Project.fy == fy)
+        nat_risk_q = nat_risk_q.filter(models.Project.fy == fy)
+    if house_norm:
+        nat_risk_q = nat_risk_q.filter(models.Project.house == house_norm)
     nat_risk = nat_risk_q.one()
     national["high_risk_projects"] = int(nat_risk.high_risk or 0)
     national["avg_risk_score"] = round(float(nat_risk.avg_risk_score), 1)
@@ -5216,13 +5736,17 @@ def get_benchmarking(
         state_row = (
             db.query(models.Project.state)
             .filter(models.Project.constituency == constituency, models.Project.state.isnot(None))
-            .first()
         )
+        if house_norm:
+            state_row = state_row.filter(models.Project.house == house_norm)
+        state_row = state_row.first()
         if state_row:
             state_name = state_row[0]
 
     if state_name:
-        s_stats = metrics_svc.portfolio_stats(db, fy=fy, state=state_name)
+        s_stats = metrics_svc.portfolio_stats(
+            db, fy=fy, state=state_name, house=house_norm
+        )
         s_sanctioned = float(s_stats["sanctioned"])
         s_expenditure = float(s_stats["expenditure"])
         state_stats = {
@@ -5246,6 +5770,8 @@ def get_benchmarking(
         )
         if fy:
             sr_q = sr_q.filter(models.Project.fy == fy)
+        if house_norm:
+            sr_q = sr_q.filter(models.Project.house == house_norm)
         sr = sr_q.one()
         state_stats["high_risk_projects"] = int(sr.high_risk or 0)
         state_stats["avg_risk_score"] = round(float(sr.avg_risk_score), 1)
@@ -5259,6 +5785,8 @@ def get_benchmarking(
         )
         if fy:
             cq = cq.filter(models.Project.fy == fy)
+        if house_norm:
+            cq = cq.filter(models.Project.house == house_norm)
         c_stats = cq.with_entities(
             func.count(models.Project.id).label("total"),
             func.coalesce(func.avg(models.Project.completion_percentage), 0).label("avg_completion"),
@@ -5269,7 +5797,9 @@ def get_benchmarking(
         # Ledger expenditure for this constituency: the ledgers carry their own
         # (state, constituency) pair, verified to exist in the catalog 1:1.
         # Pair-keyed because shared labels (e.g. 'Sitting Rajya Sabha') span states.
-        led_cons = metrics_svc.constituency_ledger_map(db, fy=fy).get(
+        led_cons = metrics_svc.constituency_ledger_map(
+            db, fy=fy, house=house_norm
+        ).get(
             ((state_name or "").strip(), (constituency or "").strip()), {}
         )
         c_sanctioned = float(c_stats.total_sanctioned)
@@ -5294,6 +5824,8 @@ def get_benchmarking(
         )
         if fy:
             cr_q = cr_q.filter(models.Project.fy == fy)
+        if house_norm:
+            cr_q = cr_q.filter(models.Project.house == house_norm)
         cr = cr_q.one()
         cons_stats["high_risk_projects"] = int(cr.high_risk or 0)
         cons_stats["avg_risk_score"] = round(float(cr.avg_risk_score), 1)
@@ -5357,6 +5889,7 @@ def get_benchmarking(
         "state": state_name,
         "constituency": constituency,
         "fy": fy,
+        "house": house_norm or "All",
         "national": national,
         "state_stats": state_stats,
         "constituency_stats": cons_stats,

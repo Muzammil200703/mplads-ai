@@ -103,11 +103,95 @@ function AnswerBody({ text }) {
             ? <strong key={j} className="font-bold">{part.slice(2, -2)}</strong>
             : part
         )
+        if (line.trim().startsWith("### ")) {
+          return <p key={i} className="mt-1 text-[0.8125rem] font-bold leading-snug">{line.slice(4)}</p>
+        }
         if (line.trim().startsWith("•")) {
           return <p key={i} className="pl-2 text-[0.8125rem] leading-snug">{bolded}</p>
         }
         return <p key={i} className="text-[0.8125rem] leading-snug">{bolded}</p>
       })}
+    </div>
+  )
+}
+
+/* Structured payload from Assistant 2.0. Kept visually subordinate to the
+   narrative answer: a compact table first, then findings, then actions the
+   user can take. Every string comes from the backend; nothing is derived in
+   the browser. */
+function StructuredBlocks({ data }) {
+  if (!data) return null
+  const table = data.table
+  const findings = Array.isArray(data.findings) ? data.findings : []
+  const recommendations = Array.isArray(data.recommendations) ? data.recommendations : []
+  const limitations = Array.isArray(data.limitations) ? data.limitations : []
+  const hasRows = table && Array.isArray(table.columns) && table.columns.length > 0
+  if (!hasRows && findings.length === 0 && recommendations.length === 0 && limitations.length === 0) return null
+  return (
+    <div className="mt-3 space-y-3">
+      {hasRows && (
+        <div className="overflow-hidden rounded-lg border border-[#dcdde4] dark:border-[#2e2e33]">
+          <div className="max-h-[260px] overflow-auto">
+            <table className="min-w-full border-collapse text-left text-[0.6875rem]">
+              <thead className="sticky top-0 bg-[#f0f3ff] dark:bg-[#0d0d10]">
+                <tr>{table.columns.map((c, i) => <th key={i} className="whitespace-nowrap border-b border-[#dcdde4] px-2 py-1.5 font-bold dark:border-[#2e2e33]">{c}</th>)}</tr>
+              </thead>
+              <tbody>
+                {(table.rows || []).map((row, i) => (
+                  <tr key={i} className="odd:bg-white even:bg-[#f9f9ff] dark:odd:bg-[#17181c] dark:even:bg-[#121216]">
+                    {(row || []).map((cell, j) => <td key={j} className="whitespace-nowrap border-b border-[#eef0f4] px-2 py-1.5 align-top dark:border-[#2e2e33]">{cell}</td>)}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {table.caption && <p className="bg-[#f9f9ff] px-2 py-1 text-[0.625rem] text-[#44474d] dark:bg-[#0d0d10] dark:text-[#9ca3af]">{table.caption}</p>}
+        </div>
+      )}
+
+      {findings.length > 0 && (
+        <section>
+          <p className="mb-1 text-[0.6563rem] font-bold uppercase tracking-wide text-[#44474d] dark:text-[#9ca3af]">Findings</p>
+          <div className="space-y-1.5">
+            {findings.map((f, i) => (
+              <div key={i} className="rounded-lg border border-[#dcdde4] bg-white p-2 dark:border-[#2e2e33] dark:bg-[#0a0a0c]">
+                <div className="flex items-start justify-between gap-2">
+                  <p className="text-[0.75rem] font-semibold">{f.title}</p>
+                  <span className="shrink-0 rounded-full bg-[#f0f3ff] px-1.5 py-0.5 text-[0.5938rem] font-bold uppercase text-[#031632] dark:bg-[#17181c] dark:text-gray-200">{f.kind || "note"}</span>
+                </div>
+                <p className="mt-0.5 text-[0.6875rem] leading-snug text-[#44474d] dark:text-[#9ca3af]">{f.detail}</p>
+                {f.evidence && <p className="mt-1 text-[0.625rem] text-[#44474d] dark:text-[#9ca3af]">Source: {f.evidence}</p>}
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {recommendations.length > 0 && (
+        <section>
+          <p className="mb-1 text-[0.6563rem] font-bold uppercase tracking-wide text-[#44474d] dark:text-[#9ca3af]">Recommended next steps</p>
+          <div className="space-y-1.5">
+            {recommendations.map((r, i) => (
+              <div key={i} className="rounded-lg border border-[#dcdde4] bg-white p-2 dark:border-[#2e2e33] dark:bg-[#0a0a0c]">
+                <p className="text-[0.75rem] font-semibold">{r.category} — {r.title}</p>
+                <p className="mt-0.5 text-[0.6875rem] leading-snug"><span className="font-semibold">Why:</span> {r.why}</p>
+                <p className="mt-0.5 text-[0.6875rem] leading-snug"><span className="font-semibold">Record:</span> {r.evidence}</p>
+                <p className="mt-0.5 text-[0.6875rem] leading-snug"><span className="font-semibold">Missing:</span> {r.missing}</p>
+                <p className="mt-0.5 text-[0.6875rem] leading-snug"><span className="font-semibold">Action:</span> {r.action}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {limitations.length > 0 && (
+        <section className="rounded-lg bg-[#f9f9ff] p-2 dark:bg-[#0d0d10]">
+          <p className="mb-0.5 text-[0.6563rem] font-bold uppercase tracking-wide text-[#44474d] dark:text-[#9ca3af]">Limitations</p>
+          <ul className="list-disc space-y-0.5 pl-4 text-[0.6563rem] leading-snug text-[#44474d] dark:text-[#9ca3af]">
+            {limitations.map((item, i) => <li key={i}>{item}</li>)}
+          </ul>
+        </section>
+      )}
     </div>
   )
 }
@@ -122,6 +206,7 @@ export default function AssistantWidget({
   onExecuteAction,
   open: controlledOpen,
   onOpenChange,
+  contextState,
 }) {
   const { user } = useAuth()
 
@@ -325,12 +410,32 @@ export default function AssistantWidget({
         const status = onExecuteAction(a)
         exec.push({ label: a.label, status })
       }
-      setMessages((m) => [...m, { role: "assistant", text: res.answer, actions: res.actions || [], exec, ts: Date.now() }])
-      if (exec.some((e) => e.status === "ok")) {
+      setMessages((m) => [...m, {
+        role: "assistant", text: res.answer, actions: res.actions || [], exec,
+        structured: {
+          table: res.table || null,
+          findings: res.findings || [],
+          recommendations: res.recommendations || [],
+          limitations: res.limitations || [],
+          intent: res.intent || "help",
+        },
+        ts: Date.now(),
+      }])
+      // Auto-navigation should reveal the page, but an analytical answer must
+      // stay on screen. Close only for short navigation-only responses.
+      const navigationOnly = (res.actions || []).every((a) => a.action === "navigate")
+        && !res.table && !(res.findings || []).length && !(res.recommendations || []).length
+        && String(res.answer || "").length < 420
+      if (exec.some((e) => e.status === "ok") && navigationOnly) {
         setTimeout(() => setOpen(false), 900)
       }
     } catch {
-      setMessages((m) => [...m, { role: "assistant", text: "The assistant is temporarily unavailable. Please try again in a moment.", ts: Date.now() }])
+      setMessages((m) => [...m, {
+        role: "assistant",
+        text: "The assistant is temporarily unavailable. Please try again in a moment.",
+        retry: question,
+        ts: Date.now(),
+      }])
     } finally {
       setBusy(false)
       // Persist once the exchange completes (covers quick close-after-send).
@@ -363,8 +468,11 @@ export default function AssistantWidget({
     setMessages([])
     setSuggestions(ROLE_SUGGESTIONS[roleKey] || ROLE_SUGGESTIONS.guest)
     sessionRef.current = newSessionId()
-    convMetaRef.current = { ts: Date.now(), projectId: contextProjectId || null }
+    // New Chat re-anchors to the CURRENT page context (drawer MP/state) and
+    // drops the discussed-project memory — multi-turn stays but the old
+    // conversation's subject doesn't leak across chats.
     setLastProjectId(contextProjectId || null)
+    convMetaRef.current = { ts: Date.now(), projectId: contextProjectId || null }
     setShowHistory(false)
     setInput("")
     setTimeout(() => inputRef.current?.focus(), 60)
@@ -395,7 +503,21 @@ export default function AssistantWidget({
 
   const ph = contextProjectId
     ? "Ask anything about this project…"
-    : "Ask anything about MPLADS…"
+    : contextMpId
+      ? "Ask anything about this MP…"
+      : contextState
+        ? "Ask anything about this state…"
+        : "Ask anything about MPLADS…"
+
+  // Context chip: what the assistant currently "sees" — project drawer, MP
+  // detail, named state (State Intelligence), or the plain page.
+  const contextChip = contextProjectId
+    ? `📁 Project #${contextProjectId}${contextProjectName ? ` — ${contextProjectName}` : ""}`
+    : contextMpId
+      ? `👤 MP context active`
+      : contextState
+        ? `🗺 State: ${contextState}`
+        : null
 
   return (
     <>
@@ -493,9 +615,18 @@ export default function AssistantWidget({
             {messages.length === 0 && !showHistory && (
               <div className="rounded-xl bg-[#f0f3ff] p-4 text-[0.8125rem] leading-snug text-[#031632] dark:bg-[#17181c] dark:text-[#f3f4f6]">
                 {contextProjectId
-                  ? `Project context loaded (#${contextProjectId}). Ask me anything about this project — its risk, spending, timeline, vendor or peers.`
-                  : "Namaste 🙏 I can answer questions about MPLADS, guide you through this portal, and — depending on your role — pull up live project, risk, vendor and verification data. All answers come from real portal data; nothing is invented."}
+                  ? `Project context loaded (#${contextProjectId}). Ask me anything about this project — its risk, spending, timeline, vendor, peers, data quality — or say "generate an audit brief".`
+                  : contextMpId
+                    ? "MP context loaded. Ask about this MP's works, spending, completion rate — or any portfolio question."
+                    : contextState
+                      ? `State context loaded (${contextState}). Ask for a summary, its projects, or its high-risk works.`
+                      : "Namaste 🙏 I can answer questions about MPLADS, guide you through this portal, and — depending on your role — pull up live project, risk, vendor and verification data. All answers come from real portal data; nothing is invented."}
               </div>
+            )}
+            {messages.length === 0 && !showHistory && contextChip && (
+              <p className="px-1 text-[0.6875rem] font-semibold uppercase tracking-wide text-[#44474d] dark:text-[#9ca3af]">
+                {contextChip}
+              </p>
             )}
             {messages.length === 0 && !showHistory && contextHelp && (
               <button
@@ -524,6 +655,15 @@ export default function AssistantWidget({
                 <div key={i} className="flex justify-start">
                   <div className="rise-in max-w-[92%] rounded-2xl rounded-bl-md border border-[#dcdde4] bg-[#f9f9ff] px-3.5 py-2.5 text-[#151c27] dark:border-[#2e2e33] dark:bg-[#17181c] dark:text-gray-100">
                     <AnswerBody text={m.text} />
+                    <StructuredBlocks data={m.structured} />
+                    {m.retry && !busy && (
+                      <button
+                        onClick={() => send(m.retry)}
+                        className="mt-2 rounded-full border border-[#031632] px-2.5 py-1 text-[0.6875rem] font-bold text-[#031632] hover:bg-[#f0f3ff] dark:border-blue-500 dark:text-blue-300 dark:hover:bg-[#0d0d10]"
+                      >
+                        Retry
+                      </button>
+                    )}
                     {m.actions?.length > 0 && (
                       <div className="mt-2 flex flex-wrap gap-1.5 border-t border-[#dcdde4] pt-2 dark:border-[#2e2e33]">
                         {m.actions.map((a, j) => {

@@ -13,3 +13,6 @@ __pycache__/
 # Temporary DB backups (local safety copies only — never commit; the live
 # backend/mplads.db is intentionally tracked via Git LFS)
 *backup*.db
+
+# Admin CSV import staging (uploaded files are never committed)
+backend/data/imports/

@@ -40,7 +40,7 @@ import threading
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
-from sqlalchemy import case, func
+from sqlalchemy import case, func, text
 from sqlalchemy.orm import Session
 
 import models
@@ -85,6 +85,25 @@ PEER_PCT_MEDIUM = 15.0
 
 INVESTIGATION_STATUSES = ("New", "Evidence Required", "Under Review", "Resolved")
 EVIDENCE_STATUSES = ("Pending", "Verified", "Discrepancy Found", "Not Applicable")
+
+# Human-reviewed finding states. These are deliberately separate from the
+# investigation-level workflow: a finding can remain unresolved even if the
+# underlying risk score later falls.
+FINDING_REVIEW_STATUSES = (
+    "Open",
+    "Under review",
+    "Clarification requested",
+    "Evidence received",
+    "Verified",
+    "Not substantiated",
+    "Resolved",
+)
+FINAL_FINDING_STATUSES = {"Verified", "Not substantiated", "Resolved"}
+FINDING_CLASSIFICATIONS = {
+    "confirmed_data_inconsistency": "Confirmed data inconsistency",
+    "potential_concern": "Potential concern",
+    "missing_information": "Missing information",
+}
 
 CASE_ID_PREFIX = "MPLADS-AUD"
 
@@ -1692,6 +1711,884 @@ def build_escalation_draft(case: Dict[str, Any]) -> Dict[str, Any]:
 
 # ═══════════════ investigation workspace persistence ═══════════════
 
+# The dossier/finding layer below is read-only. It derives everything from
+# the same projects / project_rec_info / expenditures / risk_scores /
+# verification_reports records already used by the rest of the platform, and
+# stores only human review state. No project value is copied into a review row.
+
+_HISTORY_LABELS = {
+    "investigation_started": "Investigation started",
+    "status_changed": "Investigation status changed",
+    "note_updated": "Investigation note updated",
+    "checklist_updated": "Evidence checklist item updated",
+    "finding_reviewed": "Finding review updated",
+    "action_added": "Recommendation converted to action item",
+}
+
+
+def _actor_triplet(actor) -> tuple:
+    """Identity comes from the authenticated user, never from request JSON."""
+    if actor is None:
+        return None, "System", "system"
+    return (
+        getattr(actor, "id", None),
+        getattr(actor, "name", None) or getattr(actor, "email", None) or "Authorized user",
+        getattr(actor, "role", None) or "unknown",
+    )
+
+
+def _record_history(db: Session, investigation: models.AuditInvestigation, event: str, actor=None, detail: str = "") -> None:
+    uid, name, role = _actor_triplet(actor)
+    db.add(models.InvestigationHistory(
+        investigation_id=investigation.id,
+        event=event,
+        actor_user_id=uid,
+        actor_name=name,
+        actor_role=role,
+        detail=(detail or "")[:4000],
+        created_at=_now_iso(),
+    ))
+
+
+def _history_payload(db: Session, investigation: models.AuditInvestigation) -> List[Dict[str, Any]]:
+    rows = (
+        db.query(models.InvestigationHistory)
+        .filter(models.InvestigationHistory.investigation_id == investigation.id)
+        .order_by(models.InvestigationHistory.created_at.desc(), models.InvestigationHistory.id.desc())
+        .limit(100)
+        .all()
+    )
+    if not rows:
+        # Legacy investigations predate the append-only log. Show the real
+        # creation timestamp without pretending an actor exists.
+        return [{
+            "id": None,
+            "event": "investigation_started",
+            "label": _HISTORY_LABELS["investigation_started"],
+            "detail": "Workflow record created from the recorded project data.",
+            "actor_name": "System",
+            "actor_role": "system",
+            "created_at": investigation.created_at,
+        }]
+    return [{
+        "id": row.id,
+        "event": row.event,
+        "label": _HISTORY_LABELS.get(row.event, row.event.replace("_", " ").title()),
+        "detail": row.detail or "",
+        "actor_name": row.actor_name or "Authorized user",
+        "actor_role": row.actor_role or "",
+        "created_at": row.created_at,
+    } for row in rows]
+
+
+def _review_map(db: Session, investigation_id: int) -> Dict[str, models.InvestigationFindingReview]:
+    rows = (
+        db.query(models.InvestigationFindingReview)
+        .filter(models.InvestigationFindingReview.investigation_id == investigation_id)
+        .all()
+    )
+    return {row.finding_key: row for row in rows}
+
+
+def _review_payload(row: Optional[models.InvestigationFindingReview]) -> Dict[str, Any]:
+    if row is None:
+        return {
+            "status": "Open",
+            "comment": "",
+            "evidence_reference": "",
+            "document_name": "",
+            "document_url": "",
+            "resolution": "",
+            "reviewer_name": "",
+            "reviewer_role": "",
+            "updated_at": None,
+            "status_options": list(FINDING_REVIEW_STATUSES),
+        }
+    return {
+        "status": row.status,
+        "comment": row.comment or "",
+        "evidence_reference": row.evidence_reference or "",
+        "document_name": row.document_name or "",
+        "document_url": row.document_url or "",
+        "resolution": row.resolution or "",
+        "reviewer_name": row.reviewer_name or "",
+        "reviewer_role": row.reviewer_role or "",
+        "updated_at": row.updated_at,
+        "status_options": list(FINDING_REVIEW_STATUSES),
+    }
+
+
+def _linked_transactions(db: Session, project) -> Dict[str, Any]:
+    """Bounded project-level ledger history using the existing work-key join.
+
+    This is the exact linkage behind project_rec_info.linked_expenditure; the
+    house condition only prevents an explicitly House-tagged row from being
+    mixed with a different House. Legacy NULL-house rows remain visible.
+    """
+    rec = (
+        db.query(models.ProjectRecInfo)
+        .filter(models.ProjectRecInfo.project_id == project.id)
+        .first()
+    )
+    if rec is None:
+        return {
+            "transactions": [],
+            "transaction_count": 0,
+            "transaction_total": 0.0,
+            "transaction_total_display": rupees(0),
+            "linked_expenditure": 0.0,
+            "linked_expenditure_display": rupees(0),
+            "truncated": False,
+            "has_expenditure": False,
+        }
+    from database import normkey
+    params = {
+        "d": normkey(project.project_name or ""),
+        "c": normkey(project.constituency or ""),
+        "s": normkey(project.state or ""),
+        "house": project.house or "",
+    }
+    rows = db.execute(text("""
+        SELECT id, vendor, expenditure_amount, expenditure_date, payment_status,
+               work_description, constituency, state, mp_name, house, ida
+        FROM expenditures
+        WHERE normkey(work_description) = :d
+          AND normkey(constituency) = :c
+          AND normkey(state) = :s
+          AND (:house = '' OR house IS NULL OR house = :house)
+        ORDER BY (expenditure_date IS NULL), expenditure_date ASC, id ASC
+        LIMIT 1001
+    """), params).mappings().all()
+    truncated = len(rows) > 1000
+    rows = rows[:1000]
+    transactions = []
+    payment_status: Dict[str, int] = {}
+    for row in rows:
+        status = (row["payment_status"] or "Not recorded").strip()
+        payment_status[status] = payment_status.get(status, 0) + 1
+        transactions.append({
+            "id": row["id"],
+            "reference": f"expenditures.id={row['id']}",
+            "date": row["expenditure_date"],
+            "amount": float(row["expenditure_amount"] or 0),
+            "amount_display": rupees(row["expenditure_amount"]),
+            "vendor": (row["vendor"] or "").strip() or None,
+            "payment_status": status,
+            "work_description": row["work_description"],
+            "constituency": row["constituency"],
+            "state": row["state"],
+            "mp_name": row["mp_name"],
+            "house": row["house"],
+            "ida": row["ida"],
+        })
+    total = sum(t["amount"] for t in transactions)
+    return {
+        "transactions": transactions,
+        "transaction_count": int(rec.linked_tx_count or len(transactions)),
+        "transaction_total": round(total, 2),
+        "transaction_total_display": rupees(total),
+        "linked_expenditure": float(rec.linked_expenditure or 0),
+        "linked_expenditure_display": rupees(rec.linked_expenditure or 0),
+        "truncated": truncated,
+        "has_expenditure": bool(rec.has_expenditure),
+        "payment_status_summary": payment_status,
+        "work_key": rec.work_key,
+        "work_key_expenditure": float(rec.work_key_expenditure or 0),
+        "work_key_rows": int(rec.work_key_rows or 1),
+        "start_status": rec.start_status,
+        "approx_start_date": rec.approx_start_date,
+        "recommendation_date": rec.recommendation_date,
+        "recommended_by": rec.recommended_by,
+    }
+
+
+def _verification_evidence(db: Session, project) -> Dict[str, Any]:
+    reports = (
+        db.query(models.VerificationReport)
+        .filter(models.VerificationReport.project_id == project.id)
+        .order_by(models.VerificationReport.created_at.desc())
+        .limit(50)
+        .all()
+    )
+    photo_count = (
+        db.query(func.count(models.PhotoHash.id))
+        .filter(models.PhotoHash.project_id == project.id)
+        .scalar() or 0
+    )
+    return {
+        "verification_reports": [{
+            "id": r.id,
+            "reference": f"verification_reports.id={r.id}",
+            "date": r.created_at,
+            "reporter_name": r.reporter_name,
+            "status": r.status,
+            "review_status": r.review_status,
+            "submission_kind": r.submission_kind,
+            "note": r.note,
+            "lat": r.lat,
+            "lon": r.lon,
+            "distance_m": r.distance_m,
+            "photo_hash_id": r.photo_hash_id,
+            "review_note": r.review_note,
+        } for r in reports],
+        "verification_count": len(reports),
+        "photo_records": int(photo_count),
+        "documents": [],
+        "document_note": (
+            "The source dataset contains no project-level document store. "
+            "Ground-verification reports and linked photo fingerprints are shown when present; "
+            "sanction orders, bills and completion certificates are not published in the dataset."
+        ),
+    }
+
+
+def _build_investigation_dossier(db: Session, project) -> Dict[str, Any]:
+    """Targeted project dossier for the existing investigation workspace."""
+    from investigation import load_project_context, analyze_data_quality, analyze_risk
+
+    ctx = load_project_context(db, project.id) or {}
+    rec = (
+        db.query(models.ProjectRecInfo)
+        .filter(models.ProjectRecInfo.project_id == project.id)
+        .first()
+    )
+    risk = db.query(models.RiskScore).filter(models.RiskScore.project_id == project.id).first()
+    transactions = _linked_transactions(db, project)
+    verification = _verification_evidence(db, project)
+    dq = analyze_data_quality(db, ctx) if ctx else {"checks": [], "warnings": [], "limitation": "Project records could not be loaded."}
+
+    peer = None
+    try:
+        peer = peer_benchmark(project, db)
+    except Exception:
+        peer = None
+
+    shap_factors: List[Dict[str, Any]] = []
+    if risk is not None and getattr(risk, "ml_anomaly", False):
+        try:
+            analysis = analyze_risk(db, ctx, want_peers=False)
+            shap_factors = list((analysis.get("ml") or {}).get("top_factors") or [])
+        except Exception:
+            shap_factors = []
+
+    reasons = []
+    if risk is not None:
+        raw = risk.reasons or ""
+        reasons = [r.strip() for r in raw.split(",") if r.strip()] if isinstance(raw, str) else list(raw or [])
+
+    financial = {
+        "sanctioned_amount": float(project.sanctioned_amount or 0),
+        "sanctioned_display": rupees(project.sanctioned_amount or 0),
+        "expenditure": transactions["linked_expenditure"],
+        "expenditure_display": transactions["linked_expenditure_display"],
+        "utilization_pct": round((transactions["linked_expenditure"] / float(project.sanctioned_amount)) * 100, 1) if float(project.sanctioned_amount or 0) > 0 else None,
+        "transaction_count": transactions["transaction_count"],
+        "transaction_total": transactions["transaction_total"],
+        "transaction_total_display": transactions["transaction_total_display"],
+        "transactions": transactions["transactions"],
+        "transactions_truncated": transactions["truncated"],
+        "payment_status_summary": transactions.get("payment_status_summary") or {},
+        "has_expenditure": transactions["has_expenditure"],
+        "linkage": ctx.get("linkage") or {},
+        "work_key": transactions.get("work_key"),
+        "work_key_expenditure": transactions.get("work_key_expenditure", 0),
+        "work_key_rows": transactions.get("work_key_rows", 1),
+    }
+    if financial["has_expenditure"] and financial["transaction_count"] and abs(financial["expenditure"] - financial["transaction_total"]) > 1:
+        financial["reconciliation_note"] = (
+            "The linked expenditure total differs from the sum of the bounded transaction history; "
+            "the authoritative project_rec_info total is used for the headline figure."
+        )
+
+    timeline = {
+        "recommendation_date": ctx.get("recommendation_date"),
+        "recommendation_date_display": _date_display(ctx.get("recommendation_date")),
+        "recommended_by": ctx.get("recommended_by"),
+        "approx_start_date": (rec.approx_start_date if rec is not None else None),
+        "approx_start_date_display": _date_display(rec.approx_start_date if rec is not None else None),
+        "start_status": (rec.start_status if rec is not None else None),
+        "first_expenditure_date": ctx.get("first_expenditure_date"),
+        "first_expenditure_date_display": _date_display(ctx.get("first_expenditure_date")),
+        "latest_expenditure_date": ctx.get("latest_expenditure_date"),
+        "latest_expenditure_date_display": _date_display(ctx.get("latest_expenditure_date")),
+        "activity_days": ctx.get("activity_days"),
+        "delay_indicator": ctx.get("delay_indicator"),
+        "completion_date": None,
+        "completion_date_note": "No completion date exists in the available project dataset.",
+    }
+
+    evidence = {
+        **verification,
+        "data_quality": dq,
+    }
+    provenance = {
+        "project": "projects",
+        "recommendation": "project_rec_info (derived from recommended_works)",
+        "expenditure": "expenditures via the existing normalized work-key linkage",
+        "risk": "risk_scores + the existing rule/ML engines",
+        "ground_verification": "verification_reports / photo_hashes",
+    }
+    limitations = [
+        "No narrative project description, sanction date, sanction document, work start date, expected completion date or completion certificate is present in the source datasets.",
+        "Expenditure rows are linked by the existing normalized name + constituency + state work key; they are not a legal payment ledger.",
+        "A detected pattern is a review indicator, not a finding of wrongdoing or a confirmed allegation.",
+        dq.get("limitation") or "Data-quality assessment is limited to published fields.",
+    ]
+    if transactions["truncated"]:
+        limitations.append("The linked transaction history is bounded to 1,000 records in this view; the project-level total remains the authoritative aggregate.")
+
+    return {
+        "generated_at": _now_iso(),
+        "project": {
+            "project_id": project.id,
+            "project_name": project.project_name,
+            "description": None,
+            "description_note": "The source catalogue has no narrative description field.",
+            "project_type": project.project_type,
+            "house": project.house,
+            "mp": ctx.get("recommended_by"),
+            "state": project.state,
+            "district": project.district,
+            "constituency": project.constituency,
+            "fy": project.fy,
+            "status": project.status,
+            "completion_percentage": project.completion_percentage,
+        },
+        "sanction": {
+            "sanctioned_amount": financial["sanctioned_amount"],
+            "sanctioned_display": financial["sanctioned_display"],
+            "sanction_date": None,
+            "sanction_reference": None,
+            "note": "Sanction date and sanction-document reference are not published in the available dataset.",
+        },
+        "financial": financial,
+        "timeline": timeline,
+        "risk": {
+            "score": risk.risk_score if risk is not None else None,
+            "level": risk.risk_level if risk is not None else None,
+            "ml_anomaly": bool(risk.ml_anomaly) if risk is not None else False,
+            "ml_score": risk.ml_score if risk is not None else None,
+            "reasons": reasons,
+            "shap_explanations": shap_factors,
+        },
+        "vendors": ctx.get("vendors") or [],
+        "evidence": evidence,
+        "data_quality": dq,
+        "similar_projects": peer or {},
+        "limitations": limitations,
+        "provenance": provenance,
+    }
+
+
+def _date_display(value) -> Optional[str]:
+    if not value:
+        return None
+    try:
+        d = datetime.strptime(str(value)[:10], "%Y-%m-%d")
+        return d.strftime("%d %b %Y").lstrip("0")
+    except Exception:
+        return str(value)
+
+
+def _transaction_evidence(transactions: List[Dict[str, Any]], limit: int = 30) -> List[Dict[str, Any]]:
+    return [{
+        "type": "expenditure",
+        "reference": t["reference"],
+        "fields": {
+            "date": t.get("date"),
+            "amount": t.get("amount"),
+            "amount_display": t.get("amount_display"),
+            "vendor": t.get("vendor"),
+            "payment_status": t.get("payment_status"),
+        },
+    } for t in (transactions or [])[:limit]]
+
+
+def _build_findings(db: Session, project, dossier: Dict[str, Any], investigation: models.AuditInvestigation) -> List[Dict[str, Any]]:
+    """Generate evidence-linked findings from the current dossier.
+
+    `confirmed_data_inconsistency` is reserved for measurable contradictions in
+    the recorded fields or linkage. Risk-model and peer signals remain
+    `potential_concern`; absent source fields are `missing_information`.
+    """
+    reviews = _review_map(db, investigation.id)
+    findings: List[Dict[str, Any]] = []
+    financial = dossier.get("financial") or {}
+    timeline = dossier.get("timeline") or {}
+    risk = dossier.get("risk") or {}
+    project_info = dossier.get("project") or {}
+    verification = (dossier.get("evidence") or {})
+    transactions = financial.get("transactions") or []
+    sanc = float(financial.get("sanctioned_amount") or 0)
+    exp = float(financial.get("expenditure") or 0)
+    util = financial.get("utilization_pct")
+    comp = project_info.get("completion_percentage")
+    status = str(project_info.get("status") or "").lower()
+    recommendation_date = timeline.get("recommendation_date")
+    first_date = timeline.get("first_expenditure_date")
+
+    def add(key, title, severity, classification, explanation, records, source, limitations, action, amounts=None, dates=None, percentages=None):
+        review = _review_payload(reviews.get(key))
+        findings.append({
+            "key": key,
+            "title": title,
+            "severity": severity,
+            "classification": classification,
+            "classification_label": FINDING_CLASSIFICATIONS[classification],
+            "explanation": explanation,
+            "evidence": {
+                "summary": explanation,
+                "records": records,
+                "source": source,
+            },
+            "amounts": amounts or {},
+            "dates": dates or {},
+            "percentages": percentages or {},
+            "source": source,
+            "limitations": limitations,
+            "suggested_action": action,
+            "investigation_status": investigation.status,
+            "status": review["status"],
+            "review": review,
+        })
+
+    project_record = {
+        "type": "project",
+        "reference": f"projects.id={project.id}",
+        "fields": {
+            "sanctioned_amount": sanc,
+            "expenditure": exp,
+            "completion_percentage": comp,
+            "status": project_info.get("status"),
+            "house": project_info.get("house"),
+        },
+    }
+
+    if sanc > 0 and exp > sanc:
+        variance = exp - sanc
+        add(
+            "expenditure_over_sanction",
+            "Recorded expenditure exceeds the sanctioned amount",
+            "high",
+            "confirmed_data_inconsistency",
+            f"The authoritative linked ledger total is {rupees(exp)}, which exceeds the recorded sanction of {rupees(sanc)} by {rupees(variance)} ({util:.1f}% utilization).",
+            [project_record] + _transaction_evidence(transactions),
+            "projects.sanctioned_amount + project_rec_info.linked_expenditure + expenditures",
+            ["This is a recorded-value inconsistency, not a conclusion that an irregular payment occurred. Revised sanctions may exist outside the dataset."],
+            "Verify the sanction order and any revised sanction, then reconcile the linked payment vouchers against the sanctioned scope.",
+            {"sanctioned": sanc, "expenditure": exp, "variance": variance},
+            {"first_expenditure": first_date, "latest_expenditure": timeline.get("latest_expenditure_date")},
+            {"utilization": util},
+        )
+
+    if exp > 0 and comp is not None and ((util is not None and util >= 80 and comp < 50) or abs(float(util or 0) - float(comp)) >= 25):
+        add(
+            "expenditure_progress_mismatch",
+            "Financial utilization and reported physical progress diverge",
+            "high" if (util or 0) >= 80 and comp < 50 else "medium",
+            "potential_concern",
+            f"Linked expenditure is {rupees(exp)} ({(util if util is not None else 0):.1f}% of sanction) while reported physical progress is {comp}%. The gap is a review indicator, not proof that the work is incomplete.",
+            [project_record] + _transaction_evidence(transactions, 15),
+            "projects + project_rec_info + expenditures",
+            ["Physical progress is a reported percentage; no independent measurement or completion certificate is included in the dataset."],
+            "Request the latest measurement book, inspection note and current site photographs, then reconcile them with the recorded payments.",
+            {"sanctioned": sanc, "expenditure": exp},
+            {"first_expenditure": first_date, "latest_expenditure": timeline.get("latest_expenditure_date")},
+            {"utilization": util, "completion": comp, "gap": round(abs(float(util or 0) - float(comp)), 1)},
+        )
+
+    if recommendation_date and first_date and str(first_date)[:10] < str(recommendation_date)[:10]:
+        add(
+            "expenditure_before_recommendation",
+            "An expenditure date precedes the recorded recommendation date",
+            "high",
+            "confirmed_data_inconsistency",
+            f"The earliest linked payment is dated {_date_display(first_date)}, before the recorded recommendation date of {_date_display(recommendation_date)}. This may indicate a linkage or source-date error.",
+            [
+                {"type": "project", "reference": f"projects.id={project.id}", "fields": {"recommendation_date": recommendation_date}},
+                {"type": "expenditure", "reference": transactions[0]["reference"] if transactions else "project_rec_info.linked_expenditure", "fields": {"first_expenditure_date": first_date}},
+            ],
+            "project_rec_info.recommendation_date + expenditures.expenditure_date",
+            ["The date relation is factual, but the cause could be a source-data or work-key linkage error."],
+            "Inspect the recommendation record and the earliest payment voucher; verify the project-to-payment relationship before drawing a conclusion.",
+            {"expenditure": exp},
+            {"recommendation_date": recommendation_date, "first_expenditure_date": first_date},
+            {},
+        )
+
+    if not recommendation_date or sanc <= 0:
+        missing = []
+        if not recommendation_date:
+            missing.append("recommendation date")
+        if sanc <= 0:
+            missing.append("sanctioned amount")
+        add(
+            "missing_sanction_or_recommendation",
+            "Sanction or recommendation anchor is missing",
+            "medium",
+            "missing_information",
+            f"The investigation dossier could not establish the following mandatory timeline/financial anchors: {', '.join(missing)}. No value has been estimated.",
+            [project_record],
+            "projects + project_rec_info",
+            ["Absence of a field is a dataset limitation; it is not evidence that the work was not sanctioned."],
+            "Obtain the recommendation and sanction records from the implementing authority and record the missing reference against this finding.",
+            {"sanctioned": sanc}, {"recommendation_date": recommendation_date}, {},
+        )
+
+    if status == "completed" and (comp is None or float(comp) < 90):
+        add(
+            "completion_evidence_gap",
+            "Completed status is not supported by recorded physical progress",
+            "high",
+            "confirmed_data_inconsistency",
+            f"The project is marked Completed while reported physical progress is {comp if comp is not None else 'not recorded'}%. The completion date and certificate are not present in the source dataset.",
+            [project_record],
+            "projects.status + projects.completion_percentage",
+            ["The recorded completion percentage may be stale; the dataset has no completion date or certificate to validate it."],
+            "Obtain the completion certificate and final measurement record, then verify the reported progress before relying on the Completed status.",
+            {}, {}, {"completion": comp},
+        )
+
+    if exp > 0 and not dossier.get("vendors"):
+        add(
+            "vendor_missing",
+            "Payments are recorded without vendor information",
+            "medium",
+            "missing_information",
+            f"{rupees(exp)} of linked expenditure is recorded, but no vendor name is present in the linked payment rows. Payment responsibilities cannot be traced to a vendor from this record.",
+            [project_record] + _transaction_evidence(transactions, 10),
+            "project_rec_info.linked_expenditure + expenditures.vendor",
+            ["A missing vendor name may be a source-data gap rather than a payment outside the recorded process."],
+            "Request the payment vouchers and vendor identifiers, then update the evidence reference for this finding.",
+            {"expenditure": exp}, {}, {},
+        )
+
+    if int(financial.get("work_key_rows") or 1) > 1:
+        add(
+            "ambiguous_work_linkage",
+            "Multiple catalogue rows share this work key",
+            "medium",
+            "confirmed_data_inconsistency",
+            f"{financial.get('work_key_rows')} catalogue rows share the normalized work key, so the work-level payment total of {rupees(financial.get('work_key_expenditure') or 0)} cannot be attributed to this project alone. Headline per-project expenditure is therefore not asserted from the shared total.",
+            [project_record, {"type": "project_rec_info", "reference": f"project_rec_info.project_id={project.id}", "fields": {"work_key_rows": financial.get("work_key_rows"), "work_key_expenditure": financial.get("work_key_expenditure")}}],
+            "project_rec_info.work_key_rows + work_key_expenditure",
+            ["This is a linkage ambiguity in the source records; it does not establish duplicate payments."],
+            "Compare the catalogue rows and confirm the intended project-to-work relationship with the implementing agency.",
+            {"work_key_expenditure": financial.get("work_key_expenditure")}, {}, {},
+        )
+
+    if exp > 0 and not transactions:
+        add(
+            "expenditure_without_dated_transactions",
+            "Expenditure total has no linked dated transactions",
+            "medium",
+            "missing_information",
+            f"A linked expenditure total of {rupees(exp)} exists, but the current linkage returned no dated expenditure rows. The payment dates and individual amounts cannot be verified from this view.",
+            [project_record],
+            "project_rec_info.linked_expenditure + expenditures",
+            ["The total may be preserved from a prior linkage while the transaction rows are unavailable or not matched."],
+            "Reconcile project_rec_info.linked_expenditure against the payment ledger and record the source reference used.",
+            {"expenditure": exp}, {}, {},
+        )
+
+    if risk.get("ml_anomaly"):
+        add(
+            "ml_anomaly",
+            "ML model flagged a statistical outlier",
+            "medium",
+            "potential_concern",
+            f"The existing Isolation Forest model flagged this project as a statistical outlier (score {risk.get('ml_score') if risk.get('ml_score') is not None else 'not recorded'}). The model result is an indicator for review, not an allegation.",
+            [{"type": "risk_scores", "reference": f"risk_scores.project_id={project.id}", "fields": {"risk_score": risk.get("score"), "ml_score": risk.get("ml_score"), "reasons": risk.get("reasons")}}],
+            "risk_scores.ml_anomaly / ml_score; existing ML predictor",
+            ["A statistical outlier can be explained by scale, scope or source-data patterns and is not proof of irregularity.", *(["SHAP factors are model explanations, not audit findings."] if risk.get("shap_explanations") else [])],
+            "Review the model factors and compare the project with the existing peer group before recording a conclusion.",
+            {}, {}, {},
+        )
+
+    if risk.get("reasons"):
+        add(
+            "rule_risk_indicators",
+            "Rule-based risk indicators are present",
+            "high" if str(risk.get("level") or "").lower() == "high" else "medium",
+            "potential_concern",
+            "The existing deterministic risk engine recorded the following indicators: " + "; ".join(risk.get("reasons") or []) + ".",
+            [{"type": "risk_scores", "reference": f"risk_scores.project_id={project.id}", "fields": {"risk_score": risk.get("score"), "risk_level": risk.get("level"), "reasons": risk.get("reasons")}}],
+            "risk_scores.reasons (existing rule engine)",
+            ["Rule-based risk indicators are review triggers, not confirmed irregularities."],
+            "Map each rule indicator to the underlying financial or progress record and record which one is supported by evidence.",
+            {}, {}, {},
+        )
+
+    if verification.get("verification_count", 0) == 0 and verification.get("photo_records", 0) == 0:
+        add(
+            "no_ground_evidence",
+            "No ground-verification or photo evidence is linked",
+            "low",
+            "missing_information",
+            "The dossier found no ground-verification report and no linked photo fingerprint for this project. The absence is a coverage gap in the available evidence.",
+            [{"type": "evidence_coverage", "reference": f"projects.id={project.id}", "fields": {"verification_reports": 0, "photo_records": 0}}],
+            "verification_reports + photo_hashes",
+            ["No linked evidence is not proof that no site visit occurred; it means the dataset has no recorded evidence."],
+            "Request current site photographs or a field verification and record the resulting reference in this finding.",
+            {}, {}, {},
+        )
+
+    return findings
+
+
+def _build_recommendations(db: Session, investigation: models.AuditInvestigation, findings: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    existing = {
+        c.item_key for c in db.query(models.AuditEvidenceCheck)
+        .filter(models.AuditEvidenceCheck.investigation_id == investigation.id)
+        .all()
+    }
+    out = []
+    for finding in findings:
+        key = f"rec:{finding['key']}"
+        out.append({
+            "key": key,
+            "finding_key": finding["key"],
+            "finding_title": finding["title"],
+            "title": finding.get("suggested_action") or "Verify the recorded finding",
+            "why": finding.get("explanation"),
+            "severity": finding.get("severity"),
+            "classification": finding.get("classification"),
+            "action_item_key": key,
+            "added": key in existing,
+        })
+    return out
+
+
+def _build_summary(dossier: Dict[str, Any], findings: List[Dict[str, Any]]) -> Dict[str, Any]:
+    project = dossier.get("project") or {}
+    financial = dossier.get("financial") or {}
+    timeline = dossier.get("timeline") or {}
+    risk = dossier.get("risk") or {}
+    unresolved = [f for f in findings if f.get("status") not in FINAL_FINDING_STATUSES]
+    by_class = {k: 0 for k in FINDING_CLASSIFICATIONS}
+    for finding in findings:
+        by_class[finding.get("classification")] = by_class.get(finding.get("classification"), 0) + 1
+    lines = [
+        "PRELIMINARY ANALYSIS — generated from recorded project data. It is not a finding of wrongdoing or a final audit conclusion.",
+        "",
+        f"Project #{project.get('project_id')} — {project.get('project_name') or 'Unnamed project'}",
+        f"{project.get('house') or 'House not recorded'} · {project.get('state') or 'State not recorded'} · {project.get('constituency') or 'Constituency not recorded'}",
+        "",
+        f"Financial position: sanction {financial.get('sanctioned_display')}, linked expenditure {financial.get('expenditure_display')}, utilization {financial.get('utilization_pct') if financial.get('utilization_pct') is not None else 'not computable'}.",
+        f"Physical progress: {project.get('completion_percentage') if project.get('completion_percentage') is not None else 'not recorded'}% · status {project.get('status') or 'not recorded'}.",
+        f"Timeline: recommendation {timeline.get('recommendation_date_display') or 'not recorded'}; first linked expenditure {timeline.get('first_expenditure_date_display') or 'not recorded'}; latest {timeline.get('latest_expenditure_date_display') or 'not recorded'}.",
+        f"Risk: {risk.get('score') if risk.get('score') is not None else 'not scored'} ({risk.get('level') or 'not scored'}); ML anomaly: {'yes' if risk.get('ml_anomaly') else 'no'}.",
+        "",
+        f"Findings: {len(findings)} total · {len(unresolved)} unresolved · confirmed inconsistencies {by_class.get('confirmed_data_inconsistency', 0)} · potential concerns {by_class.get('potential_concern', 0)} · missing information {by_class.get('missing_information', 0)}.",
+    ]
+    if unresolved:
+        lines.append("Unresolved findings: " + "; ".join(f["title"] for f in unresolved[:6]) + ".")
+    if dossier.get("limitations"):
+        lines.append("Data limitations: " + " ".join(dossier["limitations"][:2]))
+    return {
+        "text": "\n".join(lines),
+        "preliminary": True,
+        "finding_count": len(findings),
+        "unresolved_count": len(unresolved),
+        "by_classification": by_class,
+        "unresolved_findings": [f["key"] for f in unresolved],
+        "data_limitations": dossier.get("limitations") or [],
+    }
+
+
+def _build_workspace_extras(db: Session, project, investigation: models.AuditInvestigation) -> Dict[str, Any]:
+    dossier = _build_investigation_dossier(db, project)
+    findings = _build_findings(db, project, dossier, investigation)
+    recommendations = _build_recommendations(db, investigation, findings)
+    return {
+        "dossier": dossier,
+        "findings": findings,
+        "recommendations": recommendations,
+        "summary": _build_summary(dossier, findings),
+        "history": _history_payload(db, investigation),
+        "finding_status_options": list(FINDING_REVIEW_STATUSES),
+        "finding_classifications": FINDING_CLASSIFICATIONS,
+    }
+
+
+def update_finding_review(db: Session, project, finding_key: str, actor=None, status_value: Optional[str] = None,
+                         comment: Optional[str] = None, evidence_reference: Optional[str] = None,
+                         document_name: Optional[str] = None, document_url: Optional[str] = None,
+                         resolution: Optional[str] = None) -> Dict[str, Any]:
+    investigation = (
+        db.query(models.AuditInvestigation)
+        .filter(models.AuditInvestigation.project_id == project.id)
+        .first()
+    )
+    if not investigation:
+        raise ValueError("Investigation has not been started for this project")
+    dossier = _build_investigation_dossier(db, project)
+    findings = _build_findings(db, project, dossier, investigation)
+    finding = next((f for f in findings if f["key"] == finding_key), None)
+    if finding is None:
+        raise ValueError("Finding not found for this investigation")
+    if status_value is not None and status_value not in FINDING_REVIEW_STATUSES:
+        raise ValueError(f"Invalid finding status: {status_value}")
+    row = (
+        db.query(models.InvestigationFindingReview)
+        .filter(
+            models.InvestigationFindingReview.investigation_id == investigation.id,
+            models.InvestigationFindingReview.finding_key == finding_key,
+        )
+        .first()
+    )
+    now = _now_iso()
+    if row is None:
+        row = models.InvestigationFindingReview(
+            investigation_id=investigation.id,
+            finding_key=finding_key,
+            status="Open",
+            created_at=now,
+            updated_at=now,
+        )
+        db.add(row)
+    old_status = row.status
+    if status_value is not None:
+        if status_value in FINAL_FINDING_STATUSES and not ((resolution or row.resolution or "").strip()):
+            raise ValueError("A resolution explanation is required before a finding can be verified or closed")
+        row.status = status_value
+    if comment is not None:
+        row.comment = comment[:4000]
+    if evidence_reference is not None:
+        row.evidence_reference = evidence_reference[:4000]
+    if document_name is not None:
+        row.document_name = document_name[:240]
+    if document_url is not None:
+        row.document_url = document_url[:2000]
+    if resolution is not None:
+        row.resolution = resolution[:4000]
+    uid, name, role = _actor_triplet(actor)
+    row.reviewer_user_id = uid
+    row.reviewer_name = name
+    row.reviewer_role = role
+    row.updated_at = now
+    investigation.updated_at = now
+    detail = f"Finding {finding_key}: {old_status} → {row.status}"
+    if comment is not None:
+        detail += " · comment updated"
+    if evidence_reference is not None:
+        detail += " · evidence reference updated"
+    if resolution is not None:
+        detail += " · resolution recorded"
+    _record_history(db, investigation, "finding_reviewed", actor=actor, detail=detail)
+    db.commit()
+    return _investigation_payload(db, project, investigation)
+
+
+def add_recommendation_action(db: Session, project, finding_key: str, actor=None) -> Dict[str, Any]:
+    investigation = (
+        db.query(models.AuditInvestigation)
+        .filter(models.AuditInvestigation.project_id == project.id)
+        .first()
+    )
+    if not investigation:
+        raise ValueError("Investigation has not been started for this project")
+    dossier = _build_investigation_dossier(db, project)
+    findings = _build_findings(db, project, dossier, investigation)
+    finding = next((f for f in findings if f["key"] == finding_key), None)
+    if finding is None:
+        raise ValueError("Finding not found for this investigation")
+    item_key = f"rec:{finding_key}"
+    existing = (
+        db.query(models.AuditEvidenceCheck)
+        .filter(
+            models.AuditEvidenceCheck.investigation_id == investigation.id,
+            models.AuditEvidenceCheck.item_key == item_key,
+        )
+        .first()
+    )
+    if existing is None:
+        now = _now_iso()
+        db.add(models.AuditEvidenceCheck(
+            investigation_id=investigation.id,
+            item_key=item_key,
+            label=(finding.get("suggested_action") or "Verify the finding")[:500],
+            category="finding_recommendation",
+            severity=finding.get("severity") or "medium",
+            rationale=(f"Recommended from finding '{finding['title']}'. {finding.get('explanation') or ''}")[:4000],
+            status="Pending",
+            updated_at=now,
+        ))
+        investigation.updated_at = now
+        _record_history(db, investigation, "action_added", actor=actor, detail=f"Action item added from finding: {finding['title']}")
+        db.commit()
+    return _investigation_payload(db, project, investigation)
+
+
+def compose_investigation_report(db: Session, project) -> Dict[str, Any]:
+    investigation = (
+        db.query(models.AuditInvestigation)
+        .filter(models.AuditInvestigation.project_id == project.id)
+        .first()
+    )
+    if not investigation:
+        raise ValueError("Investigation has not been started for this project")
+    extras = _build_workspace_extras(db, project, investigation)
+    dossier = extras["dossier"]
+    project_info = dossier["project"]
+    fin = dossier["financial"]
+    timeline = dossier["timeline"]
+    risk = dossier["risk"]
+    summary = extras["summary"]
+    lines = [
+        f"MPLADS INVESTIGATION REPORT — PROJECT #{project.id}",
+        "PRELIMINARY ANALYSIS — generated from recorded data; not a final finding of wrongdoing.",
+        f"Investigation status: {investigation.status} · generated {_now_iso()}",
+        "",
+        "1. PROJECT OVERVIEW",
+        f"Work: {project_info.get('project_name') or 'Not recorded'}",
+        f"House: {project_info.get('house') or 'Not recorded'}",
+        f"Location: {project_info.get('constituency') or 'N/A'}, {project_info.get('state') or 'N/A'}" + (f" (district: {project_info.get('district')})" if project_info.get('district') else ""),
+        f"MP: {project_info.get('mp') or 'Not recorded'} · FY: {project_info.get('fy') or 'Not recorded'} · Type: {project_info.get('project_type') or 'Not recorded'}",
+        f"Description: {project_info.get('description') or 'Not available in the source dataset.'}",
+        "",
+        "2. FINANCIAL POSITION",
+        f"Sanctioned: {fin.get('sanctioned_display')} · Linked expenditure: {fin.get('expenditure_display')} · Utilisation: {fin.get('utilization_pct') if fin.get('utilization_pct') is not None else 'not computable'}.",
+        f"Linked transactions: {fin.get('transaction_count')} · first {timeline.get('first_expenditure_date_display') or 'not recorded'} · latest {timeline.get('latest_expenditure_date_display') or 'not recorded'}.",
+        "",
+        "3. PHYSICAL PROGRESS AND TIMELINE",
+        f"Completion: {project_info.get('completion_percentage') if project_info.get('completion_percentage') is not None else 'not recorded'}% · status: {project_info.get('status') or 'not recorded'}.",
+        f"Recommendation: {timeline.get('recommendation_date_display') or 'not recorded'} · approx start: {timeline.get('approx_start_date_display') or 'not recorded'} · completion date: not available.",
+        "",
+        "4. RISK INDICATORS",
+        f"Risk score: {risk.get('score') if risk.get('score') is not None else 'not scored'} ({risk.get('level') or 'not scored'}) · ML anomaly: {'yes' if risk.get('ml_anomaly') else 'no'}.",
+    ]
+    for reason in (risk.get("reasons") or [])[:8]:
+        lines.append(f"- {reason}")
+    lines += ["", "5. FINDINGS (recorded facts and review indicators)"]
+    for i, finding in enumerate(extras["findings"], 1):
+        lines.append(f"{i}. {finding['title']} [{finding['classification_label']}; severity {finding['severity']}; review {finding['status']}]")
+        lines.append(f"   {finding['explanation']}")
+        lines.append(f"   Source: {finding['source']}")
+        for record in (finding.get("evidence") or {}).get("records", [])[:8]:
+            fields = record.get("fields") or {}
+            lines.append(f"   Evidence: {record.get('reference')} {fields}")
+    lines += ["", "6. REVIEW AND ACTIONS"]
+    for rec in extras["recommendations"]:
+        lines.append(f"- {rec['title']} (from {rec['finding_title']}; {'added as action item' if rec['added'] else 'not yet an action item'})")
+    lines += ["", "7. DATA LIMITATIONS"]
+    for limitation in dossier.get("limitations") or []:
+        lines.append(f"- {limitation}")
+    lines += ["", "8. HISTORY"]
+    for event in extras["history"][:30]:
+        lines.append(f"- {event.get('created_at')} · {event.get('label')} · {event.get('actor_name')} · {event.get('detail')}")
+    lines += ["", summary["text"], "", "END OF PRELIMINARY REPORT"]
+    return {
+        "filename": f"MPLADS-investigation-{project.id}.txt",
+        "body": "\n".join(lines),
+        "generated_at": _now_iso(),
+        "preliminary": True,
+        "investigation_status": investigation.status,
+    }
+
+
+# ═══════════════ investigation workspace persistence ═══════════════
+
 def _investigation_payload(db: Session, project, investigation: models.AuditInvestigation) -> Dict[str, Any]:
     checks = (
         db.query(models.AuditEvidenceCheck)
@@ -1714,6 +2611,7 @@ def _investigation_payload(db: Session, project, investigation: models.AuditInve
     total = len(items)
     resolved = sum(1 for i in items if i["status"] != "Pending")
     discrepancies = sum(1 for i in items if i["status"] == "Discrepancy Found")
+    extras = _build_workspace_extras(db, project, investigation)
     return {
         "project_id": project.id,
         "investigation": {
@@ -1732,6 +2630,13 @@ def _investigation_payload(db: Session, project, investigation: models.AuditInve
         "pending_items": total - resolved,
         "discrepancies": discrepancies,
         "progress_pct": round(resolved / total * 100, 1) if total else 0.0,
+        "dossier": extras["dossier"],
+        "findings": extras["findings"],
+        "recommendations": extras["recommendations"],
+        "summary": extras["summary"],
+        "history": extras["history"],
+        "finding_status_options": extras["finding_status_options"],
+        "finding_classifications": extras["finding_classifications"],
         "status_options": list(INVESTIGATION_STATUSES),
         "item_status_options": list(EVIDENCE_STATUSES),
         "workflow": list(INVESTIGATION_STATUSES),
@@ -1795,8 +2700,9 @@ def _sync_checklist(db: Session, project, investigation: models.AuditInvestigati
     db.commit()
 
 
-def start_investigation(db: Session, project) -> Dict[str, Any]:
+def start_investigation(db: Session, project, actor=None) -> Dict[str, Any]:
     """Create the workspace if needed, then return it."""
+    created = False
     investigation = (
         db.query(models.AuditInvestigation)
         .filter(models.AuditInvestigation.project_id == project.id)
@@ -1829,11 +2735,18 @@ def start_investigation(db: Session, project) -> Dict[str, Any]:
         db.add(investigation)
         db.commit()
         db.refresh(investigation)
+        created = True
     _sync_checklist(db, project, investigation)
+    if created:
+        _record_history(
+            db, investigation, "investigation_started", actor=actor,
+            detail="Investigation workspace created from the recorded project data and existing risk results.",
+        )
+        db.commit()
     return _investigation_payload(db, project, investigation)
 
 
-def update_investigation(db: Session, project, status_value: Optional[str], note: Optional[str]) -> Dict[str, Any]:
+def update_investigation(db: Session, project, status_value: Optional[str], note: Optional[str], actor=None) -> Dict[str, Any]:
     investigation = (
         db.query(models.AuditInvestigation)
         .filter(models.AuditInvestigation.project_id == project.id)
@@ -1841,6 +2754,8 @@ def update_investigation(db: Session, project, status_value: Optional[str], note
     )
     if not investigation:
         raise ValueError("Investigation has not been started for this project")
+    old_status = investigation.status
+    old_note = investigation.note
     if status_value is not None:
         if status_value not in INVESTIGATION_STATUSES:
             raise ValueError(f"Invalid investigation status: {status_value}")
@@ -1848,11 +2763,17 @@ def update_investigation(db: Session, project, status_value: Optional[str], note
     if note is not None:
         investigation.note = note[:4000]
     investigation.updated_at = _now_iso()
+    if old_status != investigation.status:
+        _record_history(db, investigation, "status_changed", actor=actor,
+                        detail=f"Investigation status: {old_status} → {investigation.status}")
+    if old_note != investigation.note:
+        _record_history(db, investigation, "note_updated", actor=actor,
+                        detail="Investigation note updated.")
     db.commit()
     return _investigation_payload(db, project, investigation)
 
 
-def update_evidence_item(db: Session, project, item_key: str, status_value: str) -> Dict[str, Any]:
+def update_evidence_item(db: Session, project, item_key: str, status_value: str, actor=None) -> Dict[str, Any]:
     if status_value not in EVIDENCE_STATUSES:
         raise ValueError(f"Invalid evidence status: {status_value}")
     investigation = (
@@ -1872,9 +2793,12 @@ def update_evidence_item(db: Session, project, item_key: str, status_value: str)
     )
     if not row:
         raise ValueError("Checklist item not found")
+    old_status = row.status
     row.status = status_value
     row.updated_at = _now_iso()
     investigation.updated_at = row.updated_at
+    _record_history(db, investigation, "checklist_updated", actor=actor,
+                    detail=f"{row.label}: {old_status} → {status_value}")
     db.commit()
     return _investigation_payload(db, project, investigation)
 

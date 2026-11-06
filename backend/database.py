@@ -20,7 +20,20 @@ DATABASE_URL = f"sqlite:///{DB_PATH}"
 
 engine = create_engine(
     DATABASE_URL,
-    connect_args={"check_same_thread": False},
+    # timeout: wait (instead of raising "database is locked" immediately)
+    # when a long writer — e.g. the post-import derived-analytics refresh —
+    # holds the SQLite write lock. Ordinary writes queue behind it.
+    connect_args={"check_same_thread": False, "timeout": 60},
+    # Explicit pool sizing: the SQLAlchemy default (5 + 10 overflow) keeps up
+    # to 15 SQLite connections open. Each carries its own page cache, so an
+    # unbounded default silently multiplies memory. 8 total connections is
+    # enough for the FastAPI thread pool's concurrent reads while capping the
+    # cache footprint; LIFO reuse keeps the idle set small.
+    pool_size=5,
+    max_overflow=3,
+    pool_timeout=30,
+    pool_recycle=1800,
+    pool_use_lifo=True,
     pool_pre_ping=True
 )
 
@@ -30,10 +43,13 @@ def set_sqlite_pragma(dbapi_connection, connection_record):
     try:
         cursor.execute("PRAGMA journal_mode=WAL")
         cursor.execute("PRAGMA synchronous=NORMAL")
-        # 16MB page cache per connection. The previous 64MB setting multiplied
-        # across the pool's ~5 connections gave SQLite alone a theoretical
-        # 320MB footprint on a 512MB instance.
-        cursor.execute("PRAGMA cache_size=-16000")
+        # 8MB page cache per connection. Combined with the explicitly bounded
+        # pool (≤8 connections) this caps SQLite's page-cache ceiling at
+        # ~64MB instead of the previous 16MB × up-to-15-connections (~240MB).
+        # The working set that matters (aggregate scans) is served by the OS
+        # page cache, so this does not slow the grouped dashboard queries.
+        cursor.execute("PRAGMA cache_size=-6000")
+        cursor.execute("PRAGMA busy_timeout=60000")
         # SQLite groups aggregate intermediate rows in temp storage; MEMORY
         # would grow them in RAM on the big vendor GROUP BY passes.
         cursor.execute("PRAGMA temp_store=FILE")

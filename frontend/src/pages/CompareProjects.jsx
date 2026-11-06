@@ -109,7 +109,7 @@ const METRICS = [
   },
 ]
 
-export default function CompareProjects({ fy }) {
+export default function CompareProjects({ fy, drillDownParams, onClearDrillDown }) {
   const [query, setQuery] = useState("")
   const [results, setResults] = useState([])
   const [searching, setSearching] = useState(false)
@@ -235,6 +235,28 @@ export default function CompareProjects({ fy }) {
       window.dispatchEvent(new CustomEvent("assistant-project-context", { detail: { projectId: null } }))
     }
   }
+
+  // Assistant preload: navigate action with {a, b} params seeds the
+  // comparison with those project ids (validated numbers only).
+  useEffect(() => {
+    const ids = [drillDownParams?.a, drillDownParams?.b]
+      .map((v) => parseInt(v, 10))
+      .filter((v) => Number.isInteger(v) && String(v).length <= 10)
+    if (ids.length === 0) return
+    ;(async () => {
+      for (const id of ids) {
+        if (selected.find((s) => s.id === id)) continue
+        try {
+          const res = await getProjectDetail(id)
+          handleAdd(res.project || { id })
+        } catch {
+          /* unknown id — skip silently, user can still search manually */
+        }
+      }
+      onClearDrillDown?.()
+    })()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [drillDownParams])
 
   const handleClearSearch = () => {
     setQuery("")

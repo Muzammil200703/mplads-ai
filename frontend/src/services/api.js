@@ -341,6 +341,16 @@ export async function getDashboardStates(params = {}) {
   return data
 }
 
+/**
+ * State-level aggregates for the Overview India choropleth. Returns all 36
+ * states/UTs with ISO codes plus explicit availability flags, so the map can
+ * distinguish a recorded zero from an unavailable value.
+ */
+export async function getStateMapMetrics(params = {}) {
+  return cachedGet(`state_map_v2_${buildQuery(params)}`, 120000, () =>
+    request(`/dashboard/state-map${buildQuery(params)}`))
+}
+
 export async function getDashboardMPs(params = {}) {
   return request(`/dashboard/mps${buildQuery(params)}`)
 }
@@ -528,7 +538,7 @@ export async function getCompletedWorks(params = {}) {
 }
 
 export async function getStateIntelligence(params = {}) {
-  const cacheKey = `state_intel_${buildQuery(params)}`
+  const cacheKey = `state_intel_v2_${buildQuery(params)}`
   const cached = cacheGet(cacheKey, 120000) // 2 min cache
   if (cached !== undefined) return cached
   const data = await request(`/dashboard/state-intelligence${buildQuery(params)}`)
@@ -675,6 +685,23 @@ export async function updateEvidenceItem(projectId, itemKey, status) {
     method: "PATCH",
     body: JSON.stringify({ status }),
   })
+}
+
+export async function updateFindingReview(projectId, findingKey, payload) {
+  return request(`/investigations/${projectId}/findings/${encodeURIComponent(findingKey)}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function addFindingAction(projectId, findingKey) {
+  return request(`/investigations/${projectId}/findings/${encodeURIComponent(findingKey)}/action`, {
+    method: "POST",
+  })
+}
+
+export async function getInvestigationReport(projectId) {
+  return request(`/investigations/${projectId}/report`)
 }
 
 export async function getActiveInvestigations() {
@@ -884,4 +911,53 @@ export async function updateCaseStatus(projectId, status) {
 
 export async function getAllInvestigations() {
   return request("/auth/admin/investigations")
+}
+
+// ═══════════════ ADMIN DATA MANAGEMENT (CSV ingestion) ═══════════════
+// Admin-only. The backend re-checks the role on every call.
+
+export async function getDataOverview() {
+  return request("/admin/data/overview")
+}
+
+export async function getImportHistory(limit = 50) {
+  return request(`/admin/data/imports?limit=${limit}`)
+}
+
+export async function getImportDetail(batchId) {
+  return request(`/admin/data/imports/${batchId}`)
+}
+
+export async function uploadDataFiles(files, { datasetType, house } = {}) {
+  const form = new FormData()
+  for (const f of files) form.append("files", f)
+  if (datasetType) form.append("dataset_type", datasetType)
+  if (house) form.append("house", house)
+  return request("/admin/data/uploads", { method: "POST", body: form })
+}
+
+export async function revalidateImport(batchId, { datasetType, house } = {}) {
+  const form = new FormData()
+  if (datasetType) form.append("dataset_type", datasetType)
+  if (house) form.append("house", house)
+  return request(`/admin/data/imports/${batchId}/preview`, { method: "POST", body: form })
+}
+
+export async function commitImport(batchId, { datasetType, house } = {}) {
+  const form = new FormData()
+  if (datasetType) form.append("dataset_type", datasetType)
+  if (house) form.append("house", house)
+  return request(`/admin/data/imports/${batchId}/commit`, { method: "POST", body: form })
+}
+
+export async function rollbackImport(batchId) {
+  return request(`/admin/data/imports/${batchId}/rollback`, { method: "POST" })
+}
+
+export async function refreshImport(batchId) {
+  return request(`/admin/data/imports/${batchId}/refresh`, { method: "POST" })
+}
+
+export async function discardImport(batchId) {
+  return request(`/admin/data/imports/${batchId}`, { method: "DELETE" })
 }

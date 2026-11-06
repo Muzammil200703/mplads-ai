@@ -18,6 +18,7 @@ const SavedProjectsPage = lazy(() => import("./pages/Workspace").then((m) => ({ 
 const MyInvestigationsPage = lazy(() => import("./pages/Workspace").then((m) => ({ default: m.MyInvestigationsPage })))
 const MyAuditCasesPage = lazy(() => import("./pages/Workspace").then((m) => ({ default: m.MyAuditCasesPage })))
 const AdminPage = lazy(() => import("./pages/Workspace").then((m) => ({ default: m.AdminPage })))
+const DataManagementPage = lazy(() => import("./pages/DataManagement"))
 const MyVerificationsPage = lazy(() => import("./pages/MyVerifications"))
 const MyDistrictPage = lazy(() => import("./pages/MyDistrict"))
 const InquiriesPage = lazy(() => import("./pages/Inquiries"))
@@ -185,6 +186,9 @@ function AppShell() {
   const [projectSearchQuery, setProjectSearchQuery] = useState("")
   const [drillDownParams, setDrillDownParams] = useState(null)
   const [selectedFY, setSelectedFY] = useState("")
+  // Shared House scope: Overview and State Intelligence are two views of the
+  // same portfolio, so switching pages must not silently change the House.
+  const [selectedHouse, setSelectedHouse] = useState("All")
 
   const isMobile = useIsMobile()
   // Start closed: the drawer must never cover page content on load — it opens
@@ -194,6 +198,8 @@ function AppShell() {
   // MP Intelligence page context ("this MP" for the assistant): id of the MP
   // whose detail view is currently open, or null.
   const [assistantMpId, setAssistantMpId] = useState(null)
+  // State Intelligence page context: the state name currently drilled into.
+  const [assistantState, setAssistantState] = useState(null)
 
   const handleNavigate = (page) => {
     setCurrentPage(page)
@@ -254,10 +260,10 @@ function AppShell() {
 
   // Open a project drawer from a workspace page: switch to Projects, then
   // dispatch once the page is mounted (retry covers the lazy chunk load).
-  const openProjectFromWorkspace = (projectId) => {
+  const openProjectFromWorkspace = (projectId, tab) => {
     setCurrentPage("Projects")
     if (isMobile) setMobileDrawerOpen(false)
-    const dispatch = () => window.dispatchEvent(new CustomEvent("open-project", { detail: { projectId } }))
+    const dispatch = () => window.dispatchEvent(new CustomEvent("open-project", { detail: { projectId, tab } }))
     setTimeout(dispatch, 400)
     setTimeout(dispatch, 1200)
   }
@@ -321,8 +327,9 @@ function AppShell() {
         // action. Guests never reach workspace-only pages.
         const GUEST_PAGES = new Set([
           "Overview", "Projects", "Risk Center", "AI Audit Center", "Vendor Network",
-          "Ground Truth Verification", "Reports", "State Intelligence", "Audit Priority",
-          "Compare Projects", "FAQ", "Vendor Intelligence", "Settings", "MP Intelligence",
+          "Ground Truth Verification", "Reports", "Leaderboard", "State Intelligence",
+          "Audit Priority", "Compare Projects", "FAQ", "Vendor Intelligence", "Settings",
+          "MP Intelligence",
         ])
         if (user) return true
         return GUEST_PAGES.has(page)
@@ -343,7 +350,7 @@ function AppShell() {
     if (currentPage === "Sign up") return <SignupView onSwitch={() => setCurrentPage("Sign in")} />
 
     const pages = [
-      { key: "Overview", el: <Overview darkMode={darkMode} onDrillDown={handleDrillDown} fy={selectedFY} /> },
+      { key: "Overview", el: <Overview darkMode={darkMode} onDrillDown={handleDrillDown} fy={selectedFY} house={selectedHouse} onHouseChange={setSelectedHouse} /> },
       { key: "Projects", el: <Projects projectSearchQuery={projectSearchQuery} onClearProjectSearch={() => setProjectSearchQuery("")} drillDownParams={drillDownParams} onClearDrillDown={() => setDrillDownParams(null)} fy={selectedFY} onNavigate={handleNavigate} /> },
       { key: "Risk Center", el: <RiskCenter drillDownParams={drillDownParams} onClearDrillDown={() => setDrillDownParams(null)} fy={selectedFY} /> },
       { key: "AI Audit Center", el: <AuditCenter onOpenProject={openProjectFromWorkspace} fy={selectedFY} /> },
@@ -351,12 +358,12 @@ function AppShell() {
       { key: "Ground Truth Verification", el: <VerifyPortal /> },
       { key: "Reports", el: <Reports fy={selectedFY} /> },
       { key: "Leaderboard", el: <Leaderboard darkMode={darkMode} /> },
-      { key: "State Intelligence", el: <StateIntelligence onNavigateToProjects={(state) => handleDrillDown("Projects", { state })} fy={selectedFY} /> },
+      { key: "State Intelligence", el: <StateIntelligence darkMode={darkMode} house={selectedHouse} onHouseChange={setSelectedHouse} onNavigateToProjects={(state) => handleDrillDown("Projects", { state })} onContextChange={setAssistantState} fy={selectedFY} drillDownParams={drillDownParams} onClearDrillDown={() => setDrillDownParams(null)} /> },
       { key: "MP Intelligence", el: <MPIntelligence darkMode={darkMode} drillDownParams={drillDownParams} onClearDrillDown={() => setDrillDownParams(null)} fy={selectedFY} onContextChange={setAssistantMpId} /> },
       { key: "Audit Priority", el: <AuditPriority fy={selectedFY} drillDownParams={drillDownParams} onClearDrillDown={() => setDrillDownParams(null)} /> },
-      { key: "Compare Projects", el: <CompareProjects fy={selectedFY} /> },
+      { key: "Compare Projects", el: <CompareProjects fy={selectedFY} drillDownParams={drillDownParams} onClearDrillDown={() => setDrillDownParams(null)} /> },
       { key: "FAQ", el: <FAQ /> },
-      { key: "Vendor Intelligence", el: <VendorIntelligence onOpenProject={openProjectFromWorkspace} /> },
+      { key: "Vendor Intelligence", el: <VendorIntelligence onOpenProject={openProjectFromWorkspace} drillDownParams={drillDownParams} onClearDrillDown={() => setDrillDownParams(null)} /> },
       { key: "Settings", el: <SettingsPage darkMode={darkMode} onThemeToggle={() => setDarkMode((previous) => !previous)} /> },
       { key: "Saved Projects", el: <SavedProjectsPage onOpenProject={openProjectFromWorkspace} /> },
       { key: "My Investigations", el: <MyInvestigationsPage onOpenProject={openProjectFromWorkspace} /> },
@@ -366,6 +373,7 @@ function AppShell() {
       { key: "Inquiries", el: <InquiriesPage onOpenProject={openProjectFromWorkspace} /> },
       { key: "Evidence Queue", el: <VerificationQueuePage onOpenProject={openProjectFromWorkspace} /> },
       { key: "Administration", el: <AdminPage /> },
+      { key: "Data Management", el: <DataManagementPage /> },
     ]
     return (
       <Suspense fallback={<PageSkeleton cards={4} columns={4} />}>
@@ -460,6 +468,7 @@ return (
         currentPage={currentPage}
         contextProjectId={assistantProjectId}
         contextMpId={assistantMpId}
+        contextState={assistantState}
         contextProjectName={getAssistantProjectName(assistantProjectId)}
         onNavigate={handleNavigate}
         onOpenProject={openProjectFromWorkspace}

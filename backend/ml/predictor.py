@@ -12,6 +12,8 @@ add explanations and contributing factors.
 
 import os
 import threading
+from typing import Dict
+
 import joblib
 
 MODEL_PATH = os.path.join(os.path.dirname(__file__), "anomaly_model.pkl")
@@ -53,6 +55,22 @@ def _ensure_ml_libs():
 
 _model_lock = threading.Lock()
 _model_data_cache = None
+
+# Bounded SHAP-result cache. An explanation is a pure function of the
+# project's scoring inputs and the loaded model bundle, so repeated opens of
+# the same project (drawer re-opens, audit queue → explanation → investigation)
+# can reuse it instead of re-running TreeExplainer. Bounded and keyed on the
+# input values: changed data or a new model version misses the cache rather
+# than serving a stale explanation.
+_SHAP_CACHE_MAX = 512
+_shap_cache: Dict[tuple, list] = {}
+_shap_cache_lock = threading.Lock()
+
+
+def clear_shap_cache():
+    """Drop cached explanations (called after imports/retraining)."""
+    with _shap_cache_lock:
+        _shap_cache.clear()
 
 
 def _ensure_model():
@@ -291,6 +309,7 @@ def _compute_feature_contributions(project):
     Returns list of (feature_name, shap_value, feature_value, explanation)
     sorted by absolute SHAP contribution (most anomalous first).
     """
+    _ensure_model()
     sanctioned = float(getattr(project, "sanctioned_amount", 0) or 0)
     expenditure = _eff_expenditure(project)
     completion = float(getattr(project, "completion_percentage", 0) or 0)
@@ -299,6 +318,22 @@ def _compute_feature_contributions(project):
 
     if not peer_stats or not features:
         return []
+
+    cache_key = (
+        getattr(project, "id", None),
+        model_version,
+        round(sanctioned, 2),
+        round(expenditure, 2),
+        round(completion, 4),
+        state,
+        project_type,
+    )
+    with _shap_cache_lock:
+        cached = _shap_cache.get(cache_key)
+    if cached is not None:
+        # Return copies: callers summarize/sort and must never mutate the
+        # shared cached dicts.
+        return [dict(item) for item in cached]
 
     _ensure_ml_libs()
     global _shap_explainer
@@ -338,6 +373,13 @@ def _compute_feature_contributions(project):
 
     # Sort: most anomalous contributions first (most negative SHAP)
     contributions.sort(key=lambda x: x["shap_value"])
+
+    with _shap_cache_lock:
+        if len(_shap_cache) >= _SHAP_CACHE_MAX:
+            # Bounded-growth guard: drop the oldest half (insertion order).
+            for old_key in list(_shap_cache.keys())[: _SHAP_CACHE_MAX // 2]:
+                _shap_cache.pop(old_key, None)
+        _shap_cache[cache_key] = [dict(item) for item in contributions]
 
     return contributions
 
@@ -508,7 +550,7 @@ def score_rules_pure(sanctioned, expenditure, completion, status, ml_anomaly=Fal
     return score, level, triggered
 
 
-def predict_risk(project, batch_mode=False):
+def predict_risk(project, batch_mode=False, ml_override=None):
     """
     Predict risk for a project with full explainability.
 
@@ -536,15 +578,21 @@ def predict_risk(project, batch_mode=False):
     ml_anomaly = False
     anomaly_score = 0.0
 
-    _ensure_model()  # lazy-load the joblib bundle on first prediction
-    if model is not None and features:
-        try:
-            X = create_project_features(project)
-            pred = model.predict(X)[0]
-            anomaly_score = float(model.decision_function(X)[0])
-            ml_anomaly = bool(pred == -1)
-        except Exception:
-            pass
+    if ml_override is not None:
+        # Bulk-scoring path: the caller already ran the SAME model over a
+        # stacked feature matrix. Rules and thresholds below are unchanged.
+        ml_anomaly = bool(ml_override[0])
+        anomaly_score = float(ml_override[1])
+    else:
+        _ensure_model()  # lazy-load the joblib bundle on first prediction
+        if model is not None and features:
+            try:
+                X = create_project_features(project)
+                pred = model.predict(X)[0]
+                anomaly_score = float(model.decision_function(X)[0])
+                ml_anomaly = bool(pred == -1)
+            except Exception:
+                pass
 
     risk_score = 0
     reasons = []

@@ -15,19 +15,23 @@
      refresh_data   {}
    ═════════════════════════════════════════════════════════════════════ */
 
+// Project drawer tabs the open_project action can deep-link (must mirror
+// ProjectDetail.jsx tab ids; anything else falls back to the default tab).
+const PROJECT_TABS = new Set(["overview", "financial", "risk", "forensics", "audit", "timeline", "similar", "dna"])
+
 // Page keys mirror App.jsx page registry exactly.
 const NAV_PAGES = new Set([
   "Overview", "Projects", "Risk Center", "AI Audit Center", "Vendor Network",
-  "Ground Truth Verification", "Reports", "State Intelligence", "Audit Priority",
-  "Compare Projects", "FAQ", "Vendor Intelligence", "Settings", "Saved Projects",
-  "MP Intelligence",
+  "Ground Truth Verification", "Reports", "Leaderboard", "State Intelligence",
+  "Audit Priority", "Compare Projects", "FAQ", "Vendor Intelligence", "Settings",
+  "Saved Projects", "MP Intelligence",
   "My Investigations", "My Audit Cases", "My Verifications", "My District",
-  "Inquiries", "Evidence Queue", "Administration",
+  "Inquiries", "Evidence Queue", "Administration", "Data Management",
 ])
 
 const PARAM_KEYS = {
-  navigate: new Set(["state", "constituency", "status", "risk_level", "tier", "fy", "keyword", "house", "mp_id"]),
-  open_project: new Set([]),
+  navigate: new Set(["state", "constituency", "status", "risk_level", "tier", "severity", "fy", "keyword", "house", "mp_id", "vendor", "a", "b", "project"]),
+  open_project: new Set(["tab"]),
   clear_filters: new Set([]),
   refresh_data: new Set([]),
 }
@@ -48,6 +52,7 @@ function sanitize(action) {
   if (type === "navigate" && !NAV_PAGES.has(target)) return null
   if (type === "open_project") {
     if (!/^\d{1,10}$/.test(target)) return null
+    if (params.tab && !PROJECT_TABS.has(String(params.tab))) delete params.tab
   }
   if (type === "clear_filters" || type === "refresh_data") target = ""
   return { action: type, target, params, label: String(action.label || "").slice(0, 60) }
@@ -88,7 +93,9 @@ export function executeAssistantAction(action, handlers) {
     }
 
     if (a.action === "open_project") {
-      openProject(parseInt(a.target, 10))
+      // Tab deep-links ride along as an event detail; ProjectDetail listens
+      // and activates the requested tab once the drawer opens.
+      openProject(parseInt(a.target, 10), a.params?.tab || undefined)
       return "ok"
     }
 

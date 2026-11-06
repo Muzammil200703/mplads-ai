@@ -1,0 +1,20 @@
+INFO:     Started server process [8428]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     127.0.0.1:54620 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54636 - "POST /auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54641 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54644 - "GET /dashboard/overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54646 - "GET /dashboard/states HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54651 - "GET /projects?limit=5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54652 - "GET /anomalies?limit=5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54656 - "GET /dashboard/state-intelligence HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54664 - "GET /vendor-intelligence?limit=5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54667 - "GET /investigations/188 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54670 - "GET /ai/audit-queue HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54683 - "GET /ai/risk-explanation/188 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54808 - "GET /ai/risk-explanation/188 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54812 - "GET /ai/risk-explanation/188 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54816 - "POST /assistant/ask HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55480 - "GET /health HTTP/1.1" 200 OK

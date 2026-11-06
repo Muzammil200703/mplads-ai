@@ -298,6 +298,59 @@ class AuditEvidenceCheck(Base):
     )
 
 
+class InvestigationFindingReview(Base):
+    """Persisted reviewer workflow for one generated investigation finding.
+
+    Findings themselves are regenerated from the current project records (so
+    they cannot drift from the data); only the human review state is stored.
+    The unique key keeps one review row per finding per investigation.
+    """
+
+    __tablename__ = "investigation_finding_reviews"
+
+    id = Column(Integer, primary_key=True, index=True)
+    investigation_id = Column(Integer, index=True, nullable=False)
+    finding_key = Column(String(80), index=True, nullable=False)
+    status = Column(String(40), index=True, nullable=False, default="Open")
+    comment = Column(Text)
+    evidence_reference = Column(Text)
+    document_name = Column(String(240))
+    document_url = Column(Text)
+    resolution = Column(Text)
+    reviewer_user_id = Column(Integer, index=True)
+    reviewer_name = Column(String(160))
+    reviewer_role = Column(String(40))
+    created_at = Column(String, nullable=False)
+    updated_at = Column(String, nullable=False)
+
+    __table_args__ = (
+        Index("idx_finding_review_inv_key", "investigation_id", "finding_key", unique=True),
+    )
+
+
+class InvestigationHistory(Base):
+    """Append-only audit trail for investigation workflow changes.
+
+    Project-derived findings are not copied here; `detail` contains only the
+    workflow event and references needed to understand who changed what.
+    """
+
+    __tablename__ = "investigation_history"
+
+    id = Column(Integer, primary_key=True, index=True)
+    investigation_id = Column(Integer, index=True, nullable=False)
+    event = Column(String(80), index=True, nullable=False)
+    actor_user_id = Column(Integer, index=True)
+    actor_name = Column(String(160))
+    actor_role = Column(String(40))
+    detail = Column(Text)
+    created_at = Column(String, nullable=False)
+
+    __table_args__ = (
+        Index("idx_investigation_history_inv", "investigation_id", "created_at"),
+    )
+
+
 class SyncMetadata(Base):
     __tablename__ = "sync_metadata"
 
@@ -501,4 +554,76 @@ class ProjectRecInfo(Base):
     __table_args__ = (
         Index("idx_rec_info_project", "project_id", unique=True),
         Index("idx_rec_info_rec_date", "recommendation_date"),
+    )
+
+
+# ──────────────────────────────────────────────────────────────────────
+# Admin data management — CSV ingestion pipeline
+# ──────────────────────────────────────────────────────────────────────
+
+
+class ImportBatch(Base):
+    """One CSV upload through the admin data-management pipeline.
+
+    Lifecycle: preview → importing → success | failed | rolled_back |
+    discarded. The uploaded file is kept on disk (staging dir) so a preview
+    can be committed later without re-uploading and a failed import can be
+    retried from the same source bytes.
+    """
+
+    __tablename__ = "import_batches"
+
+    id = Column(Integer, primary_key=True, index=True)
+    token = Column(String, index=True, nullable=False)   # random staging id
+    filename = Column(String, nullable=False)
+    stored_path = Column(String, nullable=False)
+    file_size = Column(Integer, default=0)
+    dataset_type = Column(String, index=True)            # detected/confirmed type
+    detected_type = Column(String)                       # what the sniffer found
+    detection_confidence = Column(Float, default=0.0)
+    detected_columns = Column(Text)                      # JSON: {canonical: header}
+    house_coverage = Column(String)                      # 'Lok Sabha' | 'Rajya Sabha' | 'Mixed' | 'Unknown'
+    # Admin-chosen house, used when the file has no House column.
+    house_override = Column(String)
+    uploaded_by = Column(String)
+    uploaded_by_id = Column(Integer, index=True)
+    uploaded_at = Column(String, nullable=False)
+    status = Column(String, index=True, nullable=False, default="preview")
+    total_rows = Column(Integer, default=0)
+    valid_rows = Column(Integer, default=0)
+    new_rows = Column(Integer, default=0)
+    update_rows = Column(Integer, default=0)
+    unchanged_rows = Column(Integer, default=0)
+    duplicate_rows = Column(Integer, default=0)
+    rejected_rows = Column(Integer, default=0)
+    error_summary = Column(Text)
+    preview_json = Column(Text)      # JSON: issues, conflicts, dataset-specific details
+    details_json = Column(Text)      # JSON: commit/refresh details, summary
+    committed_at = Column(String)
+    rolled_back_at = Column(String)
+    dataset_version = Column(Integer, default=0)
+
+    __table_args__ = (
+        Index("idx_import_status_at", "status", "uploaded_at"),
+    )
+
+
+class ImportChange(Base):
+    """Per-row before-state captured during a commit, used for rollback.
+
+    insert → record_pk is the new row id (rollback deletes it)
+    update → before_json holds the previous column values (rollback restores)
+    """
+
+    __tablename__ = "import_changes"
+
+    id = Column(Integer, primary_key=True, index=True)
+    batch_id = Column(Integer, index=True, nullable=False)
+    table_name = Column(String, index=True, nullable=False)
+    record_pk = Column(Integer, index=True)
+    change_type = Column(String, nullable=False)   # 'insert' | 'update'
+    before_json = Column(Text)
+
+    __table_args__ = (
+        Index("idx_import_change_batch", "batch_id", "table_name"),
     )

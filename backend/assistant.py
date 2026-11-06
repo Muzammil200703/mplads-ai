@@ -27,12 +27,17 @@ from typing import Any, Dict, List, Optional, Tuple
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, Field
-from sqlalchemy import exists, func, or_, text
+from sqlalchemy import case, exists, func, or_, text
 from sqlalchemy.orm import Session
 
 import auth
 import models
 import mp_assistant
+import investigation_intents
+import assistant_nav
+import assistant_nlu
+import assistant_analytics
+import assistant_review
 
 router = APIRouter(prefix="/assistant", tags=["AI Assistant"])
 
@@ -420,18 +425,28 @@ NAV_TARGETS = {
     "Compare Projects", "FAQ", "Vendor Intelligence", "Settings", "Saved Projects",
     "MP Intelligence",
     "My Investigations", "My Audit Cases", "My Verifications", "My District",
-    "Inquiries", "Evidence Queue", "Administration",
+    "Inquiries", "Evidence Queue", "Administration", "Data Management",
 }
 
 # Every param key the client will consume, per action type.
 ACTION_PARAM_KEYS = {
     "navigate": {"state", "constituency", "status", "risk_level", "tier", "fy", "keyword", "house", "mp_id"},
-    "open_project": set(),
+    # open_project targets a numeric project id; "tab" deep-links a drawer
+    # tab (overview/financial/risk/forensics/audit/timeline/similar/dna) —
+    # the client clamps unknown values to its default tab.
+    "open_project": {"tab"},
     "filter_projects": {"state", "constituency", "status", "fy", "keyword", "house"},
     "filter_risk": {"risk_level", "state", "constituency"},
     "clear_filters": set(),
     "refresh_data": set(),
 }
+
+
+# Assistant 2.0: the registry is the single source of truth for destinations
+# and each destination's supported parameters. The older constants remain as
+# the filter-action contract; navigate is narrowed per page below.
+NAV_TARGETS = assistant_nav.NAV_TARGETS
+ACTION_PARAM_KEYS = {**ACTION_PARAM_KEYS, **assistant_nav.ACTION_PARAM_KEYS}
 
 
 def _valid_actions(actions: List[ActionOut]) -> List[ActionOut]:
@@ -450,8 +465,11 @@ def _valid_actions(actions: List[ActionOut]) -> List[ActionOut]:
             pass  # utility actions carry no target — params check below suffices
         elif str(a.target) not in NAV_TARGETS:
             continue
+        # (open_project targets are validated below by the integer check.)
         allowed = ACTION_PARAM_KEYS[a.action]
-        clean = {k: v for k, v in (a.params or {}).items() if k in allowed and v not in (None, "")}
+        clean = (assistant_nav.validate_params(str(a.target), a.params or {})
+                 if a.action == "navigate"
+                 else {k: v for k, v in (a.params or {}).items() if k in allowed and v not in (None, "")})
         # Re-validate label length so a pathological label can't bloat the UI.
         a = a.model_copy(update={"params": clean, "label": str(a.label)[:60]})
         out.append(a)
@@ -463,6 +481,13 @@ class AskResponse(BaseModel):
     source: str            # "knowledge" | "data" | "help"
     actions: List[ActionOut] = []
     project_id: Optional[int] = None   # project discussed — client keeps it for follow-ups
+    # ── Assistant 2.0 structured payload (all optional; old clients ignore it) ──
+    intent: str = "help"
+    entity: Dict[str, Any] = Field(default_factory=dict)
+    findings: List[Dict[str, Any]] = Field(default_factory=list)
+    recommendations: List[Dict[str, Any]] = Field(default_factory=list)
+    limitations: List[str] = Field(default_factory=list)
+    table: Optional[Dict[str, Any]] = None
 
 
 # ── Conversational session memory ────────────────────────────────────
@@ -505,8 +530,58 @@ def _session_get_ctx(session_id: Optional[str]) -> Dict:
     return dict(ctx) if isinstance(ctx, dict) else {}
 
 
+def _session_get_state(session_id: Optional[str]) -> Optional[str]:
+    """The state named in this session's most recent filtered/summary answer
+    ("show Telangana projects" → "Telangana") so follow-ups like "give me a
+    summary of it" resolve without re-typing."""
+    entry = _session_get(session_id)
+    if not entry:
+        return None
+    v = (entry.get("ctx") or {}).get("state")
+    return str(v) if v else None
+
+
+def _session_get_results(session_id: Optional[str]) -> List[int]:
+    """Project ids from the most recent list/analytics answer in this session.
+    Used to resolve 'the first one', 'the second project', 'the last one'."""
+    entry = _session_get(session_id)
+    if not entry:
+        return []
+    ids = (entry.get("ctx") or {}).get("result_ids") or []
+    out: List[int] = []
+    for value in ids[:12]:
+        try:
+            out.append(int(value))
+        except (TypeError, ValueError):
+            continue
+    return out
+
+
+def _session_set_results(session_id: Optional[str], project_ids) -> None:
+    """Remember the bounded project-id list behind the latest answer."""
+    if not session_id:
+        return
+    ids: List[int] = []
+    for value in (project_ids or [])[:12]:
+        try:
+            pid = int(value)
+        except (TypeError, ValueError):
+            continue
+        if 0 < pid < 10 ** 10:
+            ids.append(pid)
+    if not ids:
+        return
+    now = time.time()
+    with _SESSION_LOCK:
+        entry = _SESSION_LAST_PROJECT.get(session_id) or {"ts": now}
+        entry.setdefault("ctx", {})["result_ids"] = ids
+        entry["ts"] = now
+        _SESSION_LAST_PROJECT[session_id] = entry
+
+
 def _session_set_ctx(session_id: Optional[str], page: Optional[str] = None,
-                     filters: Optional[Dict] = None, project_id: Optional[int] = None) -> None:
+                     filters: Optional[Dict] = None, project_id: Optional[int] = None,
+                     state: Optional[str] = None) -> None:
     """Store/merge the session's action context. Bounded values only."""
     if not session_id:
         return
@@ -524,6 +599,8 @@ def _session_set_ctx(session_id: Optional[str], page: Optional[str] = None,
             entry["ctx"] = {**(entry.get("ctx") or {}), "page": page, "filters": filters or {}}
         if project_id:
             entry["project_id"] = int(project_id)
+        if state:
+            entry.setdefault("ctx", {})["state"] = str(state)[:60]
         entry["ts"] = now
         _SESSION_LAST_PROJECT[session_id] = entry
 
@@ -603,8 +680,6 @@ def _canonical_state(ql: str, db: Session) -> Optional[str]:
     mentioned = _extract_state(ql)
     candidates = [mentioned] if mentioned else []
     candidates.extend(c for c in _state_noun_candidates(ql) if c not in candidates)
-    if not candidates:
-        return None
     if not _STATE_CACHE:
         rows = db.query(models.Project.state).distinct().all()
         for (s,) in rows:
@@ -614,6 +689,13 @@ def _canonical_state(ql: str, db: Session) -> Optional[str]:
         hit = _STATE_CACHE.get(candidate.strip().lower())
         if hit:
             return hit
+    # Direct mention fallback: "Telangana in State Intelligence" has no
+    # state-before-noun shape, but still names a real state. Scan the bounded
+    # distinct-state list (longest names first so "Andhra Pradesh" wins over
+    # any shorter accidental substring).
+    for name_lower, name in sorted(_STATE_CACHE.items(), key=lambda item: -len(item[0])):
+        if re.search(rf"\b{re.escape(name_lower)}\b", ql):
+            return name
     return None
 
 
@@ -656,9 +738,15 @@ _TIER_RE = re.compile(r"\bp([1-4])\b", re.I)
 
 
 def _extract_tier(ql: str) -> Optional[str]:
-    """"P1".."P4" priority-tier mentions → AuditPriority filter values."""
+    """"P1".."P4" priority-tier mentions → AuditPriority filter values.
+    A generic high-priority ask maps to P1 (the queue's top tier) rather than
+    being silently dropped."""
     m = _TIER_RE.search(ql)
-    return f"P{m.group(1)}" if m else None
+    if m:
+        return f"P{m.group(1)}"
+    if re.search(r"\b(high|top)[- ]priority\b|\burgent\b", ql):
+        return "P1"
+    return None
 
 
 _NAV_VERB_RE = re.compile(
@@ -673,6 +761,8 @@ _STRIP_TOKENS_RE = re.compile(
 _DATA_SCREEN_RE = re.compile(
     r"high[- ]risk|riskiest|anomal(y|ies)|unusual|suspicious|delayed|mismatch"
     r"|cost deviation|vendor|concentration|\bp[1-4]\b|priorit"
+    r"|expenditure.{0,20}(and|with|but).{0,20}(low|no|zero)\s+(progress|completion)"
+    r"|(low|no|zero)\s+(progress|completion).{0,20}(and|with|but).{0,20}high expenditure"
     r"|\b(completed|ongoing|recommended)\s+(projects?|works?|ones?)\b", re.I)
 
 # Questions scoped to the WHOLE portfolio rather than the project open in the
@@ -685,6 +775,22 @@ _PORTFOLIO_SCOPED_RE = re.compile(
     r"|\boverall\b|\bportfolio\b|in total\b"
     r"|total (spent|expenditure|sanctioned|allocation)"
     r"|which (state|states)\b|most projects|highest utilization", re.I)
+
+
+def _extract_vendor_query(q: str) -> str:
+    """Vendor name for a Vendor Intelligence deep-link. Never returns the
+    page name itself ("vendor intelligence") as a vendor."""
+    m = re.search(
+        r"\bvendor[s]?\s+(?:named\s+|called\s+)?([A-Za-z][\w&.'\- ]{1,60}?)(?:\s+in\s+|\s+from\s+|\?|$)",
+        q or "", re.I,
+    )
+    if not m:
+        return ""
+    stop = {"intelligence", "network", "profile", "profiles", "analytics", "page",
+            "vendor", "vendors", "in", "from", "at", "for", "and", "the", "a", "an", "of", "on", "with", "by"}
+    words = [w for w in m.group(1).split() if w.lower() not in stop]
+    value = " ".join(words).strip(" ?.,!'-”")
+    return value if len(value) >= 3 else ""
 
 
 def _extract_search_term(q: str) -> str:
@@ -751,6 +857,7 @@ NAV_PAGES = [  # (pattern, page key, guard) — specific patterns first
     (r"saved\s+projects?", "Saved Projects", "analyst"),
     (r"my\s+investigations?", "My Investigations", "analyst"),
     (r"my\s+audit\s+cases?", "My Audit Cases", "analyst"),
+    (r"data\s+management|csv\s+(upload|import)|import\s+(data|csv)\b", "Data Management", "users:manage"),
     (r"admin(istration)?\s*(page|panel|area)?|^\badmin\b$", "Administration", "users:manage"),
     (r"vendor\s+intelligence", "Vendor Intelligence", "public_or_analyst"),
     (r"vendor\s+network", "Vendor Network", "public_or_analyst"),
@@ -760,6 +867,7 @@ NAV_PAGES = [  # (pattern, page key, guard) — specific patterns first
     (r"state\s+intelligence", "State Intelligence", None),
     (r"compare\s+(projects?|two\s+projects?)", "Compare Projects", None),
     (r"\breports?\b", "Reports", None),
+    (r"\bleaderboard\b|\brankings?\b", "Leaderboard", None),
     (r"\bprojects?\b\s*(page|list|tab|explorer)?", "Projects", None),
     (r"\boverview\b|\bhome\b\s*(page|screen)?", "Overview", None),
     (r"\bsettings?\b", "Settings", None),
@@ -768,7 +876,8 @@ NAV_PAGES = [  # (pattern, page key, guard) — specific patterns first
 
 _NAV_TRIGGER = re.compile(
     r"\btake\s+me\b|\bbring\s+me\b|\bgo\s*to\b|\bgoto\b|\bjump\s+to\b|\bnavigate\b|\bopen\b"
-    r"|\bshow\b|\bdisplay\b|\bshow\s+me\b|\bswitch\s+to\b|\bhead\s+to\b|\bwhere\s+(is|are|can\s+i)", re.I,
+    r"|\bshow\b|\bdisplay\b|\bshow\s+me\b|\bswitch\s+to\b|\bhead\s+to\b|\bwhere\s+(is|are|can\s+i)"
+    r"|\bcompare\b", re.I,
 )
 
 
@@ -811,7 +920,10 @@ def _intent_navigate(q: str, ql: str, ctx_project_id: Optional[int], user, db: S
       • clear-filters and refresh-data utility intents
     Project-number navigation is handled by the project lookup intent."""
     # Pronoun navigation follow-up: "open it" / "take me to this project"
-    if re.match(r"^(open|show|go\s*to|goto|take\s+me\s+to|jump\s+to)\s+(it|this\s+(project|one)?|that\s+(project|one)?)\b", ql):
+    # — but NOT when a target page/tab is named ("show this project in
+    # Risk Center" must navigate to Risk Center, not re-open the drawer).
+    if re.match(r"^(open|show|go\s*to|goto|take\s+me\s+to|jump\s+to)\s+(it|this\s+(project|one)?|that\s+(project|one)?)\b", ql) \
+            and not re.search(r"\b(risk center|audit priority|state intelligence|compare|forensic|dna|timeline|mp intelligence|vendor)\b", ql):
         if ctx_project_id:
             p = db.query(models.Project).filter(models.Project.id == ctx_project_id).first()
             if p:
@@ -821,6 +933,31 @@ def _intent_navigate(q: str, ql: str, ctx_project_id: Optional[int], user, db: S
         return ("Which project? Give me the ID (e.g. \u201copen project 80649\u201d) or open one from the "
                 "Projects page first.",
                 [ActionOut(label="Browse projects", action="navigate", target="Projects")])
+
+    # Forensic/DNA tab deep-links: "open the forensic view", "show the DNA".
+    # With a project in context this opens the drawer directly on that tab.
+    if re.search(r"\bforensic\w*\b|\bdna\b", ql) and ctx_project_id:
+        tab = "forensics" if re.search(r"forensic", ql) else "dna"
+        label = "AI Forensics tab" if tab == "forensics" else "DNA tab"
+        view = "AI Forensics" if tab == "forensics" else "DNA"
+        return (f"Opening the **{view}** view for #{ctx_project_id}.",
+                [ActionOut(label=label, action="open_project", target=str(ctx_project_id),
+                           params={"tab": tab}, auto=True)], ctx_project_id)
+
+    # "Show all houses" / "both houses" — per-house counts + Projects open
+    # WITHOUT a house filter (= All). House counts are two cheap aggregates.
+    if re.search(r"\b(all|both)\s+houses?\b", ql):
+        counts = dict(
+            db.query(models.Project.house, func.count(models.Project.id))
+            .filter(models.Project.house.isnot(None))
+            .group_by(models.Project.house)
+            .all()
+        )
+        ls, rs = int(counts.get("Lok Sabha", 0)), int(counts.get("Rajya Sabha", 0))
+        return (f"**All houses** — Lok Sabha: {ls:,} projects · Rajya Sabha: {rs:,} projects"
+                f" · unattributed: {max(0, int(db.query(func.count(models.Project.id)).scalar() or 0) - ls - rs):,}.",
+                [ActionOut(label="Projects · All houses", action="navigate", target="Projects", auto=True)],
+                None, {"page": "Projects", "filters": {}})
 
     # ── Utility intents: clear filters / refresh data ──
     if re.search(r"\b(clear|reset)\b.{0,25}\b(filters?|search(es)?|everything)\b|\bclear\s+all\b", ql):
@@ -863,6 +1000,15 @@ def _intent_navigate(q: str, ql: str, ctx_project_id: Optional[int], user, db: S
                 None, {"page": "Projects", "filters": params})
 
     if not _NAV_TRIGGER.search(ql):
+        return None
+    # "Support" is not a route — it opens this assistant. Explain that instead
+    # of pretending a page exists.
+    if re.search(r"\bsupport\b|\bcontact\s+(?:the\s+)?(?:team|us|support)\b", ql):
+        return (assistant_nav.NON_ROUTE_DESTINATIONS["support"], [], None, None,
+                {"intent": "help", "entity": {"type": "support"}})
+    # Interrogative openers are questions, not navigation commands — except
+    # "where is…?" which IS a navigation ask (already matched above).
+    if re.match(r"^(how|what|which)\b", ql):
         return None
     # A numbered reference ("open project 80649") belongs to project lookup.
     if _extract_project_id(q) is not None:
@@ -961,6 +1107,10 @@ def _intent_navigate(q: str, ql: str, ctx_project_id: Optional[int], user, db: S
                     params["state"] = state_f
             elif state_f and page in ("Projects", "Risk Center", "State Intelligence"):
                 params = {"state": state_f}
+            if page == "Vendor Intelligence":
+                vendor_q = _extract_vendor_query(q)
+                if vendor_q:
+                    params["vendor"] = vendor_q
             blurb = PAGE_HELP.get(page, "")
             fl = "".join(f" · {v}" for v in params.values())
             text_out = f"**{page}**{fl} — opening it now."
@@ -968,7 +1118,7 @@ def _intent_navigate(q: str, ql: str, ctx_project_id: Optional[int], user, db: S
                 text_out = f"**{page}**{fl} — opening it now with those filters."
             return text_out, [ActionOut(label=f"Open {page}", action="navigate", target=page,
                                         params=params, auto=True)], \
-                None, ({"page": page, "filters": params} if params else None)
+                None, ({"page": page, "filters": params, "state": state_f} if (params or state_f) else None)
     return None
 
 
@@ -1844,6 +1994,8 @@ def _intent_analytics(q: str, ql: str, user, db: Session):
         r"|spent overall|sanctioned overall|overall sanctioned|overall completion|zero expenditure|expenditure above sanctioned"
         r"|above sanctioned|overspend|over.?spend|progress but no|expenditure but zero"
         r"|how.{0,20}performing|how much has been spent|how much has been sanctioned|total.{0,12}(spent|expenditure|sanctioned)"
+        r"|zero progress|no progress|0% progress"
+        r"|which states?.{0,30}(highest|most|top).{0,30}(expenditure|spent|utilization)"
         r"|states?.{0,30}utilization|compare.{0,40}(state|and)|\bvs\.?\b|\bversus\b",
         ql,
     ):
@@ -1864,32 +2016,32 @@ def _intent_analytics(q: str, ql: str, user, db: Session):
     import metrics as _metrics
 
     # ── cohort counters (zero expenditure / overspend / progress-no-spend / spend-no-progress) ──
-    if re.search(r"zero expenditure|no expenditure|expenditure above sanctioned|above sanctioned|overspend|over.?spend|progress but no|expenditure but zero|without expenditure", ql):
+    if re.search(r"zero expenditure|no expenditure|expenditure above sanctioned|above sanctioned|overspend|over.?spend|progress but no|expenditure but zero|without expenditure|zero progress|no progress|0% progress", ql):
         if not allowed:
             return _guest()
-        exp_map = _metrics.project_expenditure_map(db)
-        zero_n = over_n = prog_no_spend = spend_no_prog = 0
-        prog_no_spend_ids: List[int] = []
-        rows = db.query(
-            models.Project.id,
-            models.Project.sanctioned_amount,
-            models.Project.completion_percentage,
-        ).all()
-        for pid_, sanc_v, comp_v in rows:
-            e = float(exp_map.get(pid_) or 0.0)
-            s = float(sanc_v or 0.0)
-            c = float(comp_v or 0.0)
-            if e <= 0:
-                zero_n += 1
-                if c > 0:
-                    prog_no_spend += 1
-                    if len(prog_no_spend_ids) < 5:
-                        prog_no_spend_ids.append(pid_)
-            elif s and e > s:
-                over_n += 1
-            if c <= 0 and e > 0:
-                spend_no_prog += 1
-        total_n = len(rows)
+        # Aggregate in SQL. The old loop pulled every catalogue row into
+        # Python just to count four cohorts; this keeps the request bounded to
+        # one grouped scan and one row returned.
+        linked = func.coalesce(models.ProjectRecInfo.linked_expenditure, 0.0)
+        sanction = func.coalesce(models.Project.sanctioned_amount, 0.0)
+        completion = func.coalesce(models.Project.completion_percentage, 0.0)
+        cohort_q = db.query(
+            func.count(models.Project.id),
+            func.sum(case((linked <= 0, 1), else_=0)),
+            func.sum(case(((sanction > 0) & (linked > sanction), 1), else_=0)),
+            func.sum(case(((linked <= 0) & (completion > 0), 1), else_=0)),
+            func.sum(case(((completion <= 0) & (linked > 0), 1), else_=0)),
+        ).outerjoin(models.ProjectRecInfo, models.ProjectRecInfo.project_id == models.Project.id)
+        house_scope = _extract_house(ql)
+        if house_scope:
+            cohort_q = cohort_q.filter(models.Project.house == house_scope)
+        total_n, zero_n, over_n, prog_no_spend, spend_no_prog = cohort_q.one()
+        total_n = int(total_n or 0)
+        zero_n = int(zero_n or 0)
+        over_n = int(over_n or 0)
+        prog_no_spend = int(prog_no_spend or 0)
+        spend_no_prog = int(spend_no_prog or 0)
+        scope_lbl = f" — {house_scope}" if house_scope else ""
         parts = []
         if re.search(r"zero expenditure|no expenditure|without expenditure", ql):
             parts.append(f"• **{zero_n:,} projects** have no expenditure recorded in the payment ledger")
@@ -1897,15 +2049,15 @@ def _intent_analytics(q: str, ql: str, user, db: Session):
             parts.append(f"• **{over_n:,} projects** have expenditure above their sanctioned amount (cost-overrun indicator, review-worthy — not a finding of wrongdoing)")
         if re.search(r"progress but no|without expenditure", ql):
             parts.append(f"• **{prog_no_spend:,} projects** report physical progress but have no recorded expenditure — may be a ledger gap or genuine work without recorded payments; flag for review, don't assume either way")
-        if re.search(r"expenditure but zero|zero progress", ql):
+        if re.search(r"expenditure but zero|zero progress|no progress|0% progress", ql):
             parts.append(f"• **{spend_no_prog:,} projects** have recorded expenditure at 0% physical completion")
         if not parts:
             return None
         if re.search(r"what (percentage|percent|share)", ql) and len(parts) == 1:
             base = total_n or 1
-            return (parts[0].replace(":", f" — {float(parts[0].split('**')[1].replace(',', '')) / base * 100:.1f}%" + ":", 1) + f"\n(Out of {total_n:,} projects.)", [])
-        head = "**Portfolio cohort counts** (from the payment ledger and project catalog):"
-        return (head + "\n" + "\n".join(parts) + f"\n\nOut of {total_n:,} projects.", [
+            return (parts[0].replace(":", f" — {float(parts[0].split('**')[1].replace(',', '')) / base * 100:.1f}%" + ":", 1) + f"\n(Out of {total_n:,} projects{scope_lbl}.)", [])
+        head = f"**Portfolio cohort counts{scope_lbl}** (from the payment ledger and project catalog):"
+        return (head + "\n" + "\n".join(parts) + f"\n\nOut of {total_n:,} projects{scope_lbl}.", [
             ActionOut(label="Open Risk Center", action="navigate", target="Risk Center"),
             ActionOut(label="Open State Intelligence", action="navigate", target="State Intelligence"),
         ])
@@ -1934,11 +2086,18 @@ def _intent_analytics(q: str, ql: str, user, db: Session):
             and not re.search(r"high.risk|anomal", ql):
         if not allowed:
             return _guest()
-        led_completed = _metrics.ledger_totals(db)["completed_works"]
-        catalog_completed = db.query(models.Project).filter(func.lower(models.Project.status) == "completed").count()
-        total = db.query(func.count(models.Project.id)).scalar() or 0
+        house = _extract_house(ql)
+        led_completed = _metrics.ledger_totals(db, house=house)["completed_works"]
+        catalog_completed = db.query(models.Project).filter(func.lower(models.Project.status) == "completed")
+        total_q = db.query(func.count(models.Project.id))
+        if house:
+            catalog_completed = catalog_completed.filter(models.Project.house == house)
+            total_q = total_q.filter(models.Project.house == house)
+        catalog_completed = catalog_completed.count()
+        total = total_q.scalar() or 0
         pct = (catalog_completed / total * 100) if total else 0.0
-        return (f"**Completion**\n"
+        scope = f" — {house}" if house else ""
+        return (f"**Completion{scope}**\n"
                 f"• Catalog status = Completed: {catalog_completed:,} of {total:,} projects ({pct:.1f}%)\n"
                 f"• Completions ledger: {led_completed:,} works\n"
                 f"\nBoth sources are shown because they measure different things — the catalog status is the "
@@ -1990,8 +2149,8 @@ def _intent_analytics(q: str, ql: str, user, db: Session):
                     break
 
     # ── state performance / state utilization ranking ──
-    if re.search(r"how.{0,25}performing|utilization.{0,20}(state|states)|states?.{0,25}(highest|most|best).{0,20}utilization"
-                 r"|tell me about.{0,25}state|projects? in\b|works? in\b", ql) or (state and re.search(r"how many|how much", ql)):
+    if re.search(r"how.{0,25}performing|utilization.{0,20}(state|states)|states?.{0,25}(highest|most|best|top).{0,20}(utilization|expenditure|spent)"
+                 r"|(expenditure|spent).{0,20}by state|tell me about.{0,25}state|projects? in\b|works? in\b", ql) or (state and re.search(r"how many|how much", ql)):
         if not allowed:
             return _guest()
         if state:
@@ -2007,8 +2166,10 @@ def _intent_analytics(q: str, ql: str, user, db: Session):
                         ActionOut(label=f"State Intelligence · {state}", action="navigate",
                                   target="State Intelligence", params={"state": state}, auto=True),
                     ])
-        # Cross-state utilization ranking — expenditure from the ledger's own
-        # state column, sanctioned from the catalog.
+        # Cross-state ranking — expenditure from the ledger's own state
+        # column, sanctioned from the catalog. Metric follows the question:
+        # expenditure ranking when the user asks for spend, utilization otherwise.
+        by_exp = bool(re.search(r"expenditure|spent", ql) and not re.search(r"utili", ql))
         led_by_state = _metrics.state_ledger_map(db)
         sanc_by_state = dict(
             db.query(models.Project.state, func.coalesce(func.sum(models.Project.sanctioned_amount), 0.0))
@@ -2019,12 +2180,20 @@ def _intent_analytics(q: str, ql: str, user, db: Session):
         ranked = []
         for sname, led in led_by_state.items():
             sv = float(sanc_by_state.get(sname) or 0.0)
+            e = float(led["expenditure"])
             if sv > 0:
-                ranked.append((sname, (float(led["expenditure"]) / sv * 100), float(led["expenditure"]), sv))
-        ranked.sort(key=lambda t: -t[1])
+                ranked.append((sname, (e / sv * 100), e, sv))
+            elif by_exp and e > 0:
+                ranked.append((sname, 0.0, e, 0.0))
+        ranked.sort(key=(lambda t: -t[2]) if by_exp else (lambda t: -t[1]))
         if not ranked:
-            return "I don't have enough data to rank states by utilization.", []
+            return "I don't have enough data to rank states by that metric.", []
         top = ranked[:8]
+        if by_exp:
+            lines = "\n".join(f"• {s}: {_fmt_money(e)}" for s, _u, e, _sv in top)
+            return (f"**States ranked by recorded expenditure** (payment ledger):\n{lines}", [
+                ActionOut(label="Open State Intelligence", action="navigate", target="State Intelligence"),
+            ])
         lines = "\n".join(
             f"• {s}: {u:.1f}% ({_fmt_money(e)} of {_fmt_money(sv)})" for s, u, e, sv in top
         )
@@ -2096,6 +2265,10 @@ def case_completed():
 def _intent_state_top(ql: str, user, db: Session):
     if not re.search(r"which states?|states? (with|have|has)|top states|most projects", ql):
         return None
+    # Expenditure/utilization rankings belong to the analytics intent —
+    # this handler only answers PROJECT-COUNT rankings.
+    if re.search(r"expenditure|spent|utili[sz]ation|high.risk|risk", ql):
+        return None
     rows = (
         db.query(models.Project.state, func.count(models.Project.id).label("n"))
         .filter(models.Project.state.isnot(None))
@@ -2112,7 +2285,10 @@ def _intent_state_top(ql: str, user, db: Session):
     ]
 
 
-def _intent_high_risk(ql: str, user, db: Session):
+def _intent_high_risk(ql: str, user, db: Session, session_id: Optional[str] = None):
+    # An explicit project id is an investigation, not a portfolio list.
+    if re.search(r"\bproject\s*#?\s*\d{1,10}\b|#\d{1,10}", ql):
+        return None
     # Concept question ("what does high risk mean?") → knowledge, not data.
     # Only treat as a data request when the user wants actual projects/lists.
     # "Does high risk mean fraud?" is likewise a language question — the
@@ -2156,7 +2332,15 @@ def _intent_high_risk(ql: str, user, db: Session):
                 "High risk is a review priority — not a finding of wrongdoing.", [
                     ActionOut(label="Open Risk Center", action="navigate", target="Risk Center"),
                     ActionOut(label="Open State Intelligence", action="navigate", target="State Intelligence"),
-                ])
+                ], None, None, {
+                    "intent": "risk_explanation",
+                    "table": {
+                        "columns": ["State", "High-risk projects"],
+                        "rows": [[r[0] or "Unknown", f"{int(r.n):,}"] for r in rows],
+                        "caption": "High-risk flags by state",
+                    },
+                    "limitations": ["Flags reflect stored risk scores, not new scoring at question time."],
+                })
     state = _canonical_state(ql, db)
     house = _extract_house(ql)
     q = (
@@ -2184,13 +2368,26 @@ def _intent_high_risk(ql: str, user, db: Session):
                 [ActionOut(label="Risk Center · High risk" + (f" · {state}" if state else ""),
                            action="navigate", target="Risk Center", params=rc_params, auto=True),
                  ActionOut(label="Audit Priority", action="navigate", target="Audit Priority")],
-                None, {"page": "Risk Center", "filters": rc_params})
+                None, {"page": "Risk Center", "filters": rc_params}, {
+                    "intent": "risk_explanation",
+                    "result_ids": [],
+                    "limitations": ["No stored high-risk flag matched the requested scope."],
+                })
     lines = "\n".join(_fmt_project_line(p, r) for p, r in rows)
-    count_q = db.query(func.count(models.RiskScore.id)).filter(models.RiskScore.risk_level.ilike("high"))
+    if session_id:
+        _session_set_results(session_id, [p.id for p, _r in rows])
+    # ONE join for the count query — joining once per filter produced
+    # "ambiguous column name: projects.state" under SQLite whenever a state
+    # AND house were both named ("high-risk Lok Sabha projects in Telangana").
+    count_q = (
+        db.query(func.count(models.RiskScore.id))
+        .join(models.Project, models.Project.id == models.RiskScore.project_id)
+        .filter(models.RiskScore.risk_level.ilike("high"))
+    )
     if state:
-        count_q = count_q.join(models.Project, models.Project.id == models.RiskScore.project_id).filter(models.Project.state == state)
+        count_q = count_q.filter(models.Project.state == state)
     if house:
-        count_q = count_q.join(models.Project, models.Project.id == models.RiskScore.project_id).filter(models.Project.house == house)
+        count_q = count_q.filter(models.Project.house == house)
     count = count_q.scalar() or 0
     scope = ((f" in {state.title()}" if state else "") + (f" ({house})" if house else ""))
     answer = (
@@ -2202,11 +2399,32 @@ def _intent_high_risk(ql: str, user, db: Session):
     rc_params = {"risk_level": "High"}
     if state:
         rc_params["state"] = state
+    if house:
+        rc_params["house"] = house
+    table_rows = [[
+        f"#{p.id}", (p.project_name or "")[:52], p.state or "—",
+        _fmt_money(p.sanctioned_amount),
+        f"{float(p.completion_percentage):.0f}%" if p.completion_percentage is not None else "—",
+        f"{r.risk_score} ({r.risk_level})",
+    ] for p, r in rows]
     return answer, [
         ActionOut(label="Risk Center · High risk" + (f" · {state}" if state else ""),
                   action="navigate", target="Risk Center", params=rc_params, auto=True),
         ActionOut(label="Audit Priority", action="navigate", target="Audit Priority"),
-    ]
+    ], None, {"page": "Risk Center", "filters": rc_params}, {
+        "intent": "risk_explanation",
+        "entity": {"type": "risk", "risk_level": "High"},
+        "table": {
+            "columns": ["Project", "Name", "State", "Sanctioned", "Completion", "Risk"],
+            "rows": table_rows,
+            "caption": f"Top high-risk projects{scope}",
+        },
+        "result_ids": [p.id for p, _r in rows],
+        "limitations": [
+            "A high score is a review priority, not proof of wrongdoing.",
+            "The list shows the highest-scoring records, not every flagged project.",
+        ],
+    }
 
 
 def _intent_project_detail(q: str, ql: str, ctx_project_id: Optional[int], user, db: Session):
@@ -2221,6 +2439,10 @@ def _intent_project_detail(q: str, ql: str, ctx_project_id: Optional[int], user,
     # never the open-a-project prompt. Bare "what is (the) <term>?" with no
     # project open is likewise a definition, not a missing-project prompt.
     if re.search(r"\b(mean|means|meant)\b|definition\s+of\b", ql):
+        return None
+    # Portfolio-scoped asks ("which states have the highest expenditure?")
+    # belong to the analytics intents — never the open-a-project prompt.
+    if _PORTFOLIO_SCOPED_RE.search(ql):
         return None
     if not ctx_project_id and re.search(
         r"^\s*what\s+(is|are|does)\s+(the\s+|a\s+|an\s+)?"
@@ -2378,7 +2600,8 @@ def _intent_analytical_screening(ql: str, user, db: Session):
     single SQL-side query per filter so the 512MB RAM budget is respected.
     Neutral terminology throughout: potential anomalies, never accusations."""
     is_cost = bool(re.search(r"cost (deviation|deviations|overrun|outlier)|unusual cost", ql))
-    is_mismatch = bool(re.search(r"progress.{0,25}expenditure.{0,15}mismatch|expenditure.{0,25}progress.{0,15}mismatch|financial.{0,20}physical.{0,15}mismatch|money.{0,20}progress.{0,15}mismatch", ql))
+    is_mismatch = bool(re.search(r"progress.{0,25}expenditure.{0,15}mismatch|expenditure.{0,25}progress.{0,15}mismatch|financial.{0,20}physical.{0,15}mismatch|money.{0,20}progress.{0,15}mismatch"
+                                 r"|high expenditure.{0,25}(low|no|zero)\s+(progress|completion)|(low|no|zero)\s+(progress|completion).{0,25}high expenditure", ql))
     is_delayed = bool(re.search(r"\bdelayed\b|\bdelays\b|delayed projects|behind schedule", ql))
     is_verify = bool(re.search(r"(require|need|needs|which projects?).{0,20}(ground|field) verification|projects? (that )?need.{0,15}verification|requiring verification", ql))
     if not (is_cost or is_mismatch or is_delayed or is_verify):
@@ -2492,6 +2715,10 @@ PAGE_HELP = {
     "My Investigations": "My Investigations tracks projects you opened an investigation on, with priority tier and recommendations.",
     "My Audit Cases": "My Audit Cases holds the audit cases you saved; case content is regenerated from live data whenever opened.",
     "Settings": "Settings controls appearance (theme, font size) and account preferences.",
+    "Leaderboard": "Leaderboard ranks recorded performance across states, constituencies and MPs using the same catalogue and ledger sources as the other pages.",
+    "FAQ": "FAQ answers common questions about MPLADS, evidence submission and how the portal's risk signals should be read.",
+    "Administration": "Administration is the admin-only surface for users, roles and district assignments.",
+    "Data Management": "Data Management is the admin-only CSV import pipeline: preview a file, review detected columns and issues, commit, roll back or refresh derived data.",
 }
 
 # Contextual starter chips per page (intersected with role defaults client-side
@@ -2499,8 +2726,8 @@ PAGE_HELP = {
 PAGE_SUGGESTIONS = {
     "Overview": ["What is the purpose of this website?", "What do the risk levels mean?"],
     "Projects": ["How do I find a project?", "What does High Risk mean?", "What is a project?"],
-    "Risk Center": ["What does High Risk mean?", "What is a risk score?", "What is 'Delayed By'?"],
-    "State Intelligence": ["Which states have the most projects?", "How many projects are in Karnataka?"],
+    "Risk Center": ["Why is this risky?", "What does High Risk mean?", "What is a risk score?", "What evidence do we have?", "Generate an audit brief"],
+    "State Intelligence": ["Which states have the most projects?", "How many projects are in Karnataka?", "How many high-risk Lok Sabha projects are in Telangana?"],
     "MP Intelligence": [
         "How much has this MP spent?",
         "How many works has this MP completed?",
@@ -2510,8 +2737,8 @@ PAGE_SUGGESTIONS = {
     ],
     "Reports": ["What reports can I export?", "What is the purpose of this website?"],
     "AI Audit Center": ["Why was this project flagged?", "Explain the risk score", "What should an auditor check?"],
-    "Audit Priority": ["What does P1 mean?", "Why is this project prioritized?", "What is a risk score?"],
-    "Compare Projects": ["How do I compare two projects?", "What does High Risk mean?"],
+    "Audit Priority": ["What does P1 mean?", "Why is this project prioritized?", "Generate an audit brief", "Are there any data issues with this project?", "Compare this project with similar projects"],
+    "Compare Projects": ["How do I compare two projects?", "What does High Risk mean?", "Is this expenditure high compared with similar projects?"],
     "Vendor Network": ["What is Vendor Network?", "What does a vendor cluster mean?"],
     "Vendor Intelligence": ["What is Vendor Intelligence?", "How do I search for a vendor?"],
     "Ground Truth Verification": [
@@ -2611,6 +2838,15 @@ def _greeting_reply(ql: str) -> str:
     ])
 
 
+def _pad5(result) -> Tuple[str, str, List[ActionOut], Optional[int], Dict[str, Any]]:
+    """Normalise every intent result to the assistant's 5-field contract.
+    Older handlers still return 2/3/4-tuples; they must not crash /ask."""
+    values = list(result or [])
+    while len(values) < 5:
+        values.append({} if len(values) == 4 else None)
+    return tuple(values[:5])
+
+
 def _answer(question: str, page: Optional[str], user, db: Session,
             session_id: Optional[str] = None) -> Tuple[str, str, List[ActionOut], Optional[int]]:
     """Entry point: greets pure greetings conversationally (no actions, no
@@ -2618,15 +2854,15 @@ def _answer(question: str, page: Optional[str], user, db: Session,
     executes the request, and prefixes a short acknowledgement."""
     ql = question.lower().strip()
     if _PURE_GREETING_RE.match(ql):
-        return _greeting_reply(ql), "help", [], None
+        return _greeting_reply(ql), "help", [], None, {"intent": "greeting"}
     if _GREET_HEAD_RE.match(ql):
         body = _GREET_HEAD_RE.sub("", question, count=1).strip()
         if not body:
-            return _greeting_reply(ql), "help", [], None
-        answer, source, actions, pid = _answer_body(body, page, user, db, session_id)
+            return _greeting_reply(ql), "help", [], None, {"intent": "greeting"}
+        answer, source, actions, pid, meta = _pad5(_answer_body(body, page, user, db, session_id))
         greet = _greeting_reply(ql).split("!")[0] + "! "
-        return greet + answer, source, actions, pid
-    return _answer_body(question, page, user, db, session_id)
+        return greet + answer, source, actions, pid, {**meta, "intent": meta.get("intent") or "greeting"}
+    return _pad5(_answer_body(question, page, user, db, session_id))
 
 
 def _answer_body(question: str, page: Optional[str], user, db: Session,
@@ -2643,6 +2879,13 @@ def _answer_body(question: str, page: Optional[str], user, db: Session,
     # used when the user refers to "it" without the page context carrying one.
     if ctx_project_id is None:
         ctx_project_id = _session_get_project(session_id)
+    # Ordinal follow-ups ("why is the first one risky?") resolve against the
+    # project-id list behind the previous list/analytics answer.
+    ordinal = assistant_nlu.ordinal_index(ql)
+    if ctx_project_id is None and ordinal is not None:
+        result_ids = _session_get_results(session_id)
+        if result_ids and -len(result_ids) <= ordinal < len(result_ids):
+            ctx_project_id = result_ids[ordinal]
     real_page = page if page and not page.startswith("project:") else None
 
     # "This MP" support: when the user is on the MP Intelligence page with an
@@ -2672,12 +2915,41 @@ def _answer_body(question: str, page: Optional[str], user, db: Session,
     #    navigation, then ID-anchored lookups, then role/data analytics.
     discussed_pid: Optional[int] = None
     results = [
+        # Portfolio analytics ahead of MP lookup: "compare expenditure between
+        # Telangana and Karnataka" is a state question, not an MP name search.
+        # Every branch is pattern-gated; unmatched questions fall through.
+        (lambda: assistant_analytics.analytics_intent(question, ql, user, db), "data"),
         # MP Intelligence — MP comparisons, house-scoped MP stats, MPs-by-state
         # lists, per-MP attribute questions. Runs BEFORE generic navigation so
         # "show me Lok Sabha MPs in Telangana" reaches the MP view; its guards
         # defer project-scoped questions (any mention of "project") to the
         # project/context intents below. Identity is MP+House+Constituency.
         (lambda: mp_assistant.mp_intelligence_intent(question, ql, user, db, session_id=session_id), "data"),
+        # ── Investigation layer (Features 3/5/6/7 + multi-turn) ──────
+        # Session context for this turn: page/project context, session's
+        # discussed project/state. Computed once, shared by all intents.
+        # Investigation workspace Q&A first when the question is explicitly
+        # about an investigation: it must use the persisted findings/history,
+        # not a generic project summary. Falls through for every non-match.
+        (lambda: investigation_intents.investigation_workspace_intent(
+            question, ql, ctx_project_id, user, db, session_ctx=_session_get_ctx(session_id)), "data"),
+        # Deep "why is this risky?" reasoning first — with a project in
+        # context it must beat the generic navigation/lookup handlers.
+        (lambda: assistant_review.review_intent(
+            question, ql, ctx_project_id, user, db, session_ctx=_session_get_ctx(session_id)), "data"),
+        (lambda: investigation_intents.risk_reasoning_intent(
+            question, ql, ctx_project_id, user, db, session_ctx=_session_get_ctx(session_id)), "data"),
+        (lambda: investigation_intents.audit_brief_intent(
+            question, ql, ctx_project_id, user, db, session_ctx=_session_get_ctx(session_id)), "data"),
+        (lambda: _intent_high_risk(ql, user, db, session_id=session_id), "data"),
+        (lambda: investigation_intents.peer_comparison_intent(
+            question, ql, ctx_project_id, user, db, session_ctx=_session_get_ctx(session_id)), "data"),
+        (lambda: investigation_intents.data_quality_intent(
+            question, ql, ctx_project_id, user, db, session_ctx=_session_get_ctx(session_id)), "data"),
+        (lambda: investigation_intents.next_review_intent(
+            question, ql, ctx_project_id, user, db, session_ctx=_session_get_ctx(session_id)), "data"),
+        (lambda: investigation_intents.state_summary_intent(
+            question, ql, user, db, session_ctx=_session_get_ctx(session_id)), "data"),
         (lambda: _intent_navigate(question, ql, ctx_project_id, user, db, session_id=session_id), "data"),
         # Two-ID metric comparison before project-context (which bails on two
         # numbers but would otherwise let a session-anchored single project
@@ -2691,7 +2963,9 @@ def _answer_body(question: str, page: Optional[str], user, db: Session,
         # List/screening intents BEFORE _intent_project_detail: plural data
         # requests ("show high-risk projects", "progress/expenditure mismatch")
         # must not be swallowed by the project-context attribute regex.
-        (lambda: _intent_high_risk(ql, user, db), "data"),
+        # List/screening intents before the project-context handler: a genuine
+        # portfolio question must not be swallowed by a project discussed in
+        # an earlier turn. Analytics/high-risk already ran above.
         (lambda: _intent_analytical_screening(ql, user, db), "data"),
         (lambda: _intent_anomalies(ql, user, db), "data"),
         # Portfolio analytics Q&A — counts/utilization/cohorts. After the
@@ -2714,7 +2988,10 @@ def _answer_body(question: str, page: Optional[str], user, db: Session,
         # Intents return 2-tuples (answer, actions), 3-tuples (+ discussed
         # project id) or 4-tuples (+ action context to remember).
         ctx_update = None
-        if len(result) == 4:
+        meta = {}
+        if len(result) >= 5:
+            answer, actions, discussed_pid, ctx_update, meta = result[:5]
+        elif len(result) == 4:
             answer, actions, discussed_pid, ctx_update = result
         elif len(result) == 3:
             answer, actions, discussed_pid = result
@@ -2724,10 +3001,30 @@ def _answer_body(question: str, page: Optional[str], user, db: Session,
             _session_set_ctx(session_id, project_id=discussed_pid)
         if isinstance(ctx_update, dict) and ctx_update.get("page"):
             _session_set_ctx(session_id, page=ctx_update["page"],
-                             filters=ctx_update.get("filters") or {})
-        # Enforce the action allowlist on EVERY outgoing action — the client
-        # can trust that only validated, known-safe actions ever arrive.
-        return answer, source, _valid_actions(actions), discussed_pid
+                             filters=ctx_update.get("filters") or {},
+                             state=(ctx_update.get("filters") or {}).get("state") or ctx_update.get("state"))
+        meta = dict(meta or {})
+        nlu_meta = assistant_nlu.classify(question, page)
+        meta.setdefault("intent", nlu_meta.get("intent") or "help")
+        entity = dict(meta.get("entity") or nlu_meta.get("entity") or {})
+        if discussed_pid:
+            entity.setdefault("type", "project")
+            entity.setdefault("id", int(discussed_pid))
+        meta["entity"] = entity
+        result_ids = assistant_nlu.result_ids_from_meta(meta)
+        if discussed_pid:
+            result_ids = [int(discussed_pid)] + [p for p in result_ids if p != int(discussed_pid)]
+        if result_ids:
+            _session_set_results(session_id, result_ids)
+        # Enforce the action allowlist AND the destination role guard on EVERY
+        # outgoing action. Intents that construct actions directly must not be
+        # able to hand an analyst an admin-only destination.
+        safe_actions = []
+        for action in _valid_actions(actions):
+            if action.action == "navigate" and not assistant_nav.can_access(str(action.target), user):
+                continue
+            safe_actions.append(action)
+        return answer, source, safe_actions, discussed_pid, meta
 
     # 2. Knowledge base — answers gain a contextual action chip pointing at
     #    the screen matching the topic asked about.
@@ -2798,13 +3095,38 @@ def ask(
     Returns project_id so clients can keep conversation context for
     follow-ups like "why is it risky?" → "open it"."""
     session_id = payload.session_id or str(uuid.uuid4())
-    answer, source, actions, discussed_pid = _answer(
+    result = _answer(
         payload.question, payload.page, user, db, session_id=session_id
     )
+    answer, source, actions, discussed_pid = result[:4]
+    meta = dict(result[4] if len(result) > 4 else {})
+    nlu = assistant_nlu.classify(payload.question, payload.page)
+    intent = str(meta.get("intent") or nlu.get("intent") or "help")[:40]
+    entity = meta.get("entity") or nlu.get("entity") or {}
+    findings = list(meta.get("findings") or [])[:8]
+    recommendations = list(meta.get("recommendations") or [])[:7]
+    limitations = [str(item)[:300] for item in (meta.get("limitations") or [])][:8]
+    table = meta.get("table")
+    if isinstance(table, dict):
+        table = {
+            "columns": [str(c)[:60] for c in (table.get("columns") or [])][:8],
+            "rows": [
+                [str(cell)[:120] for cell in (row or [])][:8]
+                for row in (table.get("rows") or [])[:12]
+            ],
+            "caption": str(table.get("caption") or "")[:160],
+        }
+    else:
+        table = None
     # Single choke point: every action leaving the API is checked against the
     # allowlist, whichever intent produced it.
-    return AskResponse(answer=answer, source=source, actions=_valid_actions(actions),
-                       project_id=discussed_pid)
+    return AskResponse(
+        answer=answer, source=source, actions=_valid_actions(actions),
+        project_id=discussed_pid, intent=intent, entity=entity if isinstance(entity, dict) else {},
+        findings=[f for f in findings if isinstance(f, dict)],
+        recommendations=[r for r in recommendations if isinstance(r, dict)],
+        limitations=limitations, table=table,
+    )
 
 
 @router.get("/suggestions")

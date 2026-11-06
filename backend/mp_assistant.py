@@ -151,6 +151,13 @@ def mp_intelligence_intent(q: str, ql: str, user, db: Session,
     )
     if m and re.search(r"\bmps?\b|members? of parliament|compare\b", ql):
         a_name, b_name = m.group(1).strip(" '?\""), m.group(2).strip(" '?\"")
+        # Two state names without an "MP" mention ("compare Telangana and
+        # Karnataka") is a STATE comparison — the analytics intent's two-state
+        # table owns it; don't answer with an MP-not-found miss.
+        if not re.search(r"\bmps?\b|members? of parliament", ql):
+            low_states = {s.strip().lower() for (s,) in db.query(models.Project.state).distinct().all() if s}
+            if a_name.lower() in low_states and b_name.lower() in low_states:
+                return None
 
         def find(name):
             rows = (

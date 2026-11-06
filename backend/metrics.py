@@ -381,11 +381,14 @@ def portfolio_overview(
 
 
 def portfolio_stats(
-    db: Session, fy: Optional[str] = None, state: Optional[str] = None
+    db: Session,
+    fy: Optional[str] = None,
+    state: Optional[str] = None,
+    house: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Catalog counts/sanctioned + ledger expenditure/completions, optionally
-    scoped by catalog fy / catalog state (ledgers scoped by their own state
-    and payment/completion-date FY)."""
+    scoped by catalog fy / catalog state / catalog house (ledgers scoped by
+    their own state, payment/completion-date FY and house)."""
     q = db.query(
         func.count(models.Project.id).label("total"),
         func.coalesce(func.sum(models.Project.sanctioned_amount), 0.0).label("sanctioned"),
@@ -396,8 +399,10 @@ def portfolio_stats(
         q = q.filter(models.Project.fy == fy)
     if state:
         q = q.filter(models.Project.state == state)
+    if house in ("Lok Sabha", "Rajya Sabha"):
+        q = q.filter(models.Project.house == house)
     s = q.one()
-    led = ledger_totals_scoped(db, state=state, fy=fy)
+    led = ledger_totals_scoped(db, state=state, fy=fy, house=house)
     return {
         "total_projects": int(s.total or 0),
         "sanctioned": float(s.sanctioned or 0),
@@ -690,7 +695,9 @@ def state_ledger_map(
 
 
 def constituency_ledger_map(
-    db: Session, fy: Optional[str] = None
+    db: Session,
+    fy: Optional[str] = None,
+    house: Optional[str] = None,
 ) -> Dict[tuple, Dict[str, Any]]:
     """(state, constituency) -> ledger totals.
 
@@ -710,6 +717,8 @@ def constituency_ledger_map(
     )
     if fy:
         eq = eq.filter(_fy_expr(models.Expenditure.expenditure_date) == fy)
+    if house in ("Lok Sabha", "Rajya Sabha"):
+        eq = eq.filter(models.Expenditure.house == house)
     for r in eq.group_by("s", "g").all():
         entry = out.setdefault(
             ((r.s or "").strip(), (r.g or "Unknown").strip()),
@@ -726,6 +735,8 @@ def constituency_ledger_map(
     )
     if fy:
         cq = cq.filter(_fy_expr(models.CompletedWork.completed_date) == fy)
+    if house in ("Lok Sabha", "Rajya Sabha"):
+        cq = cq.filter(models.CompletedWork.house == house)
     for r in cq.group_by("s", "g").all():
         entry = out.setdefault(
             ((r.s or "").strip(), (r.g or "Unknown").strip()),

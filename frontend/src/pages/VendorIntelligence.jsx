@@ -39,7 +39,7 @@ function investigateVendor(vendor, engagements) {
   window.open(`https://www.google.com/search?q=${encodeURIComponent(query)}`, "_blank", "noopener,noreferrer")
 }
 
-const VendorIntelligence = memo(function VendorIntelligence({ onOpenProject }) {
+const VendorIntelligence = memo(function VendorIntelligence({ onOpenProject, drillDownParams, onClearDrillDown }) {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
@@ -63,6 +63,19 @@ const VendorIntelligence = memo(function VendorIntelligence({ onOpenProject }) {
     const timer = setTimeout(() => { setQuery(searchText); setPage(0) }, 250)
     return () => clearTimeout(timer)
   }, [searchText])
+
+  // Assistant deep-link: "vendor intelligence for <vendor>" prefills the
+  // directory's existing search instead of creating a second view. The
+  // q filter already matches vendor or state names on the server.
+  useEffect(() => {
+    if (!drillDownParams) return
+    const value = drillDownParams.vendor || drillDownParams.state || ""
+    if (value) {
+      setSearchText(String(value))
+      setPage(0)
+    }
+    onClearDrillDown?.()
+  }, [drillDownParams, onClearDrillDown])
 
   useEffect(() => {
     let mounted = true

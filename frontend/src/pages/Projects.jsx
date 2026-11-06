@@ -83,6 +83,9 @@ const Projects = memo(function Projects({ projectSearchQuery, onClearProjectSear
   const [sortDir, setSortDir] = useState("desc")
   const [currentPage, setCurrentPage] = useState(1)
   const [detailProjectId, setDetailProjectId] = useState(null)
+  // Assistant tab deep-links: "open the forensic view" → open_project action
+  // carrying {tab:'forensics'} — applied when the drawer opens.
+  const [detailTab, setDetailTab] = useState(null)
   const [projectSearchApplied, setProjectSearchApplied] = useState(false)
   const rowsPerPage = 15
 
@@ -92,7 +95,10 @@ const Projects = memo(function Projects({ projectSearchQuery, onClearProjectSear
   useEffect(() => {
     const handler = (e) => {
       const id = e.detail?.projectId
-      if (id) setDetailProjectId(Number(id))
+      if (id) {
+        setDetailProjectId(Number(id))
+        setDetailTab(e.detail?.tab || null)
+      }
     }
     window.addEventListener("open-project", handler)
     return () => window.removeEventListener("open-project", handler)
@@ -692,7 +698,11 @@ const Projects = memo(function Projects({ projectSearchQuery, onClearProjectSear
         <Suspense fallback={null}>
           <ProjectDetail
             projectId={detailProjectId}
-            onClose={() => setDetailProjectId(null)}
+            initialTab={detailTab}
+            onClose={() => {
+              setDetailProjectId(null)
+              setDetailTab(null)
+            }}
           />
         </Suspense>
       )}

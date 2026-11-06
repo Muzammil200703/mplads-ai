@@ -1,4 +1,4 @@
-import { useEffect, useState, memo } from "react"
+import { lazy, Suspense, useEffect, useState, memo } from "react"
 import {
   getDashboardOverview,
   getAINarrativeInsights,
@@ -11,8 +11,21 @@ import {
   getBackendStatus,
 } from "../services/api"
 import { formatCrore, formatNumber } from "../utils/format"
+// The choropleth (d3-geo + GeoJSON) is not needed for first paint. Route-level
+// splitting already keeps other pages out of the initial bundle, but this
+// component was still imported eagerly by the landing page — load it on demand
+// so initial JS/network work excludes the map unless the user reaches it.
+const GeographicDistribution = lazy(
+  () => import("../components/GeographicDistribution")
+)
 
-const Overview = memo(function Overview({ darkMode, onDrillDown, fy }) {
+const Overview = memo(function Overview({
+  darkMode,
+  onDrillDown,
+  fy,
+  house: houseProp,
+  onHouseChange,
+}) {
   const [overview, setOverview] = useState(null)
   const [narratives, setNarratives] = useState([])
   const [stateData, setStateData] = useState([])
@@ -35,7 +48,12 @@ const Overview = memo(function Overview({ darkMode, onDrillDown, fy }) {
   // `house` also scopes the page-level portfolio cards, anomalies summary and
   // early-warning panels — one selector, one consistent snapshot everywhere.
   // "All" is the unfiltered portfolio (no house constraint anywhere).
-  const [house, setHouse] = useState("All")
+  const [localHouse, setLocalHouse] = useState("All")
+  const house = houseProp || localHouse || "All"
+  const setHouse = (next) => {
+    setLocalHouse(next)
+    if (onHouseChange) onHouseChange(next)
+  }
   const [houseStats, setHouseStats] = useState(null)
   useEffect(() => {
     let cancelled = false
@@ -610,6 +628,27 @@ const Overview = memo(function Overview({ darkMode, onDrillDown, fy }) {
           </div>
         </div>
       </div>
+
+      {/* GEOGRAPHIC DISTRIBUTION — state-level choropleth. Placed directly
+          below the KPI cards and above the existing regional charts. It
+          reuses the House Dashboard's existing house selection (no duplicate
+          House control) and its own aggregation request fires only when the
+          House or FY scope changes. */}
+      <Suspense
+        fallback={
+          <div
+            className={`mt-6 h-64 animate-pulse rounded-xl border ${cardClasses}`}
+            aria-label="Loading geographic distribution"
+          />
+        }
+      >
+        <GeographicDistribution
+          darkMode={darkMode}
+          house={house}
+          fy={fy}
+          onDrillDown={onDrillDown}
+        />
+      </Suspense>
 
       {/* STATE INTENSITY & REGIONAL ANALYSIS */}
       <div className="mt-6 grid grid-cols-1 gap-4 sm:gap-5 xl:grid-cols-12">
