@@ -13,7 +13,10 @@ function computeScore(s) {
   return Math.round(Math.min(Math.max(raw, 0), 100))
 }
 
-const MEDALS = ["#8493A5", "#A5B2C1", "#CBD2D9"]
+const MEDALS_LIGHT = ["#C8102E", "#E78D96", "#F2B7BD"]
+const MEDALS_DARK = ["#8F1838", "#A32346", "#D33B62"]
+const MEDAL_INK_LIGHT = ["#ffffff", "#292326", "#292326"]
+const MEDAL_INK_DARK = ["#ffffff", "#ffffff", "#ffffff"]
 
 export default function Leaderboard({ darkMode }) {
   const [states, setStates] = useState([])
@@ -36,9 +39,9 @@ export default function Leaderboard({ darkMode }) {
     return () => { active = false }
   }, [])
 
-  const pageBg = darkMode ? "text-[#f1f3f5]" : "text-[#30343A]"
-  const cardBg = darkMode ? "bg-[#222831] border-[#2c3540]" : "bg-white border-[#dde1e5]"
-  const mutedText = darkMode ? "text-[#aab3bd]" : "text-[#69717c]"
+  const pageBg = darkMode ? "text-[#f5eff1]" : "text-[#292326]"
+  const cardBg = darkMode ? "bg-[#0d090b] border-[#351923]" : "bg-white border-[#e8dadc]"
+  const mutedText = darkMode ? "text-[#b9aeb2]" : "text-[#71666a]"
 
   return (
     <div className={`mx-auto max-w-5xl space-y-6 px-4 pt-6 pb-10 sm:px-6 sm:pt-8 lg:px-8 lg:pt-10 ${pageBg}`}>
@@ -70,7 +73,7 @@ export default function Leaderboard({ darkMode }) {
             <div className="flex items-center gap-4">
               <div
                 className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full font-bold text-white"
-                style={{ backgroundColor: i < 3 ? MEDALS[i] : (darkMode ? "#2c3540" : "#dde1e5"), color: i < 3 ? "#171b20" : undefined }}
+                style={{ backgroundColor: i < 3 ? (darkMode ? MEDALS_DARK : MEDALS_LIGHT)[i] : (darkMode ? "#120b0e" : "#e8dadc"), color: i < 3 ? (darkMode ? MEDAL_INK_DARK : MEDAL_INK_LIGHT)[i] : undefined }}
               >
                 {i + 1}
               </div>
@@ -87,7 +90,7 @@ export default function Leaderboard({ darkMode }) {
             </div>
             <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
               <div
-                className="h-full rounded-full bg-gradient-to-r from-blue-500 to-green-500 transition-all duration-700"
+                className="h-full rounded-full bg-gradient-to-r from-blue-500 to-blue-600 transition-all duration-700"
                 style={{ width: `${s._score}%` }}
               />
             </div>

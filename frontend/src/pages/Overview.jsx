@@ -199,14 +199,14 @@ const Overview = memo(function Overview({
   }, [fy, house])
 
   const pageClasses = darkMode
-    ? "bg-[#171b20] text-[#f1f3f5]"
-    : "bg-[#f4f5f6] text-[#30343A]"
+    ? "bg-[#000000] text-[#f5eff1]"
+    : "bg-[#faf7f6] text-[#292326]"
 
   const cardClasses = darkMode
-    ? "bg-[#222831] border-[#2c3540]"
-    : "bg-white border-[#dde1e5]"
+    ? "bg-[#0d090b] border-[#351923]"
+    : "bg-white border-[#e8dadc]"
 
-  const mutedText = darkMode ? "text-[#aab3bd]" : "text-[#69717c]"
+  const mutedText = darkMode ? "text-[#b9aeb2]" : "text-[#71666a]"
 
   const topStates = stateData.slice(0, 6)
   const maxProjectsInState = topStates.length > 0
@@ -254,25 +254,84 @@ const Overview = memo(function Overview({
   return (
     <div className={`min-h-full p-4 sm:p-6 transition-colors duration-200 ${pageClasses}`}>
       {/* HEADER */}
-      <div className="mb-4 sm:mb-6 flex flex-col gap-3 sm:gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold">Executive Overview</h1>
-          <p className={`mt-1 sm:mt-2 text-sm sm:text-base ${mutedText}`}>
-            AI-driven monitoring of MPLADS allocations, physical progress, and financial anomalies.
-          </p>
-        </div>
+      <div className="mb-4 sm:mb-6">
+        <h1 className="text-xl sm:text-2xl md:text-3xl font-bold">Executive Overview</h1>
+        <p className={`mt-1 sm:mt-2 text-sm sm:text-base ${mutedText}`}>
+          AI-driven monitoring of MPLADS allocations, physical progress, and financial anomalies.
+        </p>
+      </div>
 
-        <div className="flex flex-wrap gap-2 sm:gap-3">
-          <button
-            onClick={() => window.print()}
-            className={`rounded-lg border px-3 sm:px-5 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold transition hover:opacity-80 ${cardClasses}`}
-          >
-            ↓ Export Overview
-          </button>
-          <div className="flex items-center gap-2 rounded-lg bg-blue-500/10 px-3 sm:px-4 py-1.5 sm:py-2 text-xs font-bold text-blue-600 dark:text-blue-300">
-            <span>●</span> Live Backend Data
+      {/* HOUSE DASHBOARD — official eSAKSHI metric set (allocated,
+          expenditure, utilization, expenditure rate, MPs, completed/pending
+          works, ongoing-work payments). Backend-derived from the ledgers;
+          the metric definitions match the official MPLADS dashboard. */}
+      <div className={`mb-7 rounded-xl border p-5 shadow-sm ${cardClasses}`}>
+        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h3 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wider">
+              🏛 House Dashboard
+            </h3>
+            <p className={`mt-0.5 text-xs ${mutedText}`}>
+              Official eSAKSHI metric set, computed from the imported dataset snapshot.
+            </p>
+          </div>
+          <div className="flex items-center gap-1 rounded-lg border border-gray-200 p-1 dark:border-gray-700">
+            {["All", "Rajya Sabha", "Lok Sabha"].map((h) => (
+              <button
+                key={h}
+                onClick={() => setHouse(h)}
+                className={`rounded-md px-3 py-1.5 text-xs font-bold transition ${
+                  house === h
+                    ? "bg-blue-600 text-white shadow-sm"
+                    : "text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800"
+                }`}
+              >
+                {h}
+              </button>
+            ))}
           </div>
         </div>
+        {houseStats ? (
+          <>
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+              {[
+                { label: "Total Allocated", value: `₹${formatCrore(houseStats.total_allocated)} Cr`, sub: "Total funds allocated to MPs" },
+                { label: "Total Expenditure", value: `₹${formatCrore(houseStats.total_expenditure)} Cr`, sub: houseStats.expenditure_transactions != null ? `Vendor payments · ${formatNumber(houseStats.expenditure_transactions)} transactions` : "Vendor payments recorded" },
+                { label: "Fund Utilization", value: `${houseStats.fund_utilization_percentage}%`, sub: "Share of allocation recommended by MPs" },
+                { label: "Expenditure Rate", value: `${houseStats.expenditure_rate_percentage}%`, sub: "Vendor expenditure as a share of allocation" },
+                { label: "Total MPs", value: formatNumber(houseStats.total_mps), sub: houseStats.data_snapshot?.reference ? "Official eSAKSHI roster" : " MPs in the system" },
+                { label: "Works Completed", value: `${formatNumber(houseStats.works_completed)} (₹${formatCrore(houseStats.completed_work_value)} Cr)`, sub: "Completed works and their value" },
+                { label: "Works Pending", value: formatNumber(houseStats.works_pending), sub: "Recommended works not yet in the completions ledger" },
+                { label: "Ongoing-Work Payments", value: `₹${formatCrore(houseStats.ongoing_work_payments)} Cr`, sub: "Vendor payments linked to works not yet marked complete" },
+                { label: "Total Project Amount", value: houseStats.total_project_amount != null ? `₹${formatCrore(houseStats.total_project_amount)} Cr` : "—", sub: "Sanctioned amounts across monitored works" },
+              ].map((m) => (
+                <div key={m.label} className="rounded-lg border border-gray-100 bg-white/60 p-3 dark:border-gray-700/60 dark:bg-white/5">
+                  <p className="text-[0.625rem] font-bold uppercase tracking-wider text-gray-400">{m.label}</p>
+                  <p className="mt-1 font-mono text-base font-bold text-gray-900 dark:text-white">{m.value}</p>
+                  <p className="mt-0.5 text-[0.625rem] leading-snug text-gray-400">{m.sub}</p>
+                </div>
+              ))}
+            </div>
+            {houseStats.data_snapshot && (
+              <p className={`mt-3 text-[0.625rem] leading-snug ${mutedText}`}>
+                {houseStats.data_snapshot.reference
+                  ? <>
+                      Reference: {houseStats.data_snapshot.label}. Metric definitions match the official eSAKSHI dashboard; underlying data is a batch import, not a live feed.
+                    </>
+                  : <>
+                      Data snapshot: batch import through{" "}
+                      {houseStats.data_snapshot.last_payment_date
+                        ? new Date(houseStats.data_snapshot.last_payment_date).toLocaleDateString("en-IN", { month: "long", year: "numeric" })
+                        : "—"}
+                      . Batch snapshot, not a live feed — the official eSAKSHI portal updates in real time, so figures drift as new payments are recorded there.
+                    </>
+                }
+              </p>
+            )}
+          </>
+        ) : (
+          <p className={`text-xs ${mutedText}`}>House metrics could not be loaded.</p>
+        )}
       </div>
 
       {/* ERROR NOTICE — two distinct failure classes, never conflated:
@@ -304,38 +363,6 @@ const Overview = memo(function Overview({
             showing zero rather than a misleading partial figure. Other sections on this page are served by separate
             requests and may still show live data. Retry in a moment and the cards will repopulate from the backend.
           </p>
-        </div>
-      )}
-
-      {/* AI NARRATIVE INSIGHTS BANNER */}
-      {narratives.length > 0 && (
-        <div className="mb-7 rounded-xl border border-blue-200 bg-gradient-to-r from-blue-50 via-white to-blue-50/50 p-5 shadow-sm dark:border-blue-900/60 dark:from-[#222831] dark:via-[#222831] dark:to-[#1c2127]">
-          <div className="mb-3 flex items-center gap-2">
-            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-600 text-xs text-white">✨</span>
-            <h3 className="text-xs font-bold uppercase tracking-wider text-blue-950 dark:text-blue-200">
-              AI Audit Insights & Discrepancy Findings
-            </h3>
-          </div>
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
-            {narratives.map((item, idx) => (
-              <div
-                key={idx}
-                className="rounded-lg border border-blue-100 bg-white/80 p-3 shadow-2xs dark:border-gray-700/60 dark:bg-[#171b20]/70"
-              >
-                <div className="flex items-center gap-2">
-                  <span className="text-sm">
-                    {item.type === "risk" ? "⚠️" : item.type === "financial" ? "💰" : item.type === "completion" ? "🏗️" : "📍"}
-                  </span>
-                  <span className="text-xs font-bold text-gray-900 dark:text-white">
-                    {item.title}
-                  </span>
-                </div>
-                <p className="mt-1.5 text-xs leading-relaxed text-gray-600 dark:text-gray-300">
-                  {item.message}
-                </p>
-              </div>
-            ))}
-          </div>
         </div>
       )}
 
@@ -458,78 +485,37 @@ const Overview = memo(function Overview({
         </div>
       )}
 
-      {/* HOUSE DASHBOARD — official eSAKSHI metric set (allocated,
-          expenditure, utilization, expenditure rate, MPs, completed/pending
-          works, ongoing-work payments). Backend-derived from the ledgers;
-          the metric definitions match the official MPLADS dashboard. */}
-      <div className={`mb-7 rounded-xl border p-5 shadow-sm ${cardClasses}`}>
-        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h3 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wider">
-              🏛 House Dashboard
+      {/* AI NARRATIVE INSIGHTS BANNER */}
+      {narratives.length > 0 && (
+        <div className="mb-7 rounded-xl border border-blue-200 bg-gradient-to-r from-blue-50 via-white to-blue-50/50 p-5 shadow-sm dark:border-blue-900/60 dark:from-[#210a12] dark:via-[#210a12] dark:to-[#210a12]">
+          <div className="mb-3 flex items-center gap-2">
+            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-600 text-xs text-white">✨</span>
+            <h3 className="text-xs font-bold uppercase tracking-wider text-blue-950 dark:text-blue-200">
+              AI Audit Insights & Discrepancy Findings
             </h3>
-            <p className={`mt-0.5 text-xs ${mutedText}`}>
-              Official eSAKSHI metric set, computed from the imported dataset snapshot.
-            </p>
           </div>
-          <div className="flex items-center gap-1 rounded-lg border border-gray-200 p-1 dark:border-gray-700">
-            {["All", "Rajya Sabha", "Lok Sabha"].map((h) => (
-              <button
-                key={h}
-                onClick={() => setHouse(h)}
-                className={`rounded-md px-3 py-1.5 text-xs font-bold transition ${
-                  house === h
-                    ? "bg-blue-600 text-white shadow-sm"
-                    : "text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800"
-                }`}
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
+            {narratives.map((item, idx) => (
+              <div
+                key={idx}
+                className="rounded-lg border border-blue-100 bg-white/80 p-3 shadow-2xs dark:border-gray-700/60 dark:bg-[#000000]/70"
               >
-                {h}
-              </button>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm">
+                    {item.type === "risk" ? "⚠️" : item.type === "financial" ? "💰" : item.type === "completion" ? "🏗️" : "📍"}
+                  </span>
+                  <span className="text-xs font-bold text-gray-900 dark:text-white">
+                    {item.title}
+                  </span>
+                </div>
+                <p className="mt-1.5 text-xs leading-relaxed text-gray-600 dark:text-gray-300">
+                  {item.message}
+                </p>
+              </div>
             ))}
           </div>
         </div>
-        {houseStats ? (
-          <>
-            <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-              {[
-                { label: "Total Allocated", value: `₹${formatCrore(houseStats.total_allocated)} Cr`, sub: "Total funds allocated to MPs" },
-                { label: "Total Expenditure", value: `₹${formatCrore(houseStats.total_expenditure)} Cr`, sub: houseStats.expenditure_transactions != null ? `Vendor payments · ${formatNumber(houseStats.expenditure_transactions)} transactions` : "Vendor payments recorded" },
-                { label: "Fund Utilization", value: `${houseStats.fund_utilization_percentage}%`, sub: "Share of allocation recommended by MPs" },
-                { label: "Expenditure Rate", value: `${houseStats.expenditure_rate_percentage}%`, sub: "Vendor expenditure as a share of allocation" },
-                { label: "Total MPs", value: formatNumber(houseStats.total_mps), sub: houseStats.data_snapshot?.reference ? "Official eSAKSHI roster" : " MPs in the system" },
-                { label: "Works Completed", value: `${formatNumber(houseStats.works_completed)} (₹${formatCrore(houseStats.completed_work_value)} Cr)`, sub: "Completed works and their value" },
-                { label: "Works Pending", value: formatNumber(houseStats.works_pending), sub: "Recommended works not yet in the completions ledger" },
-                { label: "Ongoing-Work Payments", value: `₹${formatCrore(houseStats.ongoing_work_payments)} Cr`, sub: "Vendor payments linked to works not yet marked complete" },
-                { label: "Total Project Amount", value: houseStats.total_project_amount != null ? `₹${formatCrore(houseStats.total_project_amount)} Cr` : "—", sub: "Sanctioned amounts across monitored works" },
-              ].map((m) => (
-                <div key={m.label} className="rounded-lg border border-gray-100 bg-white/60 p-3 dark:border-gray-700/60 dark:bg-white/5">
-                  <p className="text-[0.625rem] font-bold uppercase tracking-wider text-gray-400">{m.label}</p>
-                  <p className="mt-1 font-mono text-base font-bold text-gray-900 dark:text-white">{m.value}</p>
-                  <p className="mt-0.5 text-[0.625rem] leading-snug text-gray-400">{m.sub}</p>
-                </div>
-              ))}
-            </div>
-            {houseStats.data_snapshot && (
-              <p className={`mt-3 text-[0.625rem] leading-snug ${mutedText}`}>
-                {houseStats.data_snapshot.reference
-                  ? <>
-                      Reference: {houseStats.data_snapshot.label}. Metric definitions match the official eSAKSHI dashboard; underlying data is a batch import, not a live feed.
-                    </>
-                  : <>
-                      Data snapshot: batch import through{" "}
-                      {houseStats.data_snapshot.last_payment_date
-                        ? new Date(houseStats.data_snapshot.last_payment_date).toLocaleDateString("en-IN", { month: "long", year: "numeric" })
-                        : "—"}
-                      . Batch snapshot, not a live feed — the official eSAKSHI portal updates in real time, so figures drift as new payments are recorded there.
-                    </>
-                }
-              </p>
-            )}
-          </>
-        ) : (
-          <p className={`text-xs ${mutedText}`}>House metrics could not be loaded.</p>
-        )}
-      </div>
+      )}
 
       {/* CORE STAT CARDS */}
       <div className="grid grid-cols-1 gap-4 sm:gap-5 md:grid-cols-2 xl:grid-cols-4">

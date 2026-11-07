@@ -64,7 +64,7 @@ function ClusterGraph({ clusters, onSelect }) {
                       </g>
                     )
                   })}
-                  <circle cx={HUB.x} cy={HUB.y} r="26" fill="#37455a" />
+                  <circle cx={HUB.x} cy={HUB.y} r="26" fill="#a50f29" />
                   <text x={HUB.x} y={HUB.y - 2} textAnchor="middle" fill="white" fontSize="8.5" fontWeight="700">SHARED</text>
                   <text x={HUB.x} y={HUB.y + 8} textAnchor="middle" fill="white" fontSize="8.5" fontWeight="700">OFFICE</text>
                   <text x={HUB.x} y={HUB.y + 42} textAnchor="middle" className="fill-gray-500" fontSize="10">

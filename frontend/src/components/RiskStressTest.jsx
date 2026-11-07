@@ -23,7 +23,7 @@ function levelColor(level) {
 
 function ScoreCard({ label, score, level, accent }) {
   return (
-    <div className={`flex-1 rounded-xl border p-3.5 ${accent || "border-gray-200 bg-gray-50/50 dark:border-gray-700 dark:bg-[#171b20]"}`}>
+    <div className={`flex-1 rounded-xl border p-3.5 ${accent || "border-gray-200 bg-gray-50/50 dark:border-gray-700 dark:bg-[#000000]"}`}>
       <p className="text-[0.625rem] font-bold uppercase tracking-wider text-gray-400">{label}</p>
       <p className={`mt-1 font-mono text-2xl font-bold ${levelColor(level)}`}>
         {score ?? "—"}{score != null && <span className="text-sm text-gray-400">/100</span>}
@@ -125,7 +125,7 @@ export default function RiskStressTest({ projectId, baseline }) {
       )}
 
       {/* Inputs */}
-      <div className="space-y-2.5 rounded-xl border border-gray-200 bg-gray-50/50 p-4 dark:border-gray-700 dark:bg-[#171b20]">
+      <div className="space-y-2.5 rounded-xl border border-gray-200 bg-gray-50/50 p-4 dark:border-gray-700 dark:bg-[#000000]">
         <div>
           <div className="flex items-baseline justify-between">
             <label className="text-[0.6875rem] font-bold">Expenditure (₹)</label>
@@ -133,7 +133,7 @@ export default function RiskStressTest({ projectId, baseline }) {
           </div>
           <input type="number" min="0" value={inputs.expenditure}
             onChange={(e) => setField("expenditure", e.target.value)}
-            className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-2.5 py-1.5 font-mono text-xs focus:border-blue-500 focus:outline-none dark:border-gray-600 dark:bg-[#222831]" />
+            className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-2.5 py-1.5 font-mono text-xs focus:border-blue-500 focus:outline-none dark:border-gray-600 dark:bg-[#0d090b]" />
         </div>
         <div>
           <div className="flex items-baseline justify-between">
@@ -142,7 +142,7 @@ export default function RiskStressTest({ projectId, baseline }) {
           </div>
           <input type="number" min="0" max="100" value={inputs.completion_percentage}
             onChange={(e) => setField("completion_percentage", e.target.value)}
-            className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-2.5 py-1.5 font-mono text-xs focus:border-blue-500 focus:outline-none dark:border-gray-600 dark:bg-[#222831]" />
+            className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-2.5 py-1.5 font-mono text-xs focus:border-blue-500 focus:outline-none dark:border-gray-600 dark:bg-[#0d090b]" />
         </div>
         <div>
           <div className="flex items-baseline justify-between">
@@ -151,7 +151,7 @@ export default function RiskStressTest({ projectId, baseline }) {
           </div>
           <input type="number" min="0" value={inputs.sanctioned_amount}
             onChange={(e) => setField("sanctioned_amount", e.target.value)}
-            className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-2.5 py-1.5 font-mono text-xs focus:border-blue-500 focus:outline-none dark:border-gray-600 dark:bg-[#222831]" />
+            className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-2.5 py-1.5 font-mono text-xs focus:border-blue-500 focus:outline-none dark:border-gray-600 dark:bg-[#0d090b]" />
         </div>
         <div className="flex items-center justify-between gap-2">
           <p className="text-[0.625rem] text-gray-400">Status and the stored ML anomaly flag are held as recorded (ML is not re-predicted on hypothetical values).</p>
@@ -163,7 +163,7 @@ export default function RiskStressTest({ projectId, baseline }) {
 
       {/* Rule contributions */}
       {drivers.length > 0 && (
-        <div className="rounded-xl border border-gray-200 bg-gray-50/50 p-4 dark:border-gray-700 dark:bg-[#171b20]">
+        <div className="rounded-xl border border-gray-200 bg-gray-50/50 p-4 dark:border-gray-700 dark:bg-[#000000]">
           <p className="text-[0.625rem] font-bold uppercase tracking-wider text-gray-400">Risk Drivers — rule contributions</p>
           <div className="mt-2.5 space-y-1.5">
             {drivers.map((d, i) => {
@@ -171,7 +171,7 @@ export default function RiskStressTest({ projectId, baseline }) {
               const curPts = d.current_points || 0
               const changedRow = d.status !== "unchanged"
               return (
-                <div key={i} className={`flex items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 transition-colors ${changedRow ? "bg-blue-50 dark:bg-blue-950/30" : "bg-white dark:bg-[#222831]"}`}>
+                <div key={i} className={`flex items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 transition-colors ${changedRow ? "bg-blue-50 dark:bg-blue-950/30" : "bg-white dark:bg-[#0d090b]"}`}>
                   <span className="min-w-0 truncate text-[0.6875rem] font-semibold">{d.reason}</span>
                   <span className="shrink-0 font-mono text-[0.6875rem]">
                     {curPts === simPts

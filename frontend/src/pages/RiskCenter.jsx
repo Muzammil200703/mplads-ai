@@ -45,16 +45,16 @@ const DonutChart = memo(function DonutChart({ high, medium, low, none }) {
   const nonePct = (none / total) * 100
 
   const grad = `conic-gradient(
-    #e46666 0% ${highPct}%,
-    #f59e0b ${highPct}% ${highPct + medPct}%,
-    #69798d ${highPct + medPct}% ${highPct + medPct + lowPct}%,
-    #69717c ${highPct + medPct + lowPct}% 100%
+    var(--color-red-500) 0% ${highPct}%,
+    var(--color-amber-500) ${highPct}% ${highPct + medPct}%,
+    var(--color-teal-600) ${highPct + medPct}% ${highPct + medPct + lowPct}%,
+    var(--color-gray-400) ${highPct + medPct + lowPct}% 100%
   )`
 
   const segments = [
     { label: "High Risk", count: high, pct: highPct, color: "bg-red-500" },
     { label: "Medium Risk", count: medium, pct: medPct, color: "bg-amber-500" },
-    { label: "Low Risk", count: low, pct: lowPct, color: "bg-blue-500" },
+    { label: "Low Risk", count: low, pct: lowPct, color: "bg-teal-600" },
     { label: "No Risk", count: none, pct: nonePct, color: "bg-gray-400" },
   ]
 
@@ -65,7 +65,7 @@ const DonutChart = memo(function DonutChart({ high, medium, low, none }) {
           className="h-44 w-44 rounded-full sm:h-52 sm:w-52"
           style={{ background: grad }}
         />
-        <div className="absolute inset-0 flex flex-col items-center justify-center rounded-full bg-white dark:bg-[#222831]" style={{ margin: "22%" }}>
+        <div className="absolute inset-0 flex flex-col items-center justify-center rounded-full bg-white dark:bg-[#0d090b]" style={{ margin: "22%" }}>
           <span className="font-mono text-2xl font-bold text-gray-900 dark:text-white">{total.toLocaleString("en-IN")}</span>
           <span className="text-xs text-gray-500">Projects</span>
         </div>
@@ -397,13 +397,13 @@ const RiskCenter = memo(function RiskCenter({ drillDownParams, onClearDrillDown,
   const rd = analytics?.risk_distribution || { high: 0, medium: 0, low: 0, none: 0 }
 
   return (
-    <div className="min-h-full bg-[#f4f5f6] p-4 sm:p-6 text-[#30343A] transition-colors duration-200 dark:bg-[#171b20] dark:text-[#f1f3f5]">
+    <div className="min-h-full bg-[#faf7f6] p-4 sm:p-6 text-[#292326] transition-colors duration-200 dark:bg-[#000000] dark:text-[#f5eff1]">
       <div className="mx-auto max-w-[1440px] space-y-4 sm:space-y-6">
 
         {/* HEADER */}
         <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
           <div>
-            <h2 className="text-2xl font-bold text-[#30343A] dark:text-white">AI Anomaly Detection Center</h2>
+            <h2 className="text-2xl font-bold text-[#292326] dark:text-white">AI Anomaly Detection Center</h2>
             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
               Server-side anomaly analysis across <strong>{summary.total_projects_checked.toLocaleString("en-IN")}</strong> MPLADS works.
               {analytics?.ml_anomaly_count > 0 && <> <span className="text-purple-600 dark:text-purple-400 font-semibold">{analytics.ml_anomaly_count.toLocaleString("en-IN")} ML anomalies</span> detected.</>}
@@ -419,7 +419,7 @@ const RiskCenter = memo(function RiskCenter({ drillDownParams, onClearDrillDown,
             { label: "Medium Risk", value: summary.medium_risk, icon: "🟡", text: "text-amber-600 dark:text-amber-400" },
             { label: "Total Anomalies", value: summary.total_anomalies, icon: "📊", text: "text-purple-600 dark:text-purple-400" },
           ].map((card) => (
-            <div key={card.label} className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-[#222831]">
+            <div key={card.label} className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-[#0d090b]">
               <div className="flex items-center justify-between">
                 <p className="text-[0.6875rem] font-bold uppercase tracking-wider text-gray-400">{card.label}</p>
                 <span className="text-lg">{card.icon}</span>
@@ -433,13 +433,13 @@ const RiskCenter = memo(function RiskCenter({ drillDownParams, onClearDrillDown,
         {analytics && (
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             {/* Risk Distribution Donut */}
-            <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-[#222831]">
+            <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-[#0d090b]">
               <h3 className="mb-4 text-sm font-bold uppercase tracking-wider text-gray-400">Risk Distribution</h3>
               <DonutChart high={rd.high} medium={rd.medium} low={rd.low} none={rd.none} />
             </div>
 
             {/* Anomaly Type Distribution */}
-            <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-[#222831]">
+            <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-[#0d090b]">
               <h3 className="mb-4 text-sm font-bold uppercase tracking-wider text-gray-400">Anomaly Type Distribution</h3>
               <HBarChart
                 items={analytics.anomaly_types.map((at) => ({ label: at.type, count: at.count, pct: at.percentage }))}
@@ -453,7 +453,7 @@ const RiskCenter = memo(function RiskCenter({ drillDownParams, onClearDrillDown,
         {analytics && (
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             {/* Top States */}
-            <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-[#222831]">
+            <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-[#0d090b]">
               <h3 className="mb-4 text-sm font-bold uppercase tracking-wider text-gray-400">Top States by Anomaly Count</h3>
               <HBarChart
                 items={analytics.state_distribution.map((sd, idx) => ({ label: sd.state, count: sd.count, rank: idx + 1 }))}
@@ -466,7 +466,7 @@ const RiskCenter = memo(function RiskCenter({ drillDownParams, onClearDrillDown,
             </div>
 
             {/* FY Distribution — compact vertical bar chart */}
-            <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-[#222831]">
+            <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-[#0d090b]">
               <h3 className="mb-1 text-sm font-bold text-gray-600 dark:text-gray-300">Anomalies by Financial Year</h3>
               <p className="mb-4 text-[0.6875rem] text-gray-400 dark:text-gray-500">Number of flagged projects per FY period</p>
               {analytics.fy_distribution && analytics.fy_distribution.length > 0 ? (
@@ -480,7 +480,7 @@ const RiskCenter = memo(function RiskCenter({ drillDownParams, onClearDrillDown,
 
         {/* PROJECTS BY RISK LEVEL */}
         {analytics && (
-          <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-[#222831]">
+          <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-[#0d090b]">
             <div className="mb-4">
               <h3 className="text-sm font-bold uppercase tracking-wider text-gray-400">Projects by Risk Level</h3>
               <p className="mt-0.5 text-xs text-gray-400">Distribution of monitored projects across AI-assessed risk levels.</p>
@@ -530,7 +530,7 @@ const RiskCenter = memo(function RiskCenter({ drillDownParams, onClearDrillDown,
         )}
 
         {/* FILTERS */}
-        <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-[#222831]">
+        <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-[#0d090b]">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-5">
             <div>
               <label className="block text-[0.625rem] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Search</label>
@@ -539,13 +539,13 @@ const RiskCenter = memo(function RiskCenter({ drillDownParams, onClearDrillDown,
                 onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1) }}
                 onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); setCurrentPage(1); fetchAnomalies() } }}
                 placeholder="Project name or ID..."
-                className="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-2xs outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-gray-600 dark:bg-[#171b20] dark:text-white"
+                className="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-2xs outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-gray-600 dark:bg-[#000000] dark:text-white"
               />
             </div>
             <div>
               <label className="block text-[0.625rem] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Severity</label>
               <select value={filterSeverity} onChange={(e) => { setFilterSeverity(e.target.value); setCurrentPage(1) }}
-                className="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-2xs outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-gray-600 dark:bg-[#171b20] dark:text-white">
+                className="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-2xs outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-gray-600 dark:bg-[#000000] dark:text-white">
                 <option value="">All Severity</option>
                 <option value="High">High Risk</option>
                 <option value="Medium">Medium Risk</option>
@@ -556,7 +556,7 @@ const RiskCenter = memo(function RiskCenter({ drillDownParams, onClearDrillDown,
             <div>
               <label className="block text-[0.625rem] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">House</label>
               <select value={filterHouse} onChange={(e) => { setFilterHouse(e.target.value); setCurrentPage(1) }}
-                className="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-2xs outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-gray-600 dark:bg-[#171b20] dark:text-white">
+                className="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-2xs outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-gray-600 dark:bg-[#000000] dark:text-white">
                 <option value="">All Houses</option>
                 <option value="Lok Sabha">Lok Sabha</option>
                 <option value="Rajya Sabha">Rajya Sabha</option>
@@ -565,7 +565,7 @@ const RiskCenter = memo(function RiskCenter({ drillDownParams, onClearDrillDown,
             <div>
               <label className="block text-[0.625rem] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">State</label>
               <select value={filterState} onChange={(e) => { setFilterState(e.target.value); setCurrentPage(1) }}
-                className="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-2xs outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-gray-600 dark:bg-[#171b20] dark:text-white">
+                className="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-2xs outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-gray-600 dark:bg-[#000000] dark:text-white">
                 <option value="">All States</option>
                 {states.map((s) => <option key={s} value={s}>{s}</option>)}
               </select>
@@ -574,14 +574,14 @@ const RiskCenter = memo(function RiskCenter({ drillDownParams, onClearDrillDown,
               <label className="block text-[0.625rem] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Constituency</label>
               <select value={filterConstituency} disabled={!filterState}
                 onChange={(e) => { setFilterConstituency(e.target.value); setCurrentPage(1) }}
-                className="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-2xs outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:opacity-50 dark:border-gray-600 dark:bg-[#171b20] dark:text-white">
+                className="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-2xs outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:opacity-50 dark:border-gray-600 dark:bg-[#000000] dark:text-white">
                 <option value="">{filterState ? "All Constituencies" : "Select State"}</option>
                 {constituencies.map((c) => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
             <div className="flex items-end">
               <button onClick={handleReset}
-                className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-xs font-bold text-gray-700 transition hover:bg-gray-50 dark:border-gray-600 dark:bg-[#171b20] dark:text-gray-200">
+                className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-xs font-bold text-gray-700 transition hover:bg-gray-50 dark:border-gray-600 dark:bg-[#000000] dark:text-gray-200">
                 Reset Filters
               </button>
             </div>
@@ -610,14 +610,14 @@ const RiskCenter = memo(function RiskCenter({ drillDownParams, onClearDrillDown,
                 else { setSortBy(opt.value); setSortDir(opt.value === "project_name" || opt.value === "id" ? "asc" : "desc") }
                 setCurrentPage(1)
               }}
-              className={`rounded-lg px-3 py-1.5 text-[0.6875rem] font-bold transition ${sortBy === opt.value ? "bg-[#46566a] text-white dark:bg-blue-600" : "border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:bg-[#222831] dark:text-gray-300"}`}>
+              className={`rounded-lg px-3 py-1.5 text-[0.6875rem] font-bold transition ${sortBy === opt.value ? "bg-[#c8102e] text-white dark:bg-blue-600" : "border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:bg-[#0d090b] dark:text-gray-300"}`}>
               {opt.label}{sortBy === opt.value && <span className="ml-1">{sortDir === "asc" ? "↑" : "↓"}</span>}
             </button>
           ))}
         </div>
 
         {/* ANOMALY TABLE */}
-        <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-[#222831]">
+        <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-[#0d090b]">
           {loading ? (
             <>
               <TableRowsSkeleton rows={8} cols={5} className="hidden lg:block" />
@@ -631,7 +631,7 @@ const RiskCenter = memo(function RiskCenter({ drillDownParams, onClearDrillDown,
               <div className="hidden lg:block overflow-x-auto">
                 <table className="w-full min-w-[1020px]">
                   <thead>
-                    <tr className="border-b-2 border-gray-200 bg-gray-50 text-left text-[0.625rem] font-bold uppercase tracking-widest text-gray-500 dark:border-gray-700 dark:bg-[#1c2127] dark:text-gray-400">
+                    <tr className="border-b-2 border-gray-200 bg-gray-50 text-left text-[0.625rem] font-bold uppercase tracking-widest text-gray-500 dark:border-gray-700 dark:bg-[#120b0e] dark:text-gray-400">
                       <th className="px-4 py-3">Project</th>
                       <th className="px-4 py-3">State / Constituency</th>
                       <th className="px-4 py-3" title={DELAY_TOOLTIP}>Delayed By ⓘ</th>
@@ -646,7 +646,7 @@ const RiskCenter = memo(function RiskCenter({ drillDownParams, onClearDrillDown,
                   </thead>
                   <tbody>
                     {anomalies.map((a) => (
-                      <tr key={a.project_id} className="cursor-pointer border-b border-gray-100 transition hover:bg-blue-50/40 dark:border-gray-700/60 dark:hover:bg-[#2c3540]" onClick={() => handleOpenDetail(a)}>
+                      <tr key={a.project_id} className="cursor-pointer border-b border-gray-100 transition hover:bg-blue-50/40 dark:border-gray-700/60 dark:hover:bg-[#120b0e]" onClick={() => handleOpenDetail(a)}>
                         <td className="px-4 py-2.5">
                           <span className="font-mono text-[0.625rem] font-bold text-gray-400">#{a.project_id}</span>
                           <p className="max-w-[250px] truncate text-sm font-semibold text-gray-900 dark:text-white" title={a.project_name}>{a.project_name || "Unnamed"}</p>
@@ -665,7 +665,7 @@ const RiskCenter = memo(function RiskCenter({ drillDownParams, onClearDrillDown,
                           )}
                         </td>
                         <td className="px-4 py-2.5 text-xs">
-                          <p className="font-semibold">{a.state || "N/A"}{a.house && <span className="ml-1.5 rounded bg-gray-100 px-1.5 py-px text-[0.5625rem] font-bold uppercase tracking-wide text-gray-500 dark:bg-[#2c3540] dark:text-gray-400" title={`House: ${a.house}`}>{a.house === "Lok Sabha" ? "LS" : a.house === "Rajya Sabha" ? "RS" : ""}</span>}</p>
+                          <p className="font-semibold">{a.state || "N/A"}{a.house && <span className="ml-1.5 rounded bg-gray-100 px-1.5 py-px text-[0.5625rem] font-bold uppercase tracking-wide text-gray-500 dark:bg-[#120b0e] dark:text-gray-400" title={`House: ${a.house}`}>{a.house === "Lok Sabha" ? "LS" : a.house === "Rajya Sabha" ? "RS" : ""}</span>}</p>
                           <p className="text-gray-500">{a.constituency || "N/A"}</p>
                         </td>
                         <td className="px-4 py-2.5 text-right font-mono text-xs tabular-nums">{formatMoney(a.sanctioned_amount)}</td>
@@ -691,7 +691,7 @@ const RiskCenter = memo(function RiskCenter({ drillDownParams, onClearDrillDown,
               {/* MOBILE CARD VIEW */}
               <div className="lg:hidden divide-y divide-gray-100 dark:divide-gray-700/60">
                 {anomalies.map((a) => (
-                  <div key={a.project_id} className="p-4 cursor-pointer transition hover:bg-blue-50/40 dark:hover:bg-[#2c3540]" onClick={() => handleOpenDetail(a)}>
+                  <div key={a.project_id} className="p-4 cursor-pointer transition hover:bg-blue-50/40 dark:hover:bg-[#120b0e]" onClick={() => handleOpenDetail(a)}>
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5 flex-wrap">
@@ -725,7 +725,7 @@ const RiskCenter = memo(function RiskCenter({ drillDownParams, onClearDrillDown,
               </div>
 
               {/* PAGINATION */}
-              <div className="flex flex-wrap items-center justify-between gap-4 border-t border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-[#1c2127]">
+              <div className="flex flex-wrap items-center justify-between gap-4 border-t border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-[#120b0e]">
                 <span className="text-xs text-gray-600 dark:text-gray-400">
                   Showing {totalCount === 0 ? 0 : (currentPage - 1) * rowsPerPage + 1} to{" "}
                   {Math.min(currentPage * rowsPerPage, totalCount)} of{" "}
@@ -733,10 +733,10 @@ const RiskCenter = memo(function RiskCenter({ drillDownParams, onClearDrillDown,
                 </span>
                 <div className="flex items-center gap-2">
                   <button disabled={currentPage === 1} onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                    className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 disabled:opacity-40 dark:border-gray-600 dark:bg-[#222831] dark:text-gray-200">← Prev</button>
+                    className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 disabled:opacity-40 dark:border-gray-600 dark:bg-[#0d090b] dark:text-gray-200">← Prev</button>
                   <span className="font-mono text-xs font-bold">{currentPage} / {totalPages}</span>
                   <button disabled={currentPage >= totalPages} onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                    className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 disabled:opacity-40 dark:border-gray-600 dark:bg-[#222831] dark:text-gray-200">Next →</button>
+                    className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 disabled:opacity-40 dark:border-gray-600 dark:bg-[#0d090b] dark:text-gray-200">Next →</button>
                 </div>
               </div>
             </>
@@ -789,7 +789,7 @@ const RiskCenter = memo(function RiskCenter({ drillDownParams, onClearDrillDown,
 
         return (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 sm:p-4 backdrop-blur-2xs" onClick={() => { setSelectedAnomaly(null); window.dispatchEvent(new CustomEvent("assistant-project-context", { detail: { projectId: null } })) }}>
-          <div onClick={(e) => e.stopPropagation()} className="flex max-h-[92vh] sm:max-h-[88vh] w-full sm:max-w-3xl flex-col rounded-t-2xl sm:rounded-2xl border border-gray-200 bg-white shadow-soft-lg dark:border-gray-700 dark:bg-[#222831]">
+          <div onClick={(e) => e.stopPropagation()} className="flex max-h-[92vh] sm:max-h-[88vh] w-full sm:max-w-3xl flex-col rounded-t-2xl sm:rounded-2xl border border-gray-200 bg-white shadow-soft-lg dark:border-gray-700 dark:bg-[#0d090b]">
 
             {/* ── HEADER ── */}
             <div className="flex items-start justify-between border-b border-gray-200 p-5 dark:border-gray-700">
@@ -834,7 +834,7 @@ const RiskCenter = memo(function RiskCenter({ drillDownParams, onClearDrillDown,
               ) : (
                 <>
                   {/* ── RISK SCORE GAUGE ── */}
-                  <div className="rounded-xl border border-gray-200 bg-gray-50 p-5 dark:border-gray-700 dark:bg-[#171b20]">
+                  <div className="rounded-xl border border-gray-200 bg-gray-50 p-5 dark:border-gray-700 dark:bg-[#000000]">
                     <div className="flex items-start justify-between gap-4">
                       <div>
                         <p className="text-[0.625rem] font-bold uppercase tracking-wider text-gray-400">Risk Score</p>
@@ -869,7 +869,7 @@ const RiskCenter = memo(function RiskCenter({ drillDownParams, onClearDrillDown,
 
                   {/* ── RECOMMENDATION & TIMELINE ── same backend rec source
                       of truth as the Projects page — identical values. */}
-                  <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-[#171b20]">
+                  <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-[#000000]">
                     <p className="text-[0.625rem] font-bold uppercase tracking-wider text-gray-400">Recommendation & Timeline</p>
                     <div className="mt-2.5">
                       <RecTimelineBlock rec={detailRec || selectedAnomaly?.rec} />
@@ -903,7 +903,7 @@ const RiskCenter = memo(function RiskCenter({ drillDownParams, onClearDrillDown,
                   </div>
 
                   {/* ── FINANCIAL OVERVIEW ── */}
-                  <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-[#171b20]">
+                  <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-[#000000]">
                     <h4 className="mb-3 text-xs font-bold uppercase tracking-wider text-gray-400">Financial Overview</h4>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                       <div>
@@ -943,7 +943,7 @@ const RiskCenter = memo(function RiskCenter({ drillDownParams, onClearDrillDown,
 
                   {/* ── RECORDED EXPENDITURE ACTIVITY (delay estimate) ── */}
                   {s.activity_days !== null && s.activity_days !== undefined && (
-                    <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-[#171b20]">
+                    <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-[#000000]">
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <h4 className="text-xs font-bold uppercase tracking-wider text-gray-400" title={DELAY_TOOLTIP}>Recorded Expenditure Activity ⓘ</h4>
                         {s.delay_indicator && (
@@ -974,7 +974,7 @@ const RiskCenter = memo(function RiskCenter({ drillDownParams, onClearDrillDown,
 
                   {/* ── RISK DETECTION BREAKDOWN ── */}
                   {riskSignals.length > 0 && (
-                    <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-[#171b20]">
+                    <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-[#000000]">
                       <h4 className="mb-3 text-xs font-bold uppercase tracking-wider text-gray-400">Risk Detection Breakdown</h4>
                       <div className="overflow-x-auto">
                         <table className="w-full text-xs">
@@ -1017,7 +1017,7 @@ const RiskCenter = memo(function RiskCenter({ drillDownParams, onClearDrillDown,
                         }).map((reason, i) => {
                           const sev = reasonSeverity(reason)
                           return (
-                            <div key={i} className="rounded-lg border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-[#222831]">
+                            <div key={i} className="rounded-lg border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-[#0d090b]">
                               <div className="flex items-center gap-2 mb-1.5">
                                 <span className={`rounded border px-1.5 py-0.5 text-[0.5625rem] font-bold ${severityColor(sev)}`}>{sev}</span>
                                 <span className="text-xs font-bold text-gray-800 dark:text-gray-200">{reason}</span>
@@ -1122,7 +1122,7 @@ const RiskCenter = memo(function RiskCenter({ drillDownParams, onClearDrillDown,
                     window.dispatchEvent(new CustomEvent("navigate-to-project", { detail: { query: String(s.project_id) } }))
                     setSelectedAnomaly(null); window.dispatchEvent(new CustomEvent("assistant-project-context", { detail: { projectId: null } }))
                   }}
-                  className="rounded-lg bg-[#46566a] px-4 py-2 text-xs font-bold text-white dark:bg-blue-600">
+                  className="rounded-lg bg-[#c8102e] px-4 py-2 text-xs font-bold text-white dark:bg-blue-600">
                   View Full Project →
                 </button>
               </div>

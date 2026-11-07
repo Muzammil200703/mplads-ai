@@ -17,7 +17,7 @@
 
 // Project drawer tabs the open_project action can deep-link (must mirror
 // ProjectDetail.jsx tab ids; anything else falls back to the default tab).
-const PROJECT_TABS = new Set(["overview", "financial", "risk", "forensics", "audit", "timeline", "similar", "dna"])
+const PROJECT_TABS = new Set(["overview", "financial", "risk", "forensics", "audit", "timeline", "changes", "similar", "dna"])
 
 // Page keys mirror App.jsx page registry exactly.
 const NAV_PAGES = new Set([

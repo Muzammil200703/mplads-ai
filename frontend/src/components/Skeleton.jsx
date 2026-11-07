@@ -8,7 +8,7 @@ function Bar({ className = "" }) {
 /** Generic card skeleton */
 function CardSkeleton() {
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-[#222831]">
+    <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-[#0d090b]">
       <Bar className="mb-3 h-4 w-1/3" />
       <Bar className="h-8 w-1/2" />
       <Bar className="mt-3 h-3 w-2/3" />
@@ -36,7 +36,7 @@ export function TableSkeleton({ rows = 8 }) {
   return (
     <div className="space-y-3 p-4 sm:p-6">
       <Bar className="h-6 w-64" />
-      <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-[#222831]">
+      <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-[#0d090b]">
         {/* Header */}
         <div className="flex gap-4 border-b border-gray-100 dark:border-gray-700 pb-3 mb-3">
           <Bar className="h-4 w-20" />
@@ -61,7 +61,7 @@ export function TableSkeleton({ rows = 8 }) {
 /** Chart card skeleton */
 export function ChartSkeleton() {
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-[#222831]">
+    <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-[#0d090b]">
       <Bar className="mb-4 h-4 w-40" />
       <div className="flex items-end gap-3 h-32">
         {Array.from({ length: 6 }).map((_, i) => (

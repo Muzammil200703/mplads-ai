@@ -778,6 +778,27 @@ def _scan(
     mp_house: set = set()
     changed_fields_total = 0
 
+    # ── Project change detection: remember the dataset state of EVERY row this
+    #    batch carries (including unchanged ones) so the next import can tell
+    #    "still present" apart from "missing from the file". Written inside the
+    #    import transaction; a rolled-back import leaves no snapshot rows.
+    import change_tracking
+
+    snapshot_rows: List[Dict[str, Any]] = []
+
+    def _snapshot(pid, values):
+        if not (apply and spec["table"] == "projects" and pid and batch_id is not None):
+            return
+        snapshot_rows.append(change_tracking.snapshot_mapping(batch_id, pid, values))
+        if len(snapshot_rows) >= 1000:
+            db.bulk_insert_mappings(models.ProjectSnapshot, snapshot_rows)
+            snapshot_rows.clear()
+
+    def _flush_snapshots():
+        if snapshot_rows:
+            db.bulk_insert_mappings(models.ProjectSnapshot, snapshot_rows)
+            snapshot_rows.clear()
+
     # Expenditure surplus bookkeeping (multiset semantics).
     surplus: Dict[str, int] = {}
     if spec["mode"] == "fingerprint":
@@ -874,6 +895,9 @@ def _scan(
                         batch_id=batch_id, table_name=spec["table"],
                         record_pk=o.id, change_type="insert") for o in inserted_rows])
                     db.flush()
+                    for o in inserted_rows:
+                        _snapshot(o.id, {f: getattr(o, f, None)
+                                         for f in change_tracking.TRACKED_FIELDS})
                     inserted_rows = []
             continue
 
@@ -899,6 +923,7 @@ def _scan(
 
         if not changed:
             counts["unchanged"] += 1
+            _snapshot(pk, old_vals)
             continue
 
         counts["update"] += 1
@@ -914,6 +939,7 @@ def _scan(
                     batch_id=batch_id, table_name=spec["table"], record_pk=pk,
                     change_type="update",
                     before_json=json.dumps({f: old_vals.get(f) for f in changed})))
+            _snapshot(pk, {**old_vals, **changed})
 
     if apply and inserted_rows:
         db.flush()
@@ -921,6 +947,8 @@ def _scan(
             batch_id=batch_id, table_name=spec["table"],
             record_pk=o.id, change_type="insert") for o in inserted_rows])
         db.flush()
+        for o in inserted_rows:
+            _snapshot(o.id, {f: getattr(o, f, None) for f in change_tracking.TRACKED_FIELDS})
 
     if linkage_checked and missing_linkage:
         sample = sorted(missing_linkage)[:10]
@@ -931,6 +959,8 @@ def _scan(
                                "message": "No recommended work matches this work/constituency/state — verify the expenditure link: "
                                           + " / ".join(parts[:3])})
                 issue_count += 1
+
+    _flush_snapshots()
 
     return {
         "counts": counts,
@@ -1235,8 +1265,11 @@ def commit_batch(
         raise ValueError("Dataset type must be selected before importing")
     if batch.status == "invalid":
         raise ValueError(batch.error_summary or "This file failed validation — fix it and re-upload")
-    if (batch.new_rows or 0) + (batch.update_rows or 0) == 0:
-        raise ValueError(batch.error_summary or "Nothing to import — the file matches the current data")
+    # A file with valid rows is importable even when every value matches what is
+    # already stored: the import still has to be recorded so "missing from this
+    # import" can be determined against the previous dataset.
+    if (batch.valid_rows or 0) == 0:
+        raise ValueError(batch.error_summary or "Nothing to import — the file has no valid rows")
     house_override = house_override or batch.house_override
     headers, delimiter = read_headers(batch.stored_path)
     mapping = _match_fields(headers, spec)
@@ -1265,12 +1298,18 @@ def commit_batch(
             preview = _scan(work, batch.stored_path, delimiter, spec, mapping,
                             batch.id, house_override, apply=True)
             counts = preview["counts"]
-            if counts["new"] == 0 and counts["update"] == 0:
+            if counts["valid"] == 0:
                 work.rollback()
                 batch.status = "preview"
-                batch.error_summary = "Nothing to import — the file matches the current data."
+                batch.error_summary = "Nothing to import — the file has no valid rows."
                 db.commit()
                 return _batch_payload(batch, include_detail=True)
+
+            # Generate change events inside the same transaction: a failure
+            # below rolls back the data AND its change history together.
+            import change_tracking
+
+            change_summary = change_tracking.record_changes_for_batch(work, batch, spec, preview)
 
             affected = preview.get("affected_mp") or []
             version = (work.query(func.max(models.ImportBatch.dataset_version)).scalar() or 0) + 1
@@ -1281,6 +1320,7 @@ def commit_batch(
                 "affected_mps_list": affected,
                 "changed_fields": preview["changed_fields"],
                 "missing_linkage": preview["missing_linkage"],
+                "changes": change_summary,
                 "imported_by": (user.name or user.email) if user else None,
                 "refresh": {"status": "pending"},
             }
@@ -1509,6 +1549,12 @@ def rollback_batch(db: Session, batch: models.ImportBatch, user: models.User) ->
     if not _WRITE_LOCK.acquire(blocking=False):
         raise RuntimeError("Another import is currently running — try again shortly")
     try:
+        # Drop this batch's project snapshots + change events: they described
+        # data that is about to be undone, so they must not survive it.
+        import change_tracking
+
+        change_tracking.drop_batch_history(db, batch.id)
+
         changes = db.query(models.ImportChange).filter(
             models.ImportChange.batch_id == batch.id).all()
         if not changes:

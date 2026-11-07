@@ -75,7 +75,7 @@ function when(iso) {
 
 function Card({ children, className = "" }) {
   return (
-    <div className={`rounded-xl border border-[#dde1e5] bg-white p-4 dark:border-[#39434E] dark:bg-[#171b20] ${className}`}>
+    <div className={`rounded-xl border border-[#e8dadc] bg-white p-4 dark:border-[#351923] dark:bg-[#000000] ${className}`}>
       {children}
     </div>
   )
@@ -91,9 +91,9 @@ function Badge({ status }) {
 
 function Stat({ label, value, tone = "" }) {
   return (
-    <div className="rounded-lg border border-[#dde1e5] px-3 py-2 dark:border-[#39434E]">
-      <p className="text-[0.6875rem] font-semibold uppercase tracking-wide text-[#69717c] dark:text-[#aab3bd]">{label}</p>
-      <p className={`mt-0.5 text-lg font-bold ${tone || "text-[#30343A] dark:text-[#f1f3f5]"}`}>{value}</p>
+    <div className="rounded-lg border border-[#e8dadc] px-3 py-2 dark:border-[#351923]">
+      <p className="text-[0.6875rem] font-semibold uppercase tracking-wide text-[#71666a] dark:text-[#b9aeb2]">{label}</p>
+      <p className={`mt-0.5 text-lg font-bold ${tone || "text-[#292326] dark:text-[#f5eff1]"}`}>{value}</p>
     </div>
   )
 }
@@ -163,11 +163,11 @@ function BatchCard({ batch, onChange, onBusy }) {
   const refreshSteps = (batch.details && batch.details.refresh && batch.details.refresh.steps) || {}
 
   return (
-    <div className="rounded-xl border border-[#dde1e5] bg-white p-4 dark:border-[#39434E] dark:bg-[#171b20]">
+    <div className="rounded-xl border border-[#e8dadc] bg-white p-4 dark:border-[#351923] dark:bg-[#000000]">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0">
-          <p className="truncate text-[0.9375rem] font-bold text-[#30343A] dark:text-[#f1f3f5]">{batch.filename}</p>
-          <p className="mt-0.5 text-[0.8125rem] text-[#69717c] dark:text-[#aab3bd]">
+          <p className="truncate text-[0.9375rem] font-bold text-[#292326] dark:text-[#f5eff1]">{batch.filename}</p>
+          <p className="mt-0.5 text-[0.8125rem] text-[#71666a] dark:text-[#b9aeb2]">
             #{batch.id} · {bytes(batch.file_size)} · {batch.dataset_label}
             {batch.house_coverage ? ` · ${batch.house_coverage}` : ""}
             {batch.detection_confidence ? ` · auto-detect ${Math.round(batch.detection_confidence * 100)}%` : ""}
@@ -196,25 +196,25 @@ function BatchCard({ batch, onChange, onBusy }) {
 
       {editable && (
         <div className="mt-3 flex flex-wrap items-end gap-3">
-          <label className="text-[0.8125rem] font-semibold text-[#30343A] dark:text-[#f1f3f5]">
+          <label className="text-[0.8125rem] font-semibold text-[#292326] dark:text-[#f5eff1]">
             Dataset type
             <select
               value={localType}
               disabled={!!working}
               onChange={(e) => { setLocalType(e.target.value); applyTypeOrHouse(e.target.value, localHouse) }}
-              className="mt-1 block rounded-lg border border-[#dde1e5] bg-white px-2 py-1.5 text-[0.8125rem] dark:border-[#39434E] dark:bg-[#222831] dark:text-gray-100"
+              className="mt-1 block rounded-lg border border-[#e8dadc] bg-white px-2 py-1.5 text-[0.8125rem] dark:border-[#351923] dark:bg-[#0d090b] dark:text-gray-100"
             >
               <option value="">Select…</option>
               {DATASET_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
           </label>
-          <label className="text-[0.8125rem] font-semibold text-[#30343A] dark:text-[#f1f3f5]">
+          <label className="text-[0.8125rem] font-semibold text-[#292326] dark:text-[#f5eff1]">
             House {batch.house_coverage === "Unknown" ? "(required)" : "(when file lacks it)"}
             <select
               value={localHouse}
               disabled={!!working}
               onChange={(e) => { setLocalHouse(e.target.value); applyTypeOrHouse(localType, e.target.value) }}
-              className="mt-1 block rounded-lg border border-[#dde1e5] bg-white px-2 py-1.5 text-[0.8125rem] dark:border-[#39434E] dark:bg-[#222831] dark:text-gray-100"
+              className="mt-1 block rounded-lg border border-[#e8dadc] bg-white px-2 py-1.5 text-[0.8125rem] dark:border-[#351923] dark:bg-[#0d090b] dark:text-gray-100"
             >
               <option value="">Use file value</option>
               <option value="Lok Sabha">Lok Sabha</option>
@@ -231,7 +231,7 @@ function BatchCard({ batch, onChange, onBusy }) {
           <button
             onClick={confirmImport}
             disabled={!!working || (batch.new_rows || 0) + (batch.update_rows || 0) === 0}
-            className="rounded-lg bg-[#46566a] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#37455a] disabled:opacity-40 dark:bg-blue-600 dark:hover:bg-blue-500"
+            className="rounded-lg bg-[#c8102e] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#a50f29] disabled:opacity-40 dark:bg-blue-600 dark:hover:bg-blue-500"
           >
             {working === "commit" ? "Importing…" : "Confirm import"}
           </button>
@@ -241,13 +241,13 @@ function BatchCard({ batch, onChange, onBusy }) {
             <button onClick={rollback} disabled={!!working} className="rounded-lg border border-red-300 px-3 py-2 text-sm font-bold text-red-700 hover:bg-red-50 disabled:opacity-40 dark:border-red-800 dark:text-red-300 dark:hover:bg-red-950/30">
               {working === "rollback" ? "Rolling back…" : "Roll back"}
             </button>
-            <button onClick={reRefresh} disabled={!!working} className="rounded-lg border border-[#dde1e5] px-3 py-2 text-sm font-bold text-[#30343A] hover:bg-[#eceff2] disabled:opacity-40 dark:border-[#39434E] dark:text-[#f1f3f5] dark:hover:bg-[#222831]">
+            <button onClick={reRefresh} disabled={!!working} className="rounded-lg border border-[#e8dadc] px-3 py-2 text-sm font-bold text-[#292326] hover:bg-[#f8f1f1] disabled:opacity-40 dark:border-[#351923] dark:text-[#f5eff1] dark:hover:bg-[#0d090b]">
               {working === "refresh" ? "Refreshing…" : "Refresh analytics"}
             </button>
           </>
         )}
         {editable && (
-          <button onClick={discard} disabled={!!working} className="rounded-lg border border-[#dde1e5] px-3 py-2 text-sm font-semibold text-[#69717c] hover:bg-[#eceff2] disabled:opacity-40 dark:border-[#39434E] dark:text-[#aab3bd] dark:hover:bg-[#222831]">
+          <button onClick={discard} disabled={!!working} className="rounded-lg border border-[#e8dadc] px-3 py-2 text-sm font-semibold text-[#71666a] hover:bg-[#f8f1f1] disabled:opacity-40 dark:border-[#351923] dark:text-[#b9aeb2] dark:hover:bg-[#0d090b]">
             Discard
           </button>
         )}
@@ -271,9 +271,9 @@ function BatchCard({ batch, onChange, onBusy }) {
             </p>
           )}
           {Object.keys(refreshSteps).length > 0 && (
-            <div className="rounded-lg border border-[#dde1e5] px-3 py-2 dark:border-[#39434E]">
-              <p className="font-bold text-[#30343A] dark:text-[#f1f3f5]">Derived analytics refresh</p>
-              <ul className="mt-1 space-y-0.5 text-[#69717c] dark:text-[#aab3bd]">
+            <div className="rounded-lg border border-[#e8dadc] px-3 py-2 dark:border-[#351923]">
+              <p className="font-bold text-[#292326] dark:text-[#f5eff1]">Derived analytics refresh</p>
+              <ul className="mt-1 space-y-0.5 text-[#71666a] dark:text-[#b9aeb2]">
                 {Object.entries(refreshSteps).map(([k, v]) => (
                   <li key={k}>
                     {k.replace(/_/g, " ")}: {typeof v === "object" ? (v.error ? `failed — ${v.error}` : JSON.stringify(v)) : String(v)}
@@ -283,9 +283,9 @@ function BatchCard({ batch, onChange, onBusy }) {
             </div>
           )}
           {issues.length > 0 && (
-            <div className="overflow-hidden rounded-lg border border-[#dde1e5] dark:border-[#39434E]">
+            <div className="overflow-hidden rounded-lg border border-[#e8dadc] dark:border-[#351923]">
               <table className="w-full text-left">
-                <thead className="bg-[#f4f5f6] text-[0.6875rem] uppercase tracking-wide text-[#69717c] dark:bg-[#222831] dark:text-[#aab3bd]">
+                <thead className="bg-[#faf7f6] text-[0.6875rem] uppercase tracking-wide text-[#71666a] dark:bg-[#0d090b] dark:text-[#b9aeb2]">
                   <tr>
                     <th className="px-3 py-1.5">Row</th>
                     <th className="px-3 py-1.5">Field</th>
@@ -294,9 +294,9 @@ function BatchCard({ batch, onChange, onBusy }) {
                 </thead>
                 <tbody>
                   {issues.slice(0, 50).map((i, idx) => (
-                    <tr key={idx} className="border-t border-[#dde1e5] dark:border-[#39434E]">
+                    <tr key={idx} className="border-t border-[#e8dadc] dark:border-[#351923]">
                       <td className="px-3 py-1.5 tabular-nums">{i.row ?? "—"}</td>
-                      <td className="px-3 py-1.5 text-[#69717c] dark:text-[#aab3bd]">{i.field}</td>
+                      <td className="px-3 py-1.5 text-[#71666a] dark:text-[#b9aeb2]">{i.field}</td>
                       <td className={`px-3 py-1.5 ${i.severity === "error" ? "text-red-700 dark:text-red-300" : "text-amber-800 dark:text-amber-300"}`}>{i.message}</td>
                     </tr>
                   ))}
@@ -373,12 +373,12 @@ function UploadPanel({ onBatches }) {
         className={`cursor-pointer rounded-xl border-2 border-dashed px-4 py-10 text-center transition ${
           dragging
             ? "border-blue-500 bg-blue-50/60 dark:bg-blue-950/20"
-            : "border-[#dde1e5] hover:border-[#46566a] dark:border-[#39434E] dark:hover:border-blue-500"
+            : "border-[#e8dadc] hover:border-[#c8102e] dark:border-[#351923] dark:hover:border-blue-500"
         }`}
       >
         <p className="text-3xl">⬆️</p>
-        <p className="mt-2 font-bold text-[#30343A] dark:text-[#f1f3f5]">Drag &amp; drop official MPLADS CSV files</p>
-        <p className="mt-1 text-sm text-[#69717c] dark:text-[#aab3bd]">
+        <p className="mt-2 font-bold text-[#292326] dark:text-[#f5eff1]">Drag &amp; drop official MPLADS CSV files</p>
+        <p className="mt-1 text-sm text-[#71666a] dark:text-[#b9aeb2]">
           or click to browse · multiple files supported · .csv / .tsv / .txt · up to 60 MB each
         </p>
         <input
@@ -394,14 +394,14 @@ function UploadPanel({ onBatches }) {
       {files.length > 0 && (
         <div className="mt-3">
           <div className="flex items-center justify-between">
-            <p className="text-sm font-bold text-[#30343A] dark:text-[#f1f3f5]">{files.length} file(s) · {bytes(totalSize)}</p>
-            <button onClick={() => setFiles([])} className="text-xs font-semibold text-[#69717c] hover:underline dark:text-[#aab3bd]">Clear</button>
+            <p className="text-sm font-bold text-[#292326] dark:text-[#f5eff1]">{files.length} file(s) · {bytes(totalSize)}</p>
+            <button onClick={() => setFiles([])} className="text-xs font-semibold text-[#71666a] hover:underline dark:text-[#b9aeb2]">Clear</button>
           </div>
-          <ul className="mt-2 divide-y divide-[#dde1e5] rounded-lg border border-[#dde1e5] dark:divide-[#39434E] dark:border-[#39434E]">
+          <ul className="mt-2 divide-y divide-[#e8dadc] rounded-lg border border-[#e8dadc] dark:divide-[#351923] dark:border-[#351923]">
             {files.map((f, i) => (
               <li key={`${f.name}-${i}`} className="flex items-center justify-between gap-2 px-3 py-2 text-[0.8125rem]">
-                <span className="truncate font-semibold text-[#30343A] dark:text-[#f1f3f5]">{f.name}</span>
-                <span className="shrink-0 text-[#69717c] dark:text-[#aab3bd]">{bytes(f.size)}</span>
+                <span className="truncate font-semibold text-[#292326] dark:text-[#f5eff1]">{f.name}</span>
+                <span className="shrink-0 text-[#71666a] dark:text-[#b9aeb2]">{bytes(f.size)}</span>
               </li>
             ))}
           </ul>
@@ -409,16 +409,16 @@ function UploadPanel({ onBatches }) {
       )}
 
       <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <label className="text-[0.8125rem] font-semibold text-[#30343A] dark:text-[#f1f3f5]">
+        <label className="text-[0.8125rem] font-semibold text-[#292326] dark:text-[#f5eff1]">
           Dataset type
-          <select value={datasetType} onChange={(e) => setDatasetType(e.target.value)} className="mt-1 w-full rounded-lg border border-[#dde1e5] bg-white px-2 py-2 text-sm dark:border-[#39434E] dark:bg-[#222831] dark:text-gray-100">
+          <select value={datasetType} onChange={(e) => setDatasetType(e.target.value)} className="mt-1 w-full rounded-lg border border-[#e8dadc] bg-white px-2 py-2 text-sm dark:border-[#351923] dark:bg-[#0d090b] dark:text-gray-100">
             <option value="">Auto-detect from headers</option>
             {DATASET_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
         </label>
-        <label className="text-[0.8125rem] font-semibold text-[#30343A] dark:text-[#f1f3f5]">
+        <label className="text-[0.8125rem] font-semibold text-[#292326] dark:text-[#f5eff1]">
           House (only if the file has no House column)
-          <select value={house} onChange={(e) => setHouse(e.target.value)} className="mt-1 w-full rounded-lg border border-[#dde1e5] bg-white px-2 py-2 text-sm dark:border-[#39434E] dark:bg-[#222831] dark:text-gray-100">
+          <select value={house} onChange={(e) => setHouse(e.target.value)} className="mt-1 w-full rounded-lg border border-[#e8dadc] bg-white px-2 py-2 text-sm dark:border-[#351923] dark:bg-[#0d090b] dark:text-gray-100">
             <option value="">Use file value</option>
             <option value="Lok Sabha">Lok Sabha</option>
             <option value="Rajya Sabha">Rajya Sabha</option>
@@ -428,13 +428,13 @@ function UploadPanel({ onBatches }) {
           <button
             onClick={upload}
             disabled={busy || !files.length}
-            className="w-full rounded-lg bg-[#46566a] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#37455a] disabled:opacity-40 dark:bg-blue-600 dark:hover:bg-blue-500"
+            className="w-full rounded-lg bg-[#c8102e] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#a50f29] disabled:opacity-40 dark:bg-blue-600 dark:hover:bg-blue-500"
           >
             {busy ? "Validating…" : "Upload & validate"}
           </button>
         </div>
       </div>
-      <p className="mt-2 text-xs text-[#69717c] dark:text-[#aab3bd]">
+      <p className="mt-2 text-xs text-[#71666a] dark:text-[#b9aeb2]">
         Files are staged, parsed as text only, and validated. Nothing is written to the database until you confirm the import.
       </p>
       {error && <p className="mt-2 rounded-lg bg-red-50 px-3 py-2 text-[0.8125rem] font-semibold text-red-700 dark:bg-red-950/30 dark:text-red-300">{error}</p>}
@@ -463,21 +463,21 @@ function HistoryPanel({ onOpen }) {
     return () => clearInterval(t)
   }, [load])
 
-  if (loading && !items) return <Card><div className="flex items-center gap-3"><Spinner /><span className="text-sm text-[#69717c] dark:text-[#aab3bd]">Loading import history…</span></div></Card>
+  if (loading && !items) return <Card><div className="flex items-center gap-3"><Spinner /><span className="text-sm text-[#71666a] dark:text-[#b9aeb2]">Loading import history…</span></div></Card>
   if (error) return <Card><p className="text-sm font-semibold text-red-700 dark:text-red-300">{error}</p></Card>
 
   return (
     <Card>
       <div className="mb-3 flex items-center justify-between">
-        <p className="text-sm font-bold text-[#30343A] dark:text-[#f1f3f5]">{items?.length || 0} import batch(es)</p>
+        <p className="text-sm font-bold text-[#292326] dark:text-[#f5eff1]">{items?.length || 0} import batch(es)</p>
         <button onClick={load} className="text-xs font-semibold text-blue-700 hover:underline dark:text-blue-300">Refresh</button>
       </div>
       {!items?.length ? (
-        <p className="py-8 text-center text-sm text-[#69717c] dark:text-[#aab3bd]">No imports yet.</p>
+        <p className="py-8 text-center text-sm text-[#71666a] dark:text-[#b9aeb2]">No imports yet.</p>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full min-w-[900px] text-left text-[0.8125rem]">
-            <thead className="bg-[#f4f5f6] text-[0.6875rem] uppercase tracking-wide text-[#69717c] dark:bg-[#222831] dark:text-[#aab3bd]">
+            <thead className="bg-[#faf7f6] text-[0.6875rem] uppercase tracking-wide text-[#71666a] dark:bg-[#0d090b] dark:text-[#b9aeb2]">
               <tr>
                 <th className="px-2 py-2">#</th>
                 <th className="px-2 py-2">File</th>
@@ -495,9 +495,9 @@ function HistoryPanel({ onOpen }) {
             </thead>
             <tbody>
               {(items || []).map((b) => (
-                <tr key={b.id} className="border-t border-[#dde1e5] dark:border-[#39434E]">
+                <tr key={b.id} className="border-t border-[#e8dadc] dark:border-[#351923]">
                   <td className="px-2 py-2 tabular-nums">{b.id}</td>
-                  <td className="max-w-[220px] truncate px-2 py-2 font-semibold text-[#30343A] dark:text-[#f1f3f5]">{b.filename}</td>
+                  <td className="max-w-[220px] truncate px-2 py-2 font-semibold text-[#292326] dark:text-[#f5eff1]">{b.filename}</td>
                   <td className="px-2 py-2">{b.dataset_label}</td>
                   <td className="px-2 py-2">{b.house_coverage || "—"}</td>
                   <td className="px-2 py-2">{b.uploaded_by || "—"}</td>
@@ -508,7 +508,7 @@ function HistoryPanel({ onOpen }) {
                   <td className="px-2 py-2 text-right tabular-nums">{formatNumber(b.unchanged_rows)}</td>
                   <td className="px-2 py-2 text-right tabular-nums text-red-700 dark:text-red-400">{formatNumber(b.rejected_rows)}</td>
                   <td className="px-2 py-2 text-right">
-                    <button onClick={() => onOpen(b.id)} className="rounded border border-[#dde1e5] px-2 py-1 text-xs font-bold hover:bg-[#eceff2] dark:border-[#39434E] dark:hover:bg-[#222831]">Details</button>
+                    <button onClick={() => onOpen(b.id)} className="rounded border border-[#e8dadc] px-2 py-1 text-xs font-bold hover:bg-[#f8f1f1] dark:border-[#351923] dark:hover:bg-[#0d090b]">Details</button>
                   </td>
                 </tr>
               ))}
@@ -534,33 +534,33 @@ function OverviewPanel({ data }) {
         <Stat label="Stored risk scores" value={formatNumber(data.risk_scores)} />
       </div>
       <Card>
-        <p className="mb-3 text-sm font-bold text-[#30343A] dark:text-[#f1f3f5]">Current record counts</p>
+        <p className="mb-3 text-sm font-bold text-[#292326] dark:text-[#f5eff1]">Current record counts</p>
         <div className="space-y-2">
           {(data.datasets || []).map((d) => (
-            <div key={d.dataset_type} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[#dde1e5] px-3 py-2 dark:border-[#39434E]">
-              <span className="text-[0.8125rem] font-semibold text-[#30343A] dark:text-[#f1f3f5]">{d.label}</span>
-              <span className="text-[0.8125rem] text-[#69717c] dark:text-[#aab3bd]">{formatNumber(d.records)} records</span>
-              <span className="text-xs text-[#69717c] dark:text-[#aab3bd]">{houses(d)}</span>
+            <div key={d.dataset_type} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[#e8dadc] px-3 py-2 dark:border-[#351923]">
+              <span className="text-[0.8125rem] font-semibold text-[#292326] dark:text-[#f5eff1]">{d.label}</span>
+              <span className="text-[0.8125rem] text-[#71666a] dark:text-[#b9aeb2]">{formatNumber(d.records)} records</span>
+              <span className="text-xs text-[#71666a] dark:text-[#b9aeb2]">{houses(d)}</span>
             </div>
           ))}
         </div>
-        <p className="mt-3 text-xs text-[#69717c] dark:text-[#aab3bd]">
+        <p className="mt-3 text-xs text-[#71666a] dark:text-[#b9aeb2]">
           Last successful import: {data.last_success_at ? when(data.last_success_at) : "none recorded"}
           {data.last_import ? ` · ${data.last_import.filename} (${data.last_import.dataset_label})` : ""}
         </p>
       </Card>
       <Card>
-        <p className="mb-2 text-sm font-bold text-[#30343A] dark:text-[#f1f3f5]">Supported dataset formats</p>
+        <p className="mb-2 text-sm font-bold text-[#292326] dark:text-[#f5eff1]">Supported dataset formats</p>
         <div className="space-y-2">
           {(data.supported_types || []).map((t) => (
-            <div key={t.dataset_type} className="rounded-lg border border-[#dde1e5] px-3 py-2 dark:border-[#39434E]">
-              <p className="text-[0.8125rem] font-semibold text-[#30343A] dark:text-[#f1f3f5]">
+            <div key={t.dataset_type} className="rounded-lg border border-[#e8dadc] px-3 py-2 dark:border-[#351923]">
+              <p className="text-[0.8125rem] font-semibold text-[#292326] dark:text-[#f5eff1]">
                 {t.label}
-                <span className="ml-2 rounded bg-[#eceff2] px-1.5 py-0.5 text-[0.6875rem] font-bold text-[#30343A] dark:bg-[#222831] dark:text-gray-200">
+                <span className="ml-2 rounded bg-[#f8f1f1] px-1.5 py-0.5 text-[0.6875rem] font-bold text-[#292326] dark:bg-[#0d090b] dark:text-gray-200">
                   {t.mode === "fingerprint" ? "content-keyed ledger" : t.mode === "projects" ? "id / composite key" : "source-keyed"}
                 </span>
               </p>
-              <p className="mt-0.5 text-xs text-[#69717c] dark:text-[#aab3bd]">Required columns: {(t.required || []).join(", ")}</p>
+              <p className="mt-0.5 text-xs text-[#71666a] dark:text-[#b9aeb2]">Required columns: {(t.required || []).join(", ")}</p>
             </div>
           ))}
         </div>
@@ -637,8 +637,8 @@ function DataManagementInner() {
     <div className="min-h-full px-4 pb-16 pt-6 sm:px-6 lg:px-8">
       <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h2 className="text-2xl font-bold text-[#30343A] dark:text-[#f1f3f5]">Data Management</h2>
-          <p className="mt-1 text-sm text-[#69717c] dark:text-[#aab3bd]">
+          <h2 className="text-2xl font-bold text-[#292326] dark:text-[#f5eff1]">Data Management</h2>
+          <p className="mt-1 text-sm text-[#71666a] dark:text-[#b9aeb2]">
             Upload official MPLADS CSV exports. Files are validated, previewed and imported in one transaction;
             risk scores and derived analytics refresh afterwards.
           </p>
@@ -650,8 +650,8 @@ function DataManagementInner() {
               onClick={() => setTab(t.key)}
               className={`rounded-lg px-3 py-2 text-sm font-bold transition ${
                 tab === t.key
-                  ? "bg-[#46566a] text-white dark:bg-blue-600"
-                  : "border border-[#dde1e5] text-[#30343A] hover:bg-[#eceff2] dark:border-[#39434E] dark:text-[#f1f3f5] dark:hover:bg-[#222831]"
+                  ? "bg-[#c8102e] text-white dark:bg-blue-600"
+                  : "border border-[#e8dadc] text-[#292326] hover:bg-[#f8f1f1] dark:border-[#351923] dark:text-[#f5eff1] dark:hover:bg-[#0d090b]"
               }`}
             >
               {t.label}
@@ -665,7 +665,7 @@ function DataManagementInner() {
           <UploadPanel onBatches={onBatches} />
           {overviewError && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950/30 dark:text-red-300">{overviewError}</p>}
           {batches.length === 0 && (
-            <p className="text-sm text-[#69717c] dark:text-[#aab3bd]">
+            <p className="text-sm text-[#71666a] dark:text-[#b9aeb2]">
               Tip: imports are idempotent — re-uploading a file that is already in the database produces zero new rows.
             </p>
           )}
@@ -675,7 +675,7 @@ function DataManagementInner() {
       {tab === "validate" && (
         <div className="space-y-4">
           {batches.length === 0 ? (
-            <Card><p className="py-8 text-center text-sm text-[#69717c] dark:text-[#aab3bd]">No files staged. Use “Upload Data” to add a CSV.</p></Card>
+            <Card><p className="py-8 text-center text-sm text-[#71666a] dark:text-[#b9aeb2]">No files staged. Use “Upload Data” to add a CSV.</p></Card>
           ) : (
             batches.map((b) => <BatchCard key={b.id} batch={b} onChange={updateBatch} />)
           )}
@@ -687,7 +687,7 @@ function DataManagementInner() {
           <HistoryPanel onOpen={openDetail} />
           {detail && (
             <div className="space-y-2">
-              <p className="text-sm font-bold text-[#30343A] dark:text-[#f1f3f5]">Batch #{detail.id} details</p>
+              <p className="text-sm font-bold text-[#292326] dark:text-[#f5eff1]">Batch #{detail.id} details</p>
               {detail.error
                 ? <Card><p className="text-sm text-red-700 dark:text-red-300">{detail.error}</p></Card>
                 : <BatchCard batch={detail} onChange={updateBatch} />}

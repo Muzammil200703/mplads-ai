@@ -35,7 +35,7 @@ function ScoreDial({ score, severity }) {
     <div className="flex flex-col items-center">
       <div
         className="flex h-20 w-20 items-center justify-center rounded-full"
-        style={{ background: `conic-gradient(${color} ${angle}deg, #dde1e5 ${angle}deg)` }}
+        style={{ background: `conic-gradient(${color} ${angle}deg, #e8dadc ${angle}deg)` }}
         role="img"
         aria-label={`Risk index ${score} of 100`}
       >

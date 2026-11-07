@@ -38,8 +38,13 @@ import assistant_nav
 import assistant_nlu
 import assistant_analytics
 import assistant_review
+import natural_language_query_service
+from assistant_query import router as assistant_query_router
 
 router = APIRouter(prefix="/assistant", tags=["AI Assistant"])
+# Query-specific endpoints live in their own module but mount under the same
+# /assistant prefix, sharing session, roles and the read-only executor.
+router.include_router(assistant_query_router)
 
 _bearer = HTTPBearer(auto_error=False)
 
@@ -395,6 +400,9 @@ class AskRequest(BaseModel):
     question: str = Field(min_length=1, max_length=500)
     page: Optional[str] = Field(None, max_length=60)
     session_id: Optional[str] = Field(None, max_length=64)
+    # The application's current House filter. Applied to database answers
+    # unless the question names a house explicitly (then the question wins).
+    house: Optional[str] = Field(None, max_length=20)
 
 
 class ActionOut(BaseModel):
@@ -488,6 +496,9 @@ class AskResponse(BaseModel):
     recommendations: List[Dict[str, Any]] = Field(default_factory=list)
     limitations: List[str] = Field(default_factory=list)
     table: Optional[Dict[str, Any]] = None
+    # ── Natural-language query payload (None for non-query answers) ──
+    query: Optional[Dict[str, Any]] = None
+    chart: Optional[Dict[str, Any]] = None
 
 
 # ── Conversational session memory ────────────────────────────────────
@@ -2848,7 +2859,8 @@ def _pad5(result) -> Tuple[str, str, List[ActionOut], Optional[int], Dict[str, A
 
 
 def _answer(question: str, page: Optional[str], user, db: Session,
-            session_id: Optional[str] = None) -> Tuple[str, str, List[ActionOut], Optional[int]]:
+            session_id: Optional[str] = None,
+            house: Optional[str] = None) -> Tuple[str, str, List[ActionOut], Optional[int]]:
     """Entry point: greets pure greetings conversationally (no actions, no
     queries); for mixed messages ("Hi, open Risk Center") strips the greeting,
     executes the request, and prefixes a short acknowledgement."""
@@ -2859,14 +2871,15 @@ def _answer(question: str, page: Optional[str], user, db: Session,
         body = _GREET_HEAD_RE.sub("", question, count=1).strip()
         if not body:
             return _greeting_reply(ql), "help", [], None, {"intent": "greeting"}
-        answer, source, actions, pid, meta = _pad5(_answer_body(body, page, user, db, session_id))
+        answer, source, actions, pid, meta = _pad5(_answer_body(body, page, user, db, session_id, house))
         greet = _greeting_reply(ql).split("!")[0] + "! "
         return greet + answer, source, actions, pid, {**meta, "intent": meta.get("intent") or "greeting"}
-    return _pad5(_answer_body(question, page, user, db, session_id))
+    return _pad5(_answer_body(question, page, user, db, session_id, house))
 
 
 def _answer_body(question: str, page: Optional[str], user, db: Session,
-                 session_id: Optional[str] = None) -> Tuple[str, str, List[ActionOut], Optional[int]]:
+                 session_id: Optional[str] = None,
+                 house: Optional[str] = None) -> Tuple[str, str, List[ActionOut], Optional[int]]:
     ql = question.lower().strip()
 
     ctx_project_id = None
@@ -2911,7 +2924,34 @@ def _answer_body(question: str, page: Optional[str], user, db: Session,
     if asks_page_context and ctx_project_id and re.search(r"project|work\b|one\b|it\b", ql):
         asks_page_context = False
 
-    # 1. Data intents first (they may fall through with None). Order matters:
+    # 0b. Natural-language database queries with conversation context. A
+    #     follow-up on a previous query result ("show only Telangana", "sort
+    #     them by expenditure", "explain the third project") is resolved
+    #     against that result BEFORE the curated intents see it. Unrelated
+    #     questions are ignored here and keep their existing owners below.
+    if session_id and natural_language_query_service.has_context(session_id) \
+            and natural_language_query_service.is_followup(question):
+        nlq = natural_language_query_service.handle(
+            question, user=user, house=house, session_id=session_id
+        )
+        if nlq:
+            return nlq["answer"], nlq["source"], nlq["actions"], nlq["project_id"], nlq["meta"]
+
+    # 1. Natural-language database query FIRST for questions that match one of
+    #    the analyst query families (rankings, comparisons, overspend, vendor
+    #    spend, historical snapshots, import history, threshold screening).
+    #    Those are exactly the questions that need generated SQL + real rows;
+    #    every other question falls through to the curated intents below, so
+    #    their behaviour is unchanged. The statement is built from the real
+    #    schema, validated, and executed read-only — never trusted as model
+    #    output.
+    nlq = natural_language_query_service.handle(
+        question, user=user, house=house, session_id=session_id
+    )
+    if nlq:
+        return nlq["answer"], nlq["source"], nlq["actions"], nlq["project_id"], nlq["meta"]
+
+    # 2. Curated data intents (they may fall through with None). Order matters:
     #    navigation, then ID-anchored lookups, then role/data analytics.
     discussed_pid: Optional[int] = None
     results = [
@@ -3067,7 +3107,8 @@ def _answer_body(question: str, page: Optional[str], user, db: Session,
     ):
         return PAGE_HELP[real_page], "help", [], None
 
-    # 4. Fallback — honest "can't answer" with pointers
+    # 4. Fallback — honest "can't answer" with pointers (the natural-language
+    #    query layer already had its turn in step 1).
     role_note = ""
     if user is None:
         role_note = " You're browsing as a guest — sign in to submit evidence or use workspace features."
@@ -3096,7 +3137,8 @@ def ask(
     follow-ups like "why is it risky?" → "open it"."""
     session_id = payload.session_id or str(uuid.uuid4())
     result = _answer(
-        payload.question, payload.page, user, db, session_id=session_id
+        payload.question, payload.page, user, db, session_id=session_id,
+        house=payload.house,
     )
     answer, source, actions, discussed_pid = result[:4]
     meta = dict(result[4] if len(result) > 4 else {})
@@ -3118,6 +3160,29 @@ def ask(
         }
     else:
         table = None
+    # Natural-language query payload: bounded and type-checked before it
+    # leaves the server (arbitrary dicts are never forwarded verbatim).
+    query = meta.get("query")
+    if isinstance(query, dict):
+        chart = query.get("chart") if isinstance(query.get("chart"), dict) else None
+        query = {
+            "id": str(query.get("id") or "")[:64] or None,
+            "sql": str(query.get("sql") or "")[:4000] or None,
+            "status": str(query.get("status") or "ok")[:20],
+            "row_count": int(query.get("row_count") or 0),
+            "display_row_count": int(query.get("display_row_count") or 0),
+            "truncated": bool(query.get("truncated")),
+            "limit": int(query.get("limit") or 0),
+            "elapsed_ms": int(query.get("elapsed_ms") or 0),
+            "filters": [f for f in (query.get("filters") or []) if isinstance(f, dict)][:6],
+            "chart": chart,
+            "result_url": str(query.get("result_url") or "")[:120] or None,
+            "can_export": bool(query.get("can_export")),
+            "error": str(query.get("error") or "")[:300] or None,
+        }
+    else:
+        query = None
+    chart = query.get("chart") if query else None
     # Single choke point: every action leaving the API is checked against the
     # allowlist, whichever intent produced it.
     return AskResponse(
@@ -3125,7 +3190,7 @@ def ask(
         project_id=discussed_pid, intent=intent, entity=entity if isinstance(entity, dict) else {},
         findings=[f for f in findings if isinstance(f, dict)],
         recommendations=[r for r in recommendations if isinstance(r, dict)],
-        limitations=limitations, table=table,
+        limitations=limitations, table=table, query=query, chart=chart,
     )
 
 

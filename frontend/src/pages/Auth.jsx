@@ -11,23 +11,23 @@ import { forgotPassword, resetPassword } from "../services/api"
 function AuthShell({ title, subtitle, children, footer }) {
   return (
     <div className="flex min-h-full items-center justify-center px-4 py-10">
-      <div className="w-full max-w-md rounded-xl border border-[#dde1e5] bg-white p-6 shadow-sm dark:border-[#39434E] dark:bg-[#171b20]">
+      <div className="w-full max-w-md rounded-xl border border-[#e8dadc] bg-white p-6 shadow-sm dark:border-[#351923] dark:bg-[#000000]">
         <div className="mb-5 text-center">
-          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[#2c3540] text-xl text-white dark:bg-[#39434E]">
+          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[#120b0e] text-xl text-white dark:bg-[#351923]">
             🏛
           </div>
-          <h2 className="text-xl font-bold text-[#30343A] dark:text-[#f1f3f5]">{title}</h2>
-          <p className="mt-1 text-sm text-[#69717c] dark:text-[#aab3bd]">{subtitle}</p>
+          <h2 className="text-xl font-bold text-[#292326] dark:text-[#f5eff1]">{title}</h2>
+          <p className="mt-1 text-sm text-[#71666a] dark:text-[#b9aeb2]">{subtitle}</p>
         </div>
         {children}
-        {footer && <div className="mt-5 border-t border-[#dde1e5] pt-4 text-center text-sm dark:border-[#39434E]">{footer}</div>}
+        {footer && <div className="mt-5 border-t border-[#e8dadc] pt-4 text-center text-sm dark:border-[#351923]">{footer}</div>}
       </div>
     </div>
   )
 }
 
 const inputClass =
-  "mt-1 w-full rounded-lg border border-[#dde1e5] bg-white px-3 py-2.5 text-[0.9375rem] text-[#30343A] outline-none transition focus:border-[#46566a] focus:ring-2 focus:ring-[#46566a]/10 dark:border-[#39434E] dark:bg-[#222831] dark:text-[#f1f3f5]"
+  "mt-1 w-full rounded-lg border border-[#e8dadc] bg-white px-3 py-2.5 text-[0.9375rem] text-[#292326] outline-none transition focus:border-[#c8102e] focus:ring-2 focus:ring-[#c8102e]/10 dark:border-[#351923] dark:bg-[#0d090b] dark:text-[#f5eff1]"
 
 export function LoginView({ onSwitch }) {
   const { login } = useAuth()
@@ -78,11 +78,11 @@ export function LoginView({ onSwitch }) {
       <AuthShell title="Reset password" subtitle="Enter your account email to receive a single-use reset token." footer={<button onClick={() => setMode("login")} className="font-semibold text-blue-600 hover:underline dark:text-blue-400">← Back to sign in</button>}>
         <form onSubmit={handleForgot} className="space-y-4">
           <div>
-            <label className="text-sm font-semibold text-[#69717c] dark:text-[#aab3bd]">Email</label>
+            <label className="text-sm font-semibold text-[#71666a] dark:text-[#b9aeb2]">Email</label>
             <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className={inputClass} placeholder="you@example.gov.in" />
           </div>
           {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm font-semibold text-red-700 dark:bg-red-950/30 dark:text-red-300">{error}</p>}
-          <button disabled={busy} className="w-full rounded-lg bg-[#46566a] px-4 py-2.5 text-[0.9375rem] font-bold text-white transition hover:bg-[#37455a] disabled:opacity-50 dark:bg-blue-600 dark:hover:bg-blue-500">
+          <button disabled={busy} className="w-full rounded-lg bg-[#c8102e] px-4 py-2.5 text-[0.9375rem] font-bold text-white transition hover:bg-[#a50f29] disabled:opacity-50 dark:bg-blue-600 dark:hover:bg-blue-500">
             {busy ? "Requesting…" : "Get reset token"}
           </button>
         </form>
@@ -102,15 +102,15 @@ export function LoginView({ onSwitch }) {
             </p>
           )}
           <div>
-            <label className="text-sm font-semibold text-[#69717c] dark:text-[#aab3bd]">Reset token</label>
+            <label className="text-sm font-semibold text-[#71666a] dark:text-[#b9aeb2]">Reset token</label>
             <input required value={resetForm.token} onChange={(e) => setResetForm((f) => ({ ...f, token: e.target.value }))} className={`${inputClass} font-mono text-sm`} placeholder="Paste token" />
           </div>
           <div>
-            <label className="text-sm font-semibold text-[#69717c] dark:text-[#aab3bd]">New password</label>
+            <label className="text-sm font-semibold text-[#71666a] dark:text-[#b9aeb2]">New password</label>
             <input type="password" required minLength={8} value={resetForm.new_password} onChange={(e) => setResetForm((f) => ({ ...f, new_password: e.target.value }))} className={inputClass} placeholder="Minimum 8 characters" />
           </div>
           {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm font-semibold text-red-700 dark:bg-red-950/30 dark:text-red-300">{error}</p>}
-          <button disabled={busy} className="w-full rounded-lg bg-[#46566a] px-4 py-2.5 text-[0.9375rem] font-bold text-white transition hover:bg-[#37455a] disabled:opacity-50 dark:bg-blue-600 dark:hover:bg-blue-500">
+          <button disabled={busy} className="w-full rounded-lg bg-[#c8102e] px-4 py-2.5 text-[0.9375rem] font-bold text-white transition hover:bg-[#a50f29] disabled:opacity-50 dark:bg-blue-600 dark:hover:bg-blue-500">
             {busy ? "Updating…" : "Update password"}
           </button>
         </form>
@@ -128,22 +128,22 @@ export function LoginView({ onSwitch }) {
             New here?{" "}
             <button onClick={() => onSwitch("signup")} className="font-semibold text-blue-600 hover:underline dark:text-blue-400">Create an account</button>
           </p>
-          <button onClick={() => setMode("forgot")} className="text-sm text-[#69717c] hover:underline dark:text-[#aab3bd]">Forgot password?</button>
+          <button onClick={() => setMode("forgot")} className="text-sm text-[#71666a] hover:underline dark:text-[#b9aeb2]">Forgot password?</button>
         </div>
       }
     >
       <form onSubmit={handleLogin} className="space-y-4">
         <div>
-          <label className="text-sm font-semibold text-[#69717c] dark:text-[#aab3bd]">Email</label>
+          <label className="text-sm font-semibold text-[#71666a] dark:text-[#b9aeb2]">Email</label>
           <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className={inputClass} placeholder="you@example.gov.in" />
         </div>
         <div>
-          <label className="text-sm font-semibold text-[#69717c] dark:text-[#aab3bd]">Password</label>
+          <label className="text-sm font-semibold text-[#71666a] dark:text-[#b9aeb2]">Password</label>
           <input type="password" required value={password} onChange={(e) => setPassword(e.target.value)} className={inputClass} placeholder="••••••••" />
         </div>
         {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm font-semibold text-red-700 dark:bg-red-950/30 dark:text-red-300">{error}</p>}
         {notice && <p className="rounded-lg bg-green-50 px-3 py-2 text-sm font-semibold text-green-700 dark:bg-green-950/30 dark:text-green-300">{notice}</p>}
-        <button disabled={busy} className="w-full rounded-lg bg-[#46566a] px-4 py-2.5 text-[0.9375rem] font-bold text-white transition hover:bg-[#37455a] disabled:opacity-50 dark:bg-blue-600 dark:hover:bg-blue-500">
+        <button disabled={busy} className="w-full rounded-lg bg-[#c8102e] px-4 py-2.5 text-[0.9375rem] font-bold text-white transition hover:bg-[#a50f29] disabled:opacity-50 dark:bg-blue-600 dark:hover:bg-blue-500">
           {busy ? "Signing in…" : "Sign in"}
         </button>
       </form>
@@ -175,15 +175,15 @@ export function SignupView({ onSwitch }) {
     >
       <form onSubmit={submit} className="space-y-4">
         <div>
-          <label className="text-sm font-semibold text-[#69717c] dark:text-[#aab3bd]">Full name</label>
+          <label className="text-sm font-semibold text-[#71666a] dark:text-[#b9aeb2]">Full name</label>
           <input required minLength={2} value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} className={inputClass} placeholder="e.g. A. Sharma" />
         </div>
         <div>
-          <label className="text-sm font-semibold text-[#69717c] dark:text-[#aab3bd]">Email</label>
+          <label className="text-sm font-semibold text-[#71666a] dark:text-[#b9aeb2]">Email</label>
           <input type="email" required value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} className={inputClass} placeholder="you@example.gov.in" />
         </div>
         <div>
-          <label className="text-sm font-semibold text-[#69717c] dark:text-[#aab3bd]">Role</label>
+          <label className="text-sm font-semibold text-[#71666a] dark:text-[#b9aeb2]">Role</label>
           <select value={form.role} onChange={(e) => setForm((f) => ({ ...f, role: e.target.value }))} className={inputClass}>
             <option value="citizen">Citizen — submit ground evidence for projects</option>
             <option value="analyst">Analyst — save projects, create investigations</option>
@@ -192,16 +192,16 @@ export function SignupView({ onSwitch }) {
         </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
-            <label className="text-sm font-semibold text-[#69717c] dark:text-[#aab3bd]">Password</label>
+            <label className="text-sm font-semibold text-[#71666a] dark:text-[#b9aeb2]">Password</label>
             <input type="password" required minLength={8} value={form.password} onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))} className={inputClass} placeholder="Min 8 characters" />
           </div>
           <div>
-            <label className="text-sm font-semibold text-[#69717c] dark:text-[#aab3bd]">Confirm</label>
+            <label className="text-sm font-semibold text-[#71666a] dark:text-[#b9aeb2]">Confirm</label>
             <input type="password" required minLength={8} value={form.confirm} onChange={(e) => setForm((f) => ({ ...f, confirm: e.target.value }))} className={inputClass} placeholder="Repeat password" />
           </div>
         </div>
         {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm font-semibold text-red-700 dark:bg-red-950/30 dark:text-red-300">{error}</p>}
-        <button disabled={busy} className="w-full rounded-lg bg-[#46566a] px-4 py-2.5 text-[0.9375rem] font-bold text-white transition hover:bg-[#37455a] disabled:opacity-50 dark:bg-blue-600 dark:hover:bg-blue-500">
+        <button disabled={busy} className="w-full rounded-lg bg-[#c8102e] px-4 py-2.5 text-[0.9375rem] font-bold text-white transition hover:bg-[#a50f29] disabled:opacity-50 dark:bg-blue-600 dark:hover:bg-blue-500">
           {busy ? "Creating account…" : "Create account"}
         </button>
       </form>

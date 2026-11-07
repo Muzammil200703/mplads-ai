@@ -1,6 +1,8 @@
 import { useState, useEffect, lazy, Suspense, memo, useRef } from "react"
 import Sidebar from "./components/Sidebar"
 import AssistantWidget from "./components/AssistantWidget"
+import CommandPalette from "./components/CommandPalette"
+import HistoricalReplayPanel from "./components/HistoricalReplayPanel"
 import TopBar from "./components/TopBar"
 import { PageSkeleton } from "./components/Skeleton"
 import { AuthProvider, useAuth } from "./context/AuthContext"
@@ -195,6 +197,9 @@ function AppShell() {
   // via the menu button (or Ctrl+B) and closes on navigate/backdrop.
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false)
   const [assistantOpen, setAssistantOpen] = useState(false)
+  // Global command palette (Ctrl/Cmd+K) — one entry point over the app's
+  // existing pages, records and actions; it never bypasses this shell.
+  const [commandOpen, setCommandOpen] = useState(false)
   // MP Intelligence page context ("this MP" for the assistant): id of the MP
   // whose detail view is currently open, or null.
   const [assistantMpId, setAssistantMpId] = useState(null)
@@ -414,7 +419,7 @@ function AppShell() {
     return (
       <Suspense fallback={<div className="min-h-screen bg-slate-900 flex items-center justify-center text-slate-400">Loading...</div>}>
         <Landing onLaunch={() => setCurrentPage("Overview")} />
-        <AssistantWidget currentPage={currentPage} />
+        <AssistantWidget currentPage={currentPage} house={selectedHouse} />
       </Suspense>
     )
 }
@@ -423,8 +428,8 @@ return (
     <div
       className={`h-[100dvh] overflow-hidden ${
         darkMode
-          ? "dark bg-[#171b20] text-[#f1f3f5]"
-          : "bg-[#f4f5f6] text-[#30343A]"
+          ? "dark bg-[#000000] text-[#f5eff1]"
+          : "bg-[#faf7f6] text-[#292326]"
       }`}
     >
       {isMobile && mobileDrawerOpen && (
@@ -456,11 +461,15 @@ return (
         isMobile={isMobile}
         selectedFY={selectedFY}
         onFYChange={setSelectedFY}
+        onOpenCommandPalette={() => setCommandOpen(true)}
       />
 
       <main
         className={`h-full overflow-x-auto overflow-y-auto pt-[64px] lg:pt-[72px] transition-[margin] duration-300 ease-in-out ${getMainMargin()}`}
       >
+        {currentPage === "State Intelligence" && (
+          <HistoricalReplayPanel house={selectedHouse} />
+        )}
         {renderPage()}
       </main>
 
@@ -469,12 +478,24 @@ return (
         contextProjectId={assistantProjectId}
         contextMpId={assistantMpId}
         contextState={assistantState}
+        house={selectedHouse}
         contextProjectName={getAssistantProjectName(assistantProjectId)}
         onNavigate={handleNavigate}
         onOpenProject={openProjectFromWorkspace}
         onExecuteAction={executeAssistant}
         open={assistantOpen}
         onOpenChange={setAssistantOpen}
+      />
+
+      <CommandPalette
+        key={commandOpen ? "palette-open" : "palette-closed"}
+        open={commandOpen}
+        onOpenChange={setCommandOpen}
+        currentPage={currentPage}
+        house={selectedHouse}
+        onNavigate={handleNavigate}
+        onDrillDown={handleDrillDown}
+        onOpenProject={openProjectFromWorkspace}
       />
     </div>
   )

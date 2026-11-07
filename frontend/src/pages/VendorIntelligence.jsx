@@ -9,10 +9,10 @@ const TYPE_OPTIONS = ["All types", "Company/Business", "Supplier/Contractor", "I
 
 function StatCard({ label, value, detail }) {
   return (
-    <div className="rounded-xl border border-[#dde1e5] bg-white p-4 shadow-sm dark:border-[#39434E] dark:bg-[#222831]">
-      <p className="text-[0.6875rem] font-bold uppercase tracking-wider text-[#69717c] dark:text-[#aab3bd]">{label}</p>
-      <p className="mt-2 font-mono text-2xl font-bold text-[#30343A] dark:text-white">{value}</p>
-      {detail && <p className="mt-1 text-xs text-[#69717c] dark:text-[#aab3bd]">{detail}</p>}
+    <div className="rounded-xl border border-[#e8dadc] bg-white p-4 shadow-sm dark:border-[#351923] dark:bg-[#0d090b]">
+      <p className="text-[0.6875rem] font-bold uppercase tracking-wider text-[#71666a] dark:text-[#b9aeb2]">{label}</p>
+      <p className="mt-2 font-mono text-2xl font-bold text-[#292326] dark:text-white">{value}</p>
+      {detail && <p className="mt-1 text-xs text-[#71666a] dark:text-[#b9aeb2]">{detail}</p>}
     </div>
   )
 }
@@ -157,12 +157,12 @@ const VendorIntelligence = memo(function VendorIntelligence({ drillDownParams, o
   const selectedIsInCompare = selected && compare.some((item) => item.vendor_name === selected.vendor_name)
 
   return (
-    <div className="vendor-page min-h-full min-w-0 bg-[#f4f5f6] p-4 sm:p-6 dark:bg-[#171b20]">
+    <div className="vendor-page min-h-full min-w-0 bg-[#faf7f6] p-4 sm:p-6 dark:bg-[#000000]">
       <div className="mx-auto max-w-[1500px]">
         <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold text-[#30343A] dark:text-white">Vendor Intelligence</h1>
-            <p className="mt-1 text-sm text-[#69717c] dark:text-[#aab3bd]">From Project-Level Risk to Vendor-Level Intelligence</p>
+            <h1 className="text-2xl font-bold text-[#292326] dark:text-white">Vendor Intelligence</h1>
+            <p className="mt-1 text-sm text-[#71666a] dark:text-[#b9aeb2]">From Project-Level Risk to Vendor-Level Intelligence</p>
           </div>
           <div className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-800 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-200">Derived from current MPLADS expenditure records</div>
         </div>
@@ -176,49 +176,49 @@ const VendorIntelligence = memo(function VendorIntelligence({ drillDownParams, o
           <StatCard label="Concentration indicator" value={stats.unusual_concentration ? "Review" : "Not flagged"} detail={`Top 5: ${stats.top5_share || 0}% · Top 10: ${stats.top10_share || 0}%`} />
         </div>
 
-        <div className="mb-5 rounded-xl border border-[#dde1e5] bg-white p-4 shadow-sm dark:border-[#39434E] dark:bg-[#222831]">
+        <div className="mb-5 rounded-xl border border-[#e8dadc] bg-white p-4 shadow-sm dark:border-[#351923] dark:bg-[#0d090b]">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <div><h2 className="font-bold text-[#30343A] dark:text-white">Vendor directory</h2><p className="mt-1 text-xs text-gray-500">Vendor-linked records only. Projects are counted as distinct works recorded in the vendor's expenditure records (multiple payments on one work count once); select a row for details.</p></div>
+            <div><h2 className="font-bold text-[#292326] dark:text-white">Vendor directory</h2><p className="mt-1 text-xs text-gray-500">Vendor-linked records only. Projects are counted as distinct works recorded in the vendor's expenditure records (multiple payments on one work count once); select a row for details.</p></div>
             <div className="flex flex-wrap gap-2">
-              <input value={searchText} onChange={(event) => setSearchText(event.target.value)} placeholder="Search vendor or state" className="h-9 w-56 rounded-lg border border-[#dde1e5] bg-white px-3 text-sm outline-none focus:border-[#46566a] dark:border-[#69717c] dark:bg-[#171b20]" />
-              <select value={type} onChange={(event) => { setType(event.target.value); setPage(0) }} className="h-9 rounded-lg border border-[#dde1e5] bg-white px-2 text-sm dark:border-[#69717c] dark:bg-[#171b20]">{TYPE_OPTIONS.map((option) => <option key={option}>{option}</option>)}</select>
+              <input value={searchText} onChange={(event) => setSearchText(event.target.value)} placeholder="Search vendor or state" className="h-9 w-56 rounded-lg border border-[#e8dadc] bg-white px-3 text-sm outline-none focus:border-[#c8102e] dark:border-[#82767b] dark:bg-[#000000]" />
+              <select value={type} onChange={(event) => { setType(event.target.value); setPage(0) }} className="h-9 rounded-lg border border-[#e8dadc] bg-white px-2 text-sm dark:border-[#82767b] dark:bg-[#000000]">{TYPE_OPTIONS.map((option) => <option key={option}>{option}</option>)}</select>
             </div>
           </div>
           <div className="vendor-table-wrap mt-4 overflow-x-auto">
             <table className="w-full min-w-[1500px] table-fixed text-left text-sm">
-              <thead><tr className="border-b border-[#dde1e5] text-[0.6875rem] uppercase tracking-wider text-gray-500 dark:border-[#39434E]">
+              <thead><tr className="border-b border-[#e8dadc] text-[0.6875rem] uppercase tracking-wider text-gray-500 dark:border-[#351923]">
                 <th className="w-[360px] p-3"><button onClick={() => changeSort("vendor_name")}>Vendor {sortBy === "vendor_name" ? (sortDir === "asc" ? "↑" : "↓") : ""}</button></th><th className="w-[230px] p-3"><button onClick={() => changeSort("type")}>Type</button></th><th className="w-[110px] p-3 text-right" title="Distinct works recorded in this vendor's expenditure records">Projects</th><th className="w-[140px] p-3 text-right">Transactions</th><th className="w-[190px] p-3 text-right"><button onClick={() => changeSort("total_expenditure")}>Total expenditure</button></th><th className="w-[280px] p-3">States</th><th className="w-[220px] p-3">Risk exposure</th><th className="w-[90px] p-3 text-center">Compare</th>
               </tr></thead>
-              <tbody>{vendors.map((vendor) => <tr key={vendor.vendor_name} onClick={() => setSelected(vendor)} className="cursor-pointer border-b border-[#dde1e5] hover:bg-[#f4f5f6] dark:border-[#39434E] dark:hover:bg-[#171b20]">
-                <td className="p-3 font-semibold text-[#30343A] dark:text-white"><div className="flex items-center gap-2"><span className="min-w-0 truncate">{vendor.vendor_name}</span><button type="button" onClick={(event) => { event.stopPropagation(); investigateVendor(vendor) }} className="shrink-0 rounded-md border border-[#46566a] bg-transparent px-2.5 py-1.5 text-xs font-semibold text-[#46566a] hover:bg-blue-50 dark:hover:bg-blue-950/30" title="Search this vendor on Google with their name and primary constituency">Contact</button></div></td><td className="p-3 text-xs text-gray-600 dark:text-gray-300">{vendor.type_confidence === "low" ? "Unknown — insufficient information" : vendor.type}<span className="ml-1 text-[0.625rem] text-gray-400">({vendor.type_confidence})</span></td><td className="p-3 text-right font-mono">{vendor.project_count}</td><td className="p-3 text-right font-mono">{vendor.transaction_count}</td><td className="p-3 text-right font-mono font-semibold">{formatMoney(vendor.total_expenditure)}</td><td className="max-w-[180px] p-3 text-xs text-gray-600 dark:text-gray-300">{vendor.states.join(", ") || "—"}</td><td className="p-3"><div className="flex flex-wrap gap-1">{Object.entries(vendor.risk_counts).map(([level, count]) => <RiskPill key={level} count={count} level={level} />)}</div></td><td className="p-3 text-center"><input type="checkbox" checked={compare.some((item) => item.vendor_name === vendor.vendor_name)} onChange={() => toggleCompare(vendor)} onClick={(event) => event.stopPropagation()} /></td>
+              <tbody>{vendors.map((vendor) => <tr key={vendor.vendor_name} onClick={() => setSelected(vendor)} className="cursor-pointer border-b border-[#e8dadc] hover:bg-[#faf7f6] dark:border-[#351923] dark:hover:bg-[#000000]">
+                <td className="p-3 font-semibold text-[#292326] dark:text-white"><div className="flex items-center gap-2"><span className="min-w-0 truncate">{vendor.vendor_name}</span><button type="button" onClick={(event) => { event.stopPropagation(); investigateVendor(vendor) }} className="shrink-0 rounded-md border border-[#c8102e] bg-transparent px-2.5 py-1.5 text-xs font-semibold text-[#c8102e] hover:bg-blue-50 dark:hover:bg-blue-950/30" title="Search this vendor on Google with their name and primary constituency">Contact</button></div></td><td className="p-3 text-xs text-gray-600 dark:text-gray-300">{vendor.type_confidence === "low" ? "Unknown — insufficient information" : vendor.type}<span className="ml-1 text-[0.625rem] text-gray-400">({vendor.type_confidence})</span></td><td className="p-3 text-right font-mono">{vendor.project_count}</td><td className="p-3 text-right font-mono">{vendor.transaction_count}</td><td className="p-3 text-right font-mono font-semibold">{formatMoney(vendor.total_expenditure)}</td><td className="max-w-[180px] p-3 text-xs text-gray-600 dark:text-gray-300">{vendor.states.join(", ") || "—"}</td><td className="p-3"><div className="flex flex-wrap gap-1">{Object.entries(vendor.risk_counts).map(([level, count]) => <RiskPill key={level} count={count} level={level} />)}</div></td><td className="p-3 text-center"><input type="checkbox" checked={compare.some((item) => item.vendor_name === vendor.vendor_name)} onChange={() => toggleCompare(vendor)} onClick={(event) => event.stopPropagation()} /></td>
               </tr>)}</tbody>
             </table>
             {vendors.length === 0 && <p className="p-8 text-center text-sm text-gray-500">{totalVendors === 0 ? "No vendor records available in the current dataset." : "No vendor-linked records match these filters."}</p>}
           </div>
-          <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-[#dde1e5] pt-3 text-xs text-gray-500 dark:border-[#39434E]">
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-[#e8dadc] pt-3 text-xs text-gray-500 dark:border-[#351923]">
             <span>Showing {totalVendors === 0 ? 0 : page * pageSize + 1}–{Math.min((page + 1) * pageSize, totalVendors)} of {formatNumber(totalVendors)} vendors</span>
             <div className="flex items-center gap-2"><button disabled={page === 0} onClick={() => setPage((value) => Math.max(0, value - 1))} className="rounded border border-gray-300 px-2 py-1 disabled:cursor-not-allowed disabled:opacity-40 dark:border-gray-600">Previous</button><span>Page {page + 1} of {totalPages}</span><button disabled={page + 1 >= totalPages} onClick={() => setPage((value) => Math.min(totalPages - 1, value + 1))} className="rounded border border-gray-300 px-2 py-1 disabled:cursor-not-allowed disabled:opacity-40 dark:border-gray-600">Next</button></div>
           </div>
         </div>
 
         <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
-          <section className="rounded-xl border border-[#dde1e5] bg-white p-4 shadow-sm dark:border-[#39434E] dark:bg-[#222831]"><h2 className="font-bold text-[#30343A] dark:text-white">Concentration overview</h2><p className="mt-1 text-xs text-gray-500">Top vendor expenditure shares, calculated from vendor-linked records.</p><div className="mt-4 space-y-3">{topVendors.map((vendor) => <div key={vendor.vendor_name}><div className="mb-1 flex justify-between gap-3 text-xs"><span className="truncate font-medium">{vendor.vendor_name}</span><span className="font-mono">{vendor.expenditure_share}%</span></div><div className="h-2 rounded-full bg-gray-100 dark:bg-gray-700"><div className="bar-fill h-2 rounded-full bg-[#46566a]" style={{ width: `${Math.min(100, vendor.expenditure_share)}%` }} /></div></div>)}</div></section>
-          <section className="rounded-xl border border-[#dde1e5] bg-white p-4 shadow-sm dark:border-[#39434E] dark:bg-[#222831]"><h2 className="font-bold text-[#30343A] dark:text-white">Cross-project network</h2><p className="mt-1 text-xs text-gray-500">A lightweight view of vendors appearing across multiple recorded works in the current dataset.</p><div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">{topVendors.filter((vendor) => vendor.project_count > 1).slice(0, 6).map((vendor) => <button key={vendor.vendor_name} onClick={() => setSelected(vendor)} className="rounded-lg border border-blue-100 bg-blue-50/50 p-3 text-left hover:border-blue-300 dark:border-blue-900 dark:bg-blue-950/20"><p className="truncate text-sm font-semibold">{vendor.vendor_name}</p><p className="mt-1 text-xs text-gray-500">{vendor.project_count} works · {vendor.states.join(", ") || "state unavailable"}</p></button>)}</div>{topVendors.filter((vendor) => vendor.project_count > 1).length === 0 && <p className="mt-4 text-sm text-gray-500">No multi-project vendor connections are present in the matched records.</p>}</section>
+          <section className="rounded-xl border border-[#e8dadc] bg-white p-4 shadow-sm dark:border-[#351923] dark:bg-[#0d090b]"><h2 className="font-bold text-[#292326] dark:text-white">Concentration overview</h2><p className="mt-1 text-xs text-gray-500">Top vendor expenditure shares, calculated from vendor-linked records.</p><div className="mt-4 space-y-3">{topVendors.map((vendor) => <div key={vendor.vendor_name}><div className="mb-1 flex justify-between gap-3 text-xs"><span className="truncate font-medium">{vendor.vendor_name}</span><span className="font-mono">{vendor.expenditure_share}%</span></div><div className="h-2 rounded-full bg-gray-100 dark:bg-gray-700"><div className="bar-fill h-2 rounded-full bg-[#c8102e]" style={{ width: `${Math.min(100, vendor.expenditure_share)}%` }} /></div></div>)}</div></section>
+          <section className="rounded-xl border border-[#e8dadc] bg-white p-4 shadow-sm dark:border-[#351923] dark:bg-[#0d090b]"><h2 className="font-bold text-[#292326] dark:text-white">Cross-project network</h2><p className="mt-1 text-xs text-gray-500">A lightweight view of vendors appearing across multiple recorded works in the current dataset.</p><div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">{topVendors.filter((vendor) => vendor.project_count > 1).slice(0, 6).map((vendor) => <button key={vendor.vendor_name} onClick={() => setSelected(vendor)} className="rounded-lg border border-blue-100 bg-blue-50/50 p-3 text-left hover:border-blue-300 dark:border-blue-900 dark:bg-blue-950/20"><p className="truncate text-sm font-semibold">{vendor.vendor_name}</p><p className="mt-1 text-xs text-gray-500">{vendor.project_count} works · {vendor.states.join(", ") || "state unavailable"}</p></button>)}</div>{topVendors.filter((vendor) => vendor.project_count > 1).length === 0 && <p className="mt-4 text-sm text-gray-500">No multi-project vendor connections are present in the matched records.</p>}</section>
         </div>
-        <section className="mt-5 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[#dde1e5] bg-white px-4 py-3 shadow-sm dark:border-[#39434E] dark:bg-[#222831]">
+        <section className="mt-5 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[#e8dadc] bg-white px-4 py-3 shadow-sm dark:border-[#351923] dark:bg-[#0d090b]">
           <div className="min-w-0">
-            <p className="text-xs font-bold uppercase tracking-wider text-[#69717c] dark:text-[#aab3bd]">Analysis scope</p>
-            <p className="mt-0.5 text-xs text-[#69717c] dark:text-[#aab3bd]">
+            <p className="text-xs font-bold uppercase tracking-wider text-[#71666a] dark:text-[#b9aeb2]">Analysis scope</p>
+            <p className="mt-0.5 text-xs text-[#71666a] dark:text-[#b9aeb2]">
               Applies to the behaviour scan, the comparison and the vendor intelligence panel. The directory
               above still lists every house.
             </p>
           </div>
-          <label className="flex items-center gap-2 text-xs font-semibold text-[#30343A] dark:text-gray-200">
+          <label className="flex items-center gap-2 text-xs font-semibold text-[#292326] dark:text-gray-200">
             House
             <select
               value={analysisHouse}
               onChange={(event) => setAnalysisHouse(event.target.value)}
-              className="h-9 rounded-lg border border-[#dde1e5] bg-white px-2 text-sm dark:border-[#69717c] dark:bg-[#171b20]"
+              className="h-9 rounded-lg border border-[#e8dadc] bg-white px-2 text-sm dark:border-[#82767b] dark:bg-[#000000]"
             >
               <option value="">All houses</option>
               <option value="Lok Sabha">Lok Sabha</option>
@@ -243,7 +243,7 @@ const VendorIntelligence = memo(function VendorIntelligence({ drillDownParams, o
           />
         )}
 
-        <div className="mt-5 rounded-xl border border-[#dde1e5] bg-white p-4 text-xs text-gray-600 shadow-sm dark:border-[#39434E] dark:bg-[#222831] dark:text-gray-300"><h2 className="font-bold text-[#30343A] dark:text-white">External verification status</h2><p className="mt-1">These integrations are placeholders only; no external verification was performed.</p><div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-5">{["MCA", "GST", "Government Procurement", "Debarment Records", "GeM"].map((source) => <div key={source} className="rounded-lg border border-dashed border-gray-300 p-3 dark:border-gray-600"><p className="font-semibold">{source}</p><p className="mt-1 text-[0.6875rem] text-gray-500">Not connected</p></div>)}</div><p className="mt-3">Data source: {data?.data_source}. Fields used: vendor, expenditure amount, work description, state, constituency, and project/risk fields. The current view is generated from project and expenditure records; vendor risk exposure is not a finding about any vendor.</p></div>
+        <div className="mt-5 rounded-xl border border-[#e8dadc] bg-white p-4 text-xs text-gray-600 shadow-sm dark:border-[#351923] dark:bg-[#0d090b] dark:text-gray-300"><h2 className="font-bold text-[#292326] dark:text-white">External verification status</h2><p className="mt-1">These integrations are placeholders only; no external verification was performed.</p><div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-5">{["MCA", "GST", "Government Procurement", "Debarment Records", "GeM"].map((source) => <div key={source} className="rounded-lg border border-dashed border-gray-300 p-3 dark:border-gray-600"><p className="font-semibold">{source}</p><p className="mt-1 text-[0.6875rem] text-gray-500">Not connected</p></div>)}</div><p className="mt-3">Data source: {data?.data_source}. Fields used: vendor, expenditure amount, work description, state, constituency, and project/risk fields. The current view is generated from project and expenditure records; vendor risk exposure is not a finding about any vendor.</p></div>
       </div>
 
       {selected && (

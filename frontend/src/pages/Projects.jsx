@@ -13,6 +13,7 @@ import { useAuth } from "../context/AuthContext"
 const ProjectDetail = lazy(() => import("../components/ProjectDetail"))
 import { formatMoney, formatNumber, formatDateHuman } from "../utils/format"
 import { TableRowsSkeleton, MobileCardsSkeleton } from "../components/Skeletons"
+import HistoricalReplayPanel from "../components/HistoricalReplayPanel"
 
 function getRiskScoreBadge(project) {
   // Use the backend risk data (single source of truth from risk_scores table)
@@ -88,6 +89,15 @@ const Projects = memo(function Projects({ projectSearchQuery, onClearProjectSear
   const [detailTab, setDetailTab] = useState(null)
   const [projectSearchApplied, setProjectSearchApplied] = useState(false)
   const rowsPerPage = 15
+
+  // Debounced keyword: typing fires at most one backend search per 300 ms
+  // instead of one request per keystroke. `keyword` still drives the input so
+  // typing stays instant; only the query below waits for the pause.
+  const [debouncedKeyword, setDebouncedKeyword] = useState("")
+  useEffect(() => {
+    const handle = setTimeout(() => setDebouncedKeyword(keyword), 300)
+    return () => clearTimeout(handle)
+  }, [keyword])
 
   // Open another project's drawer from inside an open drawer (e.g. peer comparison)
   // Single selection flow: any open-project request (deep link, assistant,
@@ -183,9 +193,9 @@ const Projects = memo(function Projects({ projectSearchQuery, onClearProjectSear
       const skip = (currentPage - 1) * rowsPerPage
       let response
 
-      if (keyword.trim()) {
+      if (debouncedKeyword.trim()) {
         response = await searchProjects({
-          q: keyword.trim(),
+          q: debouncedKeyword.trim(),
           state: state || undefined,
           constituency: constituency || undefined,
           house: house || undefined,
@@ -234,7 +244,7 @@ const Projects = memo(function Projects({ projectSearchQuery, onClearProjectSear
     } finally {
       setLoading(false)
     }
-  }, [keyword, state, constituency, house, fy, status, currentPage, sortBy, sortDir])
+  }, [debouncedKeyword, state, constituency, house, fy, status, currentPage, sortBy, sortDir])
 
   useEffect(() => {
     fetchProjectsData()
@@ -276,7 +286,7 @@ const Projects = memo(function Projects({ projectSearchQuery, onClearProjectSear
   }
 
   return (
-    <div className="min-h-full bg-[#f4f5f6] p-4 sm:p-6 text-[#30343A] transition-colors duration-200 dark:bg-[#171b20] dark:text-gray-100">
+    <div className="min-h-full bg-[#faf7f6] p-4 sm:p-6 text-[#292326] transition-colors duration-200 dark:bg-[#000000] dark:text-gray-100">
       <div className="mx-auto max-w-[1440px] space-y-4 sm:space-y-6">
 
         {/* PROJECT SEARCH CONTEXT BANNER */}
@@ -307,7 +317,7 @@ const Projects = memo(function Projects({ projectSearchQuery, onClearProjectSear
         )}
 
         <div>
-          <h2 className="text-2xl font-bold text-[#30343A] dark:text-white">
+          <h2 className="text-2xl font-bold text-[#292326] dark:text-white">
             Projects Explorer
           </h2>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
@@ -315,7 +325,7 @@ const Projects = memo(function Projects({ projectSearchQuery, onClearProjectSear
           </p>
         </div>
 
-        <form onSubmit={handleApplySearch} className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition-colors dark:border-gray-700/80 dark:bg-[#222831]">
+        <form onSubmit={handleApplySearch} className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition-colors dark:border-gray-700/80 dark:bg-[#0d090b]">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
             <div>
               <label className="block text-xs font-semibold uppercase tracking-wider text-gray-700 dark:text-gray-200">
@@ -325,7 +335,7 @@ const Projects = memo(function Projects({ projectSearchQuery, onClearProjectSear
                 value={keyword}
                 onChange={(e) => setKeyword(e.target.value)}
                 placeholder="Search by ID, name, state, constituency, MP name, or type..."
-                className="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-2xs outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-gray-600 dark:bg-[#171b20] dark:text-white"
+                className="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-2xs outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-gray-600 dark:bg-[#000000] dark:text-white"
               />
             </div>
 
@@ -339,7 +349,7 @@ const Projects = memo(function Projects({ projectSearchQuery, onClearProjectSear
                   setState(e.target.value)
                   setCurrentPage(1)
                 }}
-                className="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-2xs outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-gray-600 dark:bg-[#171b20] dark:text-white"
+                className="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-2xs outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-gray-600 dark:bg-[#000000] dark:text-white"
               >
                 <option value="">All States</option>
                 {states.map((s) => (
@@ -361,7 +371,7 @@ const Projects = memo(function Projects({ projectSearchQuery, onClearProjectSear
                   setConstituency(e.target.value)
                   setCurrentPage(1)
                 }}
-                className="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-2xs outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:opacity-50 dark:border-gray-600 dark:bg-[#171b20] dark:text-white"
+                className="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-2xs outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:opacity-50 dark:border-gray-600 dark:bg-[#000000] dark:text-white"
               >
                 <option value="">{state ? "All Constituencies" : "Select State First"}</option>
                 {constituencies.map((c) => (
@@ -382,7 +392,7 @@ const Projects = memo(function Projects({ projectSearchQuery, onClearProjectSear
                   setHouse(e.target.value)
                   setCurrentPage(1)
                 }}
-                className="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-2xs outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-gray-600 dark:bg-[#171b20] dark:text-white"
+                className="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-2xs outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-gray-600 dark:bg-[#000000] dark:text-white"
               >
                 <option value="">All Houses</option>
                 <option value="Lok Sabha">Lok Sabha</option>
@@ -400,7 +410,7 @@ const Projects = memo(function Projects({ projectSearchQuery, onClearProjectSear
                   setStatus(e.target.value)
                   setCurrentPage(1)
                 }}
-                className="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-2xs outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-gray-600 dark:bg-[#171b20] dark:text-white"
+                className="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-2xs outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-gray-600 dark:bg-[#000000] dark:text-white"
               >
                 <option value="">All Statuses</option>
                 <option value="Completed">Completed</option>
@@ -438,8 +448,8 @@ const Projects = memo(function Projects({ projectSearchQuery, onClearProjectSear
                 }}
                 className={`rounded-lg px-3 py-1.5 text-[0.6875rem] font-bold transition ${
                   sortBy === opt.value
-                    ? "bg-[#46566a] text-white dark:bg-blue-600"
-                    : "border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:bg-[#222831] dark:text-gray-300"
+                    ? "bg-[#c8102e] text-white dark:bg-blue-600"
+                    : "border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:bg-[#0d090b] dark:text-gray-300"
                 }`}
               >
                 {opt.label}
@@ -463,14 +473,14 @@ const Projects = memo(function Projects({ projectSearchQuery, onClearProjectSear
             <div className="flex gap-2">
               <button
                 type="submit"
-                className="rounded-lg bg-[#46566a] px-4 sm:px-5 py-2 text-xs font-bold uppercase tracking-wider text-white shadow-2xs transition hover:bg-[#2c3540] dark:bg-blue-600 dark:hover:bg-blue-700"
+                className="rounded-lg bg-[#c8102e] px-4 sm:px-5 py-2 text-xs font-bold uppercase tracking-wider text-white shadow-2xs transition hover:bg-[#120b0e] dark:bg-blue-600 dark:hover:bg-blue-700"
               >
                 Search
               </button>
               <button
                 type="button"
                 onClick={handleResetFilters}
-                className="rounded-lg border border-gray-300 bg-white px-3 sm:px-4 py-2 text-xs font-bold uppercase tracking-wider text-gray-700 shadow-2xs transition hover:bg-gray-50 dark:border-gray-600 dark:bg-[#171b20] dark:text-gray-200 dark:hover:bg-gray-800"
+                className="rounded-lg border border-gray-300 bg-white px-3 sm:px-4 py-2 text-xs font-bold uppercase tracking-wider text-gray-700 shadow-2xs transition hover:bg-gray-50 dark:border-gray-600 dark:bg-[#000000] dark:text-gray-200 dark:hover:bg-gray-800"
               >
                 Reset
               </button>
@@ -487,7 +497,7 @@ const Projects = memo(function Projects({ projectSearchQuery, onClearProjectSear
           </div>
         )}
 
-        <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition-colors dark:border-gray-700/80 dark:bg-[#222831]">
+        <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition-colors dark:border-gray-700/80 dark:bg-[#0d090b]">
           {loading ? (
             <>
               <TableRowsSkeleton rows={8} cols={6} className="hidden lg:block" />
@@ -500,7 +510,7 @@ const Projects = memo(function Projects({ projectSearchQuery, onClearProjectSear
                 <div className="hidden lg:block overflow-x-auto">
                 <table className="w-full min-w-[900px]">
                   <thead>
-                    <tr className="border-b-2 border-gray-200 bg-gray-50 text-left text-[0.625rem] font-bold uppercase tracking-widest text-gray-500 dark:border-gray-700 dark:bg-[#1c2127] dark:text-gray-400">
+                    <tr className="border-b-2 border-gray-200 bg-gray-50 text-left text-[0.625rem] font-bold uppercase tracking-widest text-gray-500 dark:border-gray-700 dark:bg-[#120b0e] dark:text-gray-400">
                       <th className="px-3 py-3 w-20">ID</th>
                       <th className="px-3 py-3">Work Name & Category</th>
                       <th className="px-3 py-3 w-36">Location</th>
@@ -523,7 +533,7 @@ const Projects = memo(function Projects({ projectSearchQuery, onClearProjectSear
                         <tr
                           key={proj.id}
                           onClick={() => handleOpenDetail(proj)}
-                          className="cursor-pointer transition-colors duration-100 hover:bg-blue-50/60 dark:hover:bg-[#2c3540]/80"
+                          className="cursor-pointer transition-colors duration-100 hover:bg-blue-50/60 dark:hover:bg-[#120b0e]/80"
                         >
                           <td className="px-3 py-2.5 font-mono text-[0.6875rem] font-bold text-gray-500 dark:text-gray-400">
                             #{proj.id}
@@ -606,7 +616,7 @@ const Projects = memo(function Projects({ projectSearchQuery, onClearProjectSear
                       <div
                         key={proj.id}
                         onClick={() => handleOpenDetail(proj)}
-                        className="px-4 py-3.5 cursor-pointer transition-colors duration-100 hover:bg-blue-50/60 dark:hover:bg-[#2c3540]/80"
+                        className="px-4 py-3.5 cursor-pointer transition-colors duration-100 hover:bg-blue-50/60 dark:hover:bg-[#120b0e]/80"
                       >
                         <div className="flex items-start justify-between gap-2">
                           <div className="min-w-0 flex-1">
@@ -656,7 +666,7 @@ const Projects = memo(function Projects({ projectSearchQuery, onClearProjectSear
                 )}
               </div>
 
-              <div className="flex flex-wrap items-center justify-between gap-3 border-t border-gray-200 bg-gray-50/80 px-4 py-3 sm:px-5 sm:py-3.5 dark:border-gray-700 dark:bg-[#1c2127]">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-t border-gray-200 bg-gray-50/80 px-4 py-3 sm:px-5 sm:py-3.5 dark:border-gray-700 dark:bg-[#120b0e]">
                 <div className="flex items-center gap-3">
                   <span className="text-xs text-gray-500 dark:text-gray-400">
                   Showing <strong>{totalCount === 0 ? 0 : (currentPage - 1) * rowsPerPage + 1}</strong> to{" "}
@@ -668,19 +678,19 @@ const Projects = memo(function Projects({ projectSearchQuery, onClearProjectSear
                   <button
                     disabled={currentPage === 1}
                     onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                    className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 shadow-2xs transition hover:bg-gray-50 disabled:opacity-40 dark:border-gray-600 dark:bg-[#222831] dark:text-gray-200 dark:hover:bg-gray-700"
+                    className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 shadow-2xs transition hover:bg-gray-50 disabled:opacity-40 dark:border-gray-600 dark:bg-[#0d090b] dark:text-gray-200 dark:hover:bg-gray-700"
                   >
                     ← Previous
                   </button>
 
-                  <span className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 font-mono text-xs font-bold text-gray-700 dark:border-gray-600 dark:bg-[#222831] dark:text-gray-200">
+                  <span className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 font-mono text-xs font-bold text-gray-700 dark:border-gray-600 dark:bg-[#0d090b] dark:text-gray-200">
                     {currentPage} / {totalPages}
                   </span>
 
                   <button
                     disabled={currentPage >= totalPages}
                     onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                    className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 shadow-2xs transition hover:bg-gray-50 disabled:opacity-40 dark:border-gray-600 dark:bg-[#222831] dark:text-gray-200 dark:hover:bg-gray-700"
+                    className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 shadow-2xs transition hover:bg-gray-50 disabled:opacity-40 dark:border-gray-600 dark:bg-[#0d090b] dark:text-gray-200 dark:hover:bg-gray-700"
                   >
                     Next →
                   </button>
@@ -689,6 +699,11 @@ const Projects = memo(function Projects({ projectSearchQuery, onClearProjectSear
             </>
           )}
         </div>
+
+        {/* HISTORICAL DATA REPLAY — checkpoint-level reconstruction lives with
+            the project list. It reads committed import snapshots only, and
+            follows this page's House filter. */}
+        <HistoricalReplayPanel house={house || "All"} className="" />
       </div>
 
       {/* Project selection interface — the full ProjectDetail view in a

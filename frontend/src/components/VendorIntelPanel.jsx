@@ -56,22 +56,22 @@ const SEVERITY_STYLES = {
 
 function StatTile({ label, value, detail }) {
   return (
-    <div className="rounded-lg border border-[#dde1e5] bg-white p-3 dark:border-[#39434E] dark:bg-[#222831]">
-      <p className="text-[0.625rem] font-bold uppercase tracking-wider text-[#69717c] dark:text-[#aab3bd]">{label}</p>
-      <p className="mt-1 font-mono text-lg font-bold leading-tight text-[#30343A] dark:text-white">{value}</p>
-      {detail && <p className="mt-0.5 text-[0.6875rem] leading-snug text-[#69717c] dark:text-[#aab3bd]">{detail}</p>}
+    <div className="rounded-lg border border-[#e8dadc] bg-white p-3 dark:border-[#351923] dark:bg-[#0d090b]">
+      <p className="text-[0.625rem] font-bold uppercase tracking-wider text-[#71666a] dark:text-[#b9aeb2]">{label}</p>
+      <p className="mt-1 font-mono text-lg font-bold leading-tight text-[#292326] dark:text-white">{value}</p>
+      {detail && <p className="mt-0.5 text-[0.6875rem] leading-snug text-[#71666a] dark:text-[#b9aeb2]">{detail}</p>}
     </div>
   )
 }
 
-function BarRow({ label, value, share, meta, tone = "bg-[#46566a]" }) {
+function BarRow({ label, value, share, meta, tone = "bg-[#c8102e]" }) {
   return (
     <div>
       <div className="flex items-baseline justify-between gap-3 text-xs">
-        <span className="min-w-0 truncate font-medium text-[#30343A] dark:text-gray-200" title={label}>{label}</span>
-        <span className="shrink-0 font-mono text-[#69717c] dark:text-[#aab3bd]">{meta ?? formatMoney(value)}</span>
+        <span className="min-w-0 truncate font-medium text-[#292326] dark:text-gray-200" title={label}>{label}</span>
+        <span className="shrink-0 font-mono text-[#71666a] dark:text-[#b9aeb2]">{meta ?? formatMoney(value)}</span>
       </div>
-      <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-[#dde1e5] dark:bg-gray-700">
+      <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-[#e8dadc] dark:bg-gray-700">
         <div className={`h-full rounded-full ${tone}`} style={{ width: `${Math.max(2, Math.min(100, share || 0))}%` }} />
       </div>
     </div>
@@ -80,11 +80,11 @@ function BarRow({ label, value, share, meta, tone = "bg-[#46566a]" }) {
 
 function Section({ title, description, children, right }) {
   return (
-    <section className="rounded-xl border border-[#dde1e5] bg-white p-4 shadow-sm dark:border-[#39434E] dark:bg-[#222831]">
+    <section className="rounded-xl border border-[#e8dadc] bg-white p-4 shadow-sm dark:border-[#351923] dark:bg-[#0d090b]">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0">
-          <h3 className="text-sm font-bold text-[#30343A] dark:text-white">{title}</h3>
-          {description && <p className="mt-1 text-xs leading-relaxed text-[#69717c] dark:text-[#aab3bd]">{description}</p>}
+          <h3 className="text-sm font-bold text-[#292326] dark:text-white">{title}</h3>
+          {description && <p className="mt-1 text-xs leading-relaxed text-[#71666a] dark:text-[#b9aeb2]">{description}</p>}
         </div>
         {right}
       </div>
@@ -113,9 +113,9 @@ function ErrorNote({ message, onRetry }) {
 function Loading({ label = "Loading analysis…" }) {
   return (
     <div className="space-y-2" aria-busy="true">
-      <p className="text-xs text-[#69717c] dark:text-[#aab3bd]">{label}</p>
-      <div className="h-16 animate-pulse rounded-lg bg-[#dde1e5] dark:bg-gray-800" />
-      <div className="h-16 animate-pulse rounded-lg bg-[#dde1e5] dark:bg-gray-800" />
+      <p className="text-xs text-[#71666a] dark:text-[#b9aeb2]">{label}</p>
+      <div className="h-16 animate-pulse rounded-lg bg-[#e8dadc] dark:bg-gray-800" />
+      <div className="h-16 animate-pulse rounded-lg bg-[#e8dadc] dark:bg-gray-800" />
     </div>
   )
 }
@@ -188,7 +188,7 @@ function PerformanceTab({ data }) {
             ))}
             {data.constituency_distribution.length === 0 && <p className="text-xs text-gray-500">No constituency recorded.</p>}
           </div>
-          <p className="mt-3 text-[0.6875rem] leading-relaxed text-[#69717c] dark:text-[#aab3bd]">
+          <p className="mt-3 text-[0.6875rem] leading-relaxed text-[#71666a] dark:text-[#b9aeb2]">
             States: {data.state_distribution.map((row) => row.label).join(", ") || "—"}
           </p>
         </Section>
@@ -217,7 +217,7 @@ function PerformanceTab({ data }) {
             Unmatched works are never classified by guessing.
           </p>
         )}
-        <p className="mt-2 text-[0.6875rem] text-[#69717c] dark:text-[#aab3bd]">
+        <p className="mt-2 text-[0.6875rem] text-[#71666a] dark:text-[#b9aeb2]">
           Coverage: {data.coverage.works_with_category} of {data.coverage.works_recorded} works (
           {data.coverage.category_link_pct}%).
         </p>
@@ -230,7 +230,7 @@ function PerformanceTab({ data }) {
           <StatTile label="In progress" value={formatNumber(data.completion.in_progress)} />
           <StatTile label="Not started" value={formatNumber(data.completion.not_started)} />
         </div>
-        <p className="mt-2 text-[0.6875rem] leading-relaxed text-[#69717c] dark:text-[#aab3bd]">
+        <p className="mt-2 text-[0.6875rem] leading-relaxed text-[#71666a] dark:text-[#b9aeb2]">
           {data.completion.linked_projects === 0
             ? "No exact project link exists for this vendor's work keys — completion status is unavailable, not zero."
             : `${data.completion.high_risk_linked} linked project(s) carry a High project risk score. Coverage: ${data.coverage.project_link_pct}% of this vendor's works.`}
@@ -247,11 +247,11 @@ function PerformanceTab({ data }) {
               return data.monthly_activity.map((month) => (
                 <div key={month.month} className="group flex min-w-[10px] flex-1 flex-col items-center justify-end gap-1">
                   <div
-                    className="w-full rounded-t bg-[#46566a]/70 transition group-hover:bg-[#46566a]"
+                    className="w-full rounded-t bg-[#c8102e]/70 transition group-hover:bg-[#c8102e]"
                     style={{ height: `${Math.max(3, (month.amount / maxAmount) * 88)}px` }}
                     title={`${month.month}: ${formatMoney(month.amount)} · ${month.transactions} payments`}
                   />
-                  <span className="text-[0.5625rem] text-[#69717c] dark:text-[#aab3bd]">{month.month?.slice(2)}</span>
+                  <span className="text-[0.5625rem] text-[#71666a] dark:text-[#b9aeb2]">{month.month?.slice(2)}</span>
                 </div>
               ))
             })()}
@@ -260,23 +260,23 @@ function PerformanceTab({ data }) {
       </Section>
 
       <Section title="Largest works" description="Distinct works recorded in this vendor's payment rows, by expenditure.">
-        <div className="divide-y divide-[#dde1e5] text-xs dark:divide-[#39434E]">
+        <div className="divide-y divide-[#e8dadc] text-xs dark:divide-[#351923]">
           {data.works.map((work) => (
             <div key={`${work.work_description}-${work.constituency}`} className="flex items-start justify-between gap-3 py-2">
               <div className="min-w-0">
-                <p className="font-medium text-[#30343A] dark:text-gray-100">{work.work_description}</p>
-                <p className="mt-0.5 text-[0.6875rem] text-[#69717c] dark:text-[#aab3bd]">
+                <p className="font-medium text-[#292326] dark:text-gray-100">{work.work_description}</p>
+                <p className="mt-0.5 text-[0.6875rem] text-[#71666a] dark:text-[#b9aeb2]">
                   {work.constituency}, {work.state} · {work.transactions} payments · {work.share}%
                 </p>
               </div>
-              <span className="shrink-0 font-mono font-semibold text-[#30343A] dark:text-white">{formatMoney(work.amount)}</span>
+              <span className="shrink-0 font-mono font-semibold text-[#292326] dark:text-white">{formatMoney(work.amount)}</span>
             </div>
           ))}
           {data.works.length === 0 && <p className="py-2 text-gray-500">No work description recorded.</p>}
         </div>
       </Section>
 
-      <p className="text-[0.6875rem] leading-relaxed text-[#69717c] dark:text-[#aab3bd]">{data.method}</p>
+      <p className="text-[0.6875rem] leading-relaxed text-[#71666a] dark:text-[#b9aeb2]">{data.method}</p>
     </div>
   )
 }
@@ -289,20 +289,20 @@ function RiskGauge({ score, category }) {
     <div className="flex items-center gap-4">
       <div className="relative h-24 w-24 shrink-0">
         <svg viewBox="0 0 100 100" className="h-full w-full" role="img" aria-label={`Vendor risk score ${score} of 100`}>
-          <circle cx="50" cy="50" r="42" fill="none" stroke="#dde1e5" strokeWidth="10" />
+          <circle cx="50" cy="50" r="42" fill="none" stroke="#e8dadc" strokeWidth="10" />
           <circle
             cx="50" cy="50" r="42" fill="none" stroke={tone} strokeWidth="10" strokeLinecap="round"
             strokeDasharray={`${(Math.min(100, score) / 100) * 264} 264`}
             transform="rotate(-90 50 50)"
           />
           <text x="50" y="52" textAnchor="middle" fontSize="24" fontWeight="700" fill={tone}>{Math.round(score)}</text>
-          <text x="50" y="68" textAnchor="middle" fontSize="9" fill="#69717c">/ 100</text>
+          <text x="50" y="68" textAnchor="middle" fontSize="9" fill="#71666a">/ 100</text>
         </svg>
       </div>
       <div className="min-w-0">
-        <p className="text-xs font-bold uppercase tracking-wider text-[#69717c] dark:text-[#aab3bd]">Indicative category</p>
-        <p className="text-xl font-bold text-[#30343A] dark:text-white">{category}</p>
-        <p className="mt-1 text-[0.6875rem] leading-relaxed text-[#69717c] dark:text-[#aab3bd]">
+        <p className="text-xs font-bold uppercase tracking-wider text-[#71666a] dark:text-[#b9aeb2]">Indicative category</p>
+        <p className="text-xl font-bold text-[#292326] dark:text-white">{category}</p>
+        <p className="mt-1 text-[0.6875rem] leading-relaxed text-[#71666a] dark:text-[#b9aeb2]">
           A composite of the indicators below. This is an audit lead, not a finding about the vendor.
         </p>
       </div>
@@ -313,19 +313,19 @@ function RiskGauge({ score, category }) {
 function IndicatorCard({ indicator }) {
   const style = SEVERITY_STYLES[indicator.severity_label] || SEVERITY_STYLES.Low
   return (
-    <div className="rounded-lg border border-[#dde1e5] p-3 dark:border-[#39434E]">
+    <div className="rounded-lg border border-[#e8dadc] p-3 dark:border-[#351923]">
       <div className="flex flex-wrap items-start justify-between gap-2">
-        <p className="text-xs font-semibold text-[#30343A] dark:text-gray-100">{indicator.label}</p>
-        <span className={`rounded-full border px-2 py-0.5 text-[0.625rem] font-bold ${indicator.assessable ? style : "border-[#dde1e5] bg-[#f4f5f6] text-[#69717c] dark:border-[#39434E] dark:bg-[#171b20] dark:text-[#aab3bd]"}`}>
+        <p className="text-xs font-semibold text-[#292326] dark:text-gray-100">{indicator.label}</p>
+        <span className={`rounded-full border px-2 py-0.5 text-[0.625rem] font-bold ${indicator.assessable ? style : "border-[#e8dadc] bg-[#faf7f6] text-[#71666a] dark:border-[#351923] dark:bg-[#000000] dark:text-[#b9aeb2]"}`}>
           {indicator.assessable ? `${indicator.severity_label} · weight ${indicator.weight}` : "Not assessable"}
         </span>
       </div>
-      <p className="mt-1.5 text-[0.6875rem] font-medium text-[#30343A] dark:text-gray-200">{indicator.value}</p>
-      <p className="mt-1 text-[0.6875rem] text-[#69717c] dark:text-[#aab3bd]">{indicator.peer_context}</p>
-      <p className="mt-1.5 text-[0.6875rem] leading-relaxed text-[#69717c] dark:text-gray-300">{indicator.explanation}</p>
-      {indicator.note && <p className="mt-1 text-[0.625rem] italic text-[#aab3bd]">{indicator.note}</p>}
+      <p className="mt-1.5 text-[0.6875rem] font-medium text-[#292326] dark:text-gray-200">{indicator.value}</p>
+      <p className="mt-1 text-[0.6875rem] text-[#71666a] dark:text-[#b9aeb2]">{indicator.peer_context}</p>
+      <p className="mt-1.5 text-[0.6875rem] leading-relaxed text-[#71666a] dark:text-gray-300">{indicator.explanation}</p>
+      {indicator.note && <p className="mt-1 text-[0.625rem] italic text-[#b9aeb2]">{indicator.note}</p>}
       {indicator.severity > 0 && indicator.assessable && (
-        <div className="mt-2 h-1 w-full overflow-hidden rounded-full bg-[#dde1e5] dark:bg-gray-700">
+        <div className="mt-2 h-1 w-full overflow-hidden rounded-full bg-[#e8dadc] dark:bg-gray-700">
           <div
             className={`h-full rounded-full ${indicator.severity >= 0.66 ? "bg-red-500" : indicator.severity >= 0.33 ? "bg-amber-500" : "bg-emerald-500"}`}
             style={{ width: `${Math.max(3, indicator.severity * 100)}%` }}
@@ -341,8 +341,8 @@ function RiskTab({ data }) {
     <div className="space-y-4">
       <Section title="Vendor risk assessment" description={data.category_detail}>
         <RiskGauge score={data.risk_score} category={data.risk_category} />
-        <p className="mt-3 text-[0.6875rem] text-[#69717c] dark:text-[#aab3bd]">
-          Confidence: <strong className="text-[#171b20] dark:text-gray-200">{data.confidence}</strong> ·
+        <p className="mt-3 text-[0.6875rem] text-[#71666a] dark:text-[#b9aeb2]">
+          Confidence: <strong className="text-[#000000] dark:text-gray-200">{data.confidence}</strong> ·
           Based on {formatNumber(data.transaction_count)} payments ({formatMoney(data.total_expenditure)}) in the{" "}
           {data.house_scope} scope.
         </p>
@@ -376,7 +376,7 @@ function RiskTab({ data }) {
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[520px] text-left text-xs">
-              <thead className="text-[0.625rem] uppercase tracking-wide text-[#69717c] dark:text-[#aab3bd]">
+              <thead className="text-[0.625rem] uppercase tracking-wide text-[#71666a] dark:text-[#b9aeb2]">
                 <tr>
                   <th className="py-1.5 pr-2 font-semibold">Date</th>
                   <th className="py-1.5 pr-2 font-semibold">Record</th>
@@ -385,17 +385,17 @@ function RiskTab({ data }) {
                   <th className="py-1.5 font-semibold">Status</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#dde1e5] dark:divide-[#39434E]">
+              <tbody className="divide-y divide-[#e8dadc] dark:divide-[#351923]">
                 {data.evidence.largest_transactions.map((row) => (
                   <tr key={`${row.record_id}`}>
-                    <td className="py-1.5 pr-2 whitespace-nowrap text-[#69717c] dark:text-[#aab3bd]">{formatDateHuman(row.date) || "—"}</td>
+                    <td className="py-1.5 pr-2 whitespace-nowrap text-[#71666a] dark:text-[#b9aeb2]">{formatDateHuman(row.date) || "—"}</td>
                     <td className="py-1.5 pr-2">
-                      <span className="text-[#30343A] dark:text-gray-200">{row.title}</span>
-                      <span className="ml-1 text-[0.625rem] text-[#aab3bd]">#{row.record_id}</span>
+                      <span className="text-[#292326] dark:text-gray-200">{row.title}</span>
+                      <span className="ml-1 text-[0.625rem] text-[#b9aeb2]">#{row.record_id}</span>
                     </td>
-                    <td className="py-1.5 pr-2 text-[#69717c] dark:text-[#aab3bd]">{row.mp_name || "MP not recorded"}<br />{row.constituency || "—"}</td>
+                    <td className="py-1.5 pr-2 text-[#71666a] dark:text-[#b9aeb2]">{row.mp_name || "MP not recorded"}<br />{row.constituency || "—"}</td>
                     <td className="py-1.5 pr-2 text-right font-mono font-semibold">{formatMoney(row.amount)}</td>
-                    <td className="py-1.5 text-[#69717c] dark:text-[#aab3bd]">{row.status || "not recorded"}</td>
+                    <td className="py-1.5 text-[#71666a] dark:text-[#b9aeb2]">{row.status || "not recorded"}</td>
                   </tr>
                 ))}
               </tbody>
@@ -408,7 +408,7 @@ function RiskTab({ data }) {
         <Section title="Repeated identical amounts" description="Payment amounts recorded three or more times for this vendor.">
           <div className="flex flex-wrap gap-2">
             {data.evidence.repeated_amounts.map((row) => (
-              <span key={row.amount} className="rounded-lg border border-[#dde1e5] bg-[#f4f5f6] px-2 py-1 text-[0.6875rem] dark:border-[#39434E] dark:bg-[#171b20]">
+              <span key={row.amount} className="rounded-lg border border-[#e8dadc] bg-[#faf7f6] px-2 py-1 text-[0.6875rem] dark:border-[#351923] dark:bg-[#000000]">
                 <strong className="font-mono">{formatMoney(row.amount)}</strong> × {row.occurrences}
               </span>
             ))}
@@ -416,8 +416,8 @@ function RiskTab({ data }) {
         </Section>
       )}
 
-      <p className="rounded-lg border border-[#dde1e5] bg-[#f4f5f6] p-3 text-[0.6875rem] leading-relaxed text-[#69717c] dark:border-[#39434E] dark:bg-[#171b20] dark:text-[#aab3bd]">
-        <strong className="text-[#30343A] dark:text-white">Method:</strong> {data.method}
+      <p className="rounded-lg border border-[#e8dadc] bg-[#faf7f6] p-3 text-[0.6875rem] leading-relaxed text-[#71666a] dark:border-[#351923] dark:bg-[#000000] dark:text-[#b9aeb2]">
+        <strong className="text-[#292326] dark:text-white">Method:</strong> {data.method}
       </p>
     </div>
   )
@@ -434,10 +434,10 @@ const RING_RADIUS = {
 }
 
 const NODE_COLORS = {
-  vendor: "#37455a",
-  mp: "#46566a",
-  constituency: "#8493a5",
-  state: "#8493a5",
+  vendor: "#a50f29",
+  mp: "#c8102e",
+  constituency: "#b84a5d",
+  state: "#b84a5d",
   work: "#f59e0b",
   project: "#e14b4b",
 }
@@ -482,7 +482,7 @@ function RelationshipGraph({ nodes, edges }) {
 
   return (
     <div className="space-y-3">
-      <div className="overflow-hidden rounded-lg border border-[#dde1e5] bg-[#ffffff] dark:border-[#39434E] dark:bg-[#1c2127]">
+      <div className="overflow-hidden rounded-lg border border-[#e8dadc] bg-[#ffffff] dark:border-[#351923] dark:bg-[#120b0e]">
         <svg viewBox="0 0 640 600" className="h-auto w-full" role="img" aria-label="Vendor relationship network">
           {visibleEdges.map((edge, index) => {
             const from = positioned.get(edge.source)
@@ -492,7 +492,7 @@ function RelationshipGraph({ nodes, edges }) {
               <line
                 key={`${edge.source}-${edge.target}-${index}`}
                 x1={from.x} y1={from.y} x2={to.x} y2={to.y}
-                stroke={highlighted ? "#46566a" : "#cbd2d9"}
+                stroke={highlighted ? "#c8102e" : "#dfcbcd"}
                 strokeWidth={highlighted ? 2 : Math.min(3, 0.6 + Math.log10(Math.max(1, edge.amount)) / 3)}
                 opacity={selectedId && !highlighted ? 0.25 : 0.75}
               >
@@ -519,7 +519,7 @@ function RelationshipGraph({ nodes, edges }) {
                   y={entry.y - radius - 4}
                   textAnchor="middle"
                   fontSize="9.5"
-                  className="fill-[#69717c] dark:fill-gray-300"
+                  className="fill-[#71666a] dark:fill-gray-300"
                 >
                   {truncateLabel(entry.node.label, entry.type === "vendor" ? 20 : 16)}
                 </text>
@@ -532,24 +532,24 @@ function RelationshipGraph({ nodes, edges }) {
 
       <div className="flex flex-wrap gap-2 text-[0.625rem]">
         {Object.entries(NODE_COLORS).map(([type, color]) => (
-          <span key={type} className="inline-flex items-center gap-1 rounded-full border border-[#dde1e5] px-2 py-0.5 dark:border-[#39434E]">
+          <span key={type} className="inline-flex items-center gap-1 rounded-full border border-[#e8dadc] px-2 py-0.5 dark:border-[#351923]">
             <span className="h-2 w-2 rounded-full" style={{ backgroundColor: color }} />
-            <span className="capitalize text-[#69717c] dark:text-gray-300">{type}</span>
-            <span className="text-[#aab3bd]">{nodes.filter((n) => n.type === type).length}</span>
+            <span className="capitalize text-[#71666a] dark:text-gray-300">{type}</span>
+            <span className="text-[#b9aeb2]">{nodes.filter((n) => n.type === type).length}</span>
           </span>
         ))}
       </div>
 
       {selected && (
         <div className="rounded-lg border border-blue-200 bg-blue-50/60 p-3 text-xs dark:border-blue-900 dark:bg-blue-950/30">
-          <p className="font-semibold text-[#30343A] dark:text-white">{selected.node.label}</p>
-          <p className="mt-0.5 capitalize text-[#69717c] dark:text-[#aab3bd]">{selected.node.type.replaceAll("_", " ")} · {formatMoney(selected.node.value)}</p>
+          <p className="font-semibold text-[#292326] dark:text-white">{selected.node.label}</p>
+          <p className="mt-0.5 capitalize text-[#71666a] dark:text-[#b9aeb2]">{selected.node.type.replaceAll("_", " ")} · {formatMoney(selected.node.value)}</p>
           {selected.node.meta && (
             <dl className="mt-2 grid grid-cols-2 gap-1">
               {Object.entries(selected.node.meta).filter(([, value]) => value !== null && value !== undefined && value !== "").map(([key, value]) => (
                 <div key={key} className="flex gap-1">
-                  <dt className="text-[#69717c] dark:text-[#aab3bd]">{key.replaceAll("_", " ")}:</dt>
-                  <dd className="font-medium text-[#30343A] dark:text-gray-200">{String(value)}</dd>
+                  <dt className="text-[#71666a] dark:text-[#b9aeb2]">{key.replaceAll("_", " ")}:</dt>
+                  <dd className="font-medium text-[#292326] dark:text-gray-200">{String(value)}</dd>
                 </div>
               ))}
             </dl>
@@ -566,7 +566,7 @@ function NetworkTab({ data }) {
       <Section
         title="Relationship network"
         description="Only recorded connections are drawn. Shared transactions never imply ownership, family ties or collusion."
-        right={<span className="text-[0.625rem] text-[#aab3bd]">{data.nodes.length} nodes · {data.edges.length} links</span>}
+        right={<span className="text-[0.625rem] text-[#b9aeb2]">{data.nodes.length} nodes · {data.edges.length} links</span>}
       >
         <RelationshipGraph nodes={data.nodes} edges={data.edges} />
       </Section>
@@ -580,11 +580,11 @@ function NetworkTab({ data }) {
                 className={`rounded-lg border p-2.5 ${
                   highlight.severity === "elevated"
                     ? "border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/30"
-                    : "border-[#dde1e5] bg-[#f4f5f6] dark:border-[#39434E] dark:bg-[#1c2127]"
+                    : "border-[#e8dadc] bg-[#faf7f6] dark:border-[#351923] dark:bg-[#120b0e]"
                 }`}
               >
-                <p className="font-semibold text-[#30343A] dark:text-gray-100">{highlight.label}</p>
-                <p className="mt-0.5 text-[#69717c] dark:text-gray-300">{highlight.detail}</p>
+                <p className="font-semibold text-[#292326] dark:text-gray-100">{highlight.label}</p>
+                <p className="mt-0.5 text-[#71666a] dark:text-gray-300">{highlight.detail}</p>
               </li>
             ))}
           </ul>
@@ -600,20 +600,20 @@ function NetworkTab({ data }) {
         ) : (
           <ul className="space-y-2 text-xs">
             {data.uncertain_matches.map((match) => (
-              <li key={match.vendor_key} className="rounded-lg border border-dashed border-[#dde1e5] p-2.5 dark:border-[#39434E]">
-                <p className="font-semibold text-[#30343A] dark:text-gray-100">{match.vendor_name}</p>
-                <p className="mt-0.5 text-[#69717c] dark:text-[#aab3bd]">
+              <li key={match.vendor_key} className="rounded-lg border border-dashed border-[#e8dadc] p-2.5 dark:border-[#351923]">
+                <p className="font-semibold text-[#292326] dark:text-gray-100">{match.vendor_name}</p>
+                <p className="mt-0.5 text-[#71666a] dark:text-[#b9aeb2]">
                   {formatMoney(match.total_expenditure)} · {formatNumber(match.transactions)} payments ·{" "}
                   {match.states} state(s) · name-token overlap {Math.round(match.token_overlap * 100)}%
                 </p>
-                <p className="mt-1 text-[0.625rem] text-[#aab3bd]">{match.reason}</p>
+                <p className="mt-1 text-[0.625rem] text-[#b9aeb2]">{match.reason}</p>
               </li>
             ))}
           </ul>
         )}
       </Section>
 
-      <p className="text-[0.6875rem] leading-relaxed text-[#69717c] dark:text-[#aab3bd]">{data.method}</p>
+      <p className="text-[0.6875rem] leading-relaxed text-[#71666a] dark:text-[#b9aeb2]">{data.method}</p>
     </div>
   )
 }
@@ -660,9 +660,9 @@ function TimelineTab({ vendorKey, house }) {
         <Section title="Activity by year" description="Recorded payments per calendar year.">
           <div className="flex flex-wrap gap-2">
             {state.yearly.map((year) => (
-              <div key={year.year} className="rounded-lg border border-[#dde1e5] px-2.5 py-1.5 text-xs dark:border-[#39434E]">
-                <p className="font-mono font-bold text-[#30343A] dark:text-white">{year.year}</p>
-                <p className="text-[0.625rem] text-[#69717c] dark:text-[#aab3bd]">{formatMoney(year.amount)} · {formatNumber(year.transactions)}</p>
+              <div key={year.year} className="rounded-lg border border-[#e8dadc] px-2.5 py-1.5 text-xs dark:border-[#351923]">
+                <p className="font-mono font-bold text-[#292326] dark:text-white">{year.year}</p>
+                <p className="text-[0.625rem] text-[#71666a] dark:text-[#b9aeb2]">{formatMoney(year.amount)} · {formatNumber(year.transactions)}</p>
               </div>
             ))}
           </div>
@@ -693,15 +693,15 @@ function TimelineTab({ vendorKey, house }) {
         {!state.error && state.events.length === 0 && !state.loading && (
           <p className="text-xs text-gray-500">No payment records for this scope.</p>
         )}
-        <ol className="relative space-y-2 border-l border-[#dde1e5] pl-3 dark:border-[#39434E]">
+        <ol className="relative space-y-2 border-l border-[#e8dadc] pl-3 dark:border-[#351923]">
           {state.events.map((event) => (
             <li key={`e-${event.record_id}`} className="relative">
-              <span className="absolute -left-[1.05rem] top-1.5 h-2 w-2 rounded-full bg-[#46566a]" aria-hidden />
+              <span className="absolute -left-[1.05rem] top-1.5 h-2 w-2 rounded-full bg-[#c8102e]" aria-hidden />
               <div className="flex flex-wrap items-baseline justify-between gap-2 text-xs">
-                <p className="min-w-0 font-medium text-[#30343A] dark:text-gray-100">{event.title}</p>
-                <span className="shrink-0 font-mono font-semibold text-[#30343A] dark:text-white">{formatMoney(event.amount)}</span>
+                <p className="min-w-0 font-medium text-[#292326] dark:text-gray-100">{event.title}</p>
+                <span className="shrink-0 font-mono font-semibold text-[#292326] dark:text-white">{formatMoney(event.amount)}</span>
               </div>
-              <p className="text-[0.6875rem] text-[#69717c] dark:text-[#aab3bd]">
+              <p className="text-[0.6875rem] text-[#71666a] dark:text-[#b9aeb2]">
                 {formatDateHuman(event.date) || "Date not recorded"} · {event.mp_name || "MP not recorded"} ·{" "}
                 {event.constituency || "—"}, {event.state || "—"}
                 {event.house ? ` · ${event.house}` : ""}
@@ -710,12 +710,12 @@ function TimelineTab({ vendorKey, house }) {
             </li>
           ))}
         </ol>
-        {state.loading && <p className="mt-2 text-xs text-[#69717c] dark:text-[#aab3bd]">Loading payments…</p>}
+        {state.loading && <p className="mt-2 text-xs text-[#71666a] dark:text-[#b9aeb2]">Loading payments…</p>}
         {!state.loading && !state.done && state.events.length > 0 && (
           <button
             type="button"
             onClick={() => load(state.skip, false)}
-            className="mt-3 rounded-lg border border-[#46566a] px-3 py-1.5 text-xs font-semibold text-[#46566a] hover:bg-blue-50 dark:hover:bg-blue-950/30"
+            className="mt-3 rounded-lg border border-[#c8102e] px-3 py-1.5 text-xs font-semibold text-[#c8102e] hover:bg-blue-50 dark:hover:bg-blue-950/30"
           >
             Load more payments
           </button>
@@ -772,12 +772,12 @@ function AssistantTab({ vendorKey, house, vendorName }) {
             onChange={(event) => setQuestion(event.target.value)}
             placeholder="e.g. Which records should an auditor examine?"
             aria-label="Ask about this vendor"
-            className="h-10 flex-1 rounded-lg border border-[#dde1e5] bg-white px-3 text-sm outline-none focus:border-[#46566a] dark:border-[#69717c] dark:bg-[#171b20]"
+            className="h-10 flex-1 rounded-lg border border-[#e8dadc] bg-white px-3 text-sm outline-none focus:border-[#c8102e] dark:border-[#82767b] dark:bg-[#000000]"
           />
           <button
             type="submit"
             disabled={loading || question.trim().length < 2}
-            className="h-10 rounded-lg bg-[#46566a] px-4 text-sm font-semibold text-white hover:bg-[#37455a] disabled:cursor-not-allowed disabled:opacity-50"
+            className="h-10 rounded-lg bg-[#c8102e] px-4 text-sm font-semibold text-white hover:bg-[#a50f29] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {loading ? "Analysing…" : "Ask"}
           </button>
@@ -791,7 +791,7 @@ function AssistantTab({ vendorKey, house, vendorName }) {
                 setQuestion(suggestion)
                 ask(suggestion)
               }}
-              className="rounded-full border border-[#dde1e5] px-2.5 py-1 text-[0.6875rem] text-[#30343A] hover:border-[#46566a] hover:text-[#46566a] dark:border-[#39434E] dark:text-gray-300"
+              className="rounded-full border border-[#e8dadc] px-2.5 py-1 text-[0.6875rem] text-[#292326] hover:border-[#c8102e] hover:text-[#c8102e] dark:border-[#351923] dark:text-gray-300"
             >
               {suggestion}
             </button>
@@ -804,26 +804,26 @@ function AssistantTab({ vendorKey, house, vendorName }) {
 
       {answer && !loading && (
         <Section title="Analysis" description={`Question: “${answer.question}”`}>
-          <p className="text-sm leading-relaxed text-[#30343A] dark:text-gray-200">{answer.answer}</p>
+          <p className="text-sm leading-relaxed text-[#292326] dark:text-gray-200">{answer.answer}</p>
           {answer.bullets.length > 0 && (
             <ul className="mt-3 space-y-1.5 text-xs">
               {answer.bullets.map((bullet, index) => (
-                <li key={index} className="flex gap-2 text-[#69717c] dark:text-gray-300">
-                  <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-[#46566a]" aria-hidden />
+                <li key={index} className="flex gap-2 text-[#71666a] dark:text-gray-300">
+                  <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-[#c8102e]" aria-hidden />
                   <span>{bullet}</span>
                 </li>
               ))}
             </ul>
           )}
           <dl className="mt-4 grid grid-cols-2 gap-2 text-[0.6875rem] sm:grid-cols-3">
-            <div><dt className="text-[#69717c] dark:text-[#aab3bd]">Transactions</dt><dd className="font-mono font-semibold">{formatNumber(answer.snapshot.transaction_count)}</dd></div>
-            <div><dt className="text-[#69717c] dark:text-[#aab3bd]">Expenditure</dt><dd className="font-mono font-semibold">{formatMoney(answer.snapshot.total_expenditure)}</dd></div>
-            <div><dt className="text-[#69717c] dark:text-[#aab3bd]">Risk (indicative)</dt><dd className="font-mono font-semibold">{answer.snapshot.risk_score} · {answer.snapshot.risk_category}</dd></div>
+            <div><dt className="text-[#71666a] dark:text-[#b9aeb2]">Transactions</dt><dd className="font-mono font-semibold">{formatNumber(answer.snapshot.transaction_count)}</dd></div>
+            <div><dt className="text-[#71666a] dark:text-[#b9aeb2]">Expenditure</dt><dd className="font-mono font-semibold">{formatMoney(answer.snapshot.total_expenditure)}</dd></div>
+            <div><dt className="text-[#71666a] dark:text-[#b9aeb2]">Risk (indicative)</dt><dd className="font-mono font-semibold">{answer.snapshot.risk_score} · {answer.snapshot.risk_category}</dd></div>
           </dl>
-          <p className="mt-3 text-[0.625rem] text-[#aab3bd]">
+          <p className="mt-3 text-[0.625rem] text-[#b9aeb2]">
             Sources: {answer.sources.join(", ")} · scope: {answer.data_scope}
           </p>
-          <p className="mt-1 text-[0.625rem] leading-relaxed text-[#aab3bd]">{answer.method}</p>
+          <p className="mt-1 text-[0.625rem] leading-relaxed text-[#b9aeb2]">{answer.method}</p>
         </Section>
       )}
     </div>
@@ -903,16 +903,16 @@ export default function VendorIntelPanel({
       aria-label={`Vendor intelligence for ${vendorName}`}
     >
       <aside
-        className="anim-panel-in flex h-full w-full flex-col overflow-hidden bg-[#f4f5f6] shadow-soft-lg dark:bg-[#171b20] sm:max-w-[760px]"
+        className="anim-panel-in flex h-full w-full flex-col overflow-hidden bg-[#faf7f6] shadow-soft-lg dark:bg-[#000000] sm:max-w-[760px]"
         onClick={(event) => event.stopPropagation()}
       >
-        <header className="border-b border-[#dde1e5] bg-white px-4 py-3 dark:border-[#39434E] dark:bg-[#222831] sm:px-5">
+        <header className="border-b border-[#e8dadc] bg-white px-4 py-3 dark:border-[#351923] dark:bg-[#0d090b] sm:px-5">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <h2 className="truncate text-lg font-bold text-[#30343A] dark:text-white" title={vendorName}>
+              <h2 className="truncate text-lg font-bold text-[#292326] dark:text-white" title={vendorName}>
                 {vendorName}
               </h2>
-              <p className="mt-0.5 text-xs text-[#69717c] dark:text-[#aab3bd]">
+              <p className="mt-0.5 text-xs text-[#71666a] dark:text-[#b9aeb2]">
                 {performance
                   ? `${performance.vendor_type} · ${formatNumber(performance.totals.transaction_count)} payments · ${formatMoney(performance.totals.total_expenditure)}`
                   : "Loading performance summary…"}
@@ -923,7 +923,7 @@ export default function VendorIntelPanel({
                 value={house}
                 onChange={(event) => setHouse(event.target.value)}
                 aria-label="House filter"
-                className="h-8 rounded-lg border border-[#dde1e5] bg-white px-2 text-xs dark:border-[#69717c] dark:bg-[#171b20]"
+                className="h-8 rounded-lg border border-[#e8dadc] bg-white px-2 text-xs dark:border-[#82767b] dark:bg-[#000000]"
               >
                 {HOUSES.map((option) => (
                   <option key={option.value} value={option.value}>{option.label}</option>
@@ -933,7 +933,7 @@ export default function VendorIntelPanel({
                 <button
                   type="button"
                   onClick={onContact}
-                  className="hidden rounded-md border border-[#46566a] px-2.5 py-1.5 text-xs font-semibold text-[#46566a] hover:bg-blue-50 dark:hover:bg-blue-950/30 sm:block"
+                  className="hidden rounded-md border border-[#c8102e] px-2.5 py-1.5 text-xs font-semibold text-[#c8102e] hover:bg-blue-50 dark:hover:bg-blue-950/30 sm:block"
                 >
                   Contact
                 </button>
@@ -942,7 +942,7 @@ export default function VendorIntelPanel({
                 type="button"
                 onClick={() => onClose?.()}
                 aria-label="Close vendor intelligence panel"
-                className="rounded-lg px-2 text-2xl leading-none text-[#69717c] hover:text-[#30343A] dark:hover:text-white"
+                className="rounded-lg px-2 text-2xl leading-none text-[#71666a] hover:text-[#292326] dark:hover:text-white"
               >
                 ×
               </button>
@@ -958,8 +958,8 @@ export default function VendorIntelPanel({
                 aria-current={tab === item.id ? "page" : undefined}
                 className={`shrink-0 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
                   tab === item.id
-                    ? "bg-[#46566a] text-white"
-                    : "text-[#69717c] hover:bg-[#dde1e5] dark:text-gray-300 dark:hover:bg-[#2c3540]"
+                    ? "bg-[#c8102e] text-white"
+                    : "text-[#71666a] hover:bg-[#e8dadc] dark:text-gray-300 dark:hover:bg-[#120b0e]"
                 }`}
               >
                 {item.label}
@@ -998,14 +998,14 @@ export default function VendorIntelPanel({
           {tab === "ask" && <AssistantTab vendorKey={vendorKey} house={house} vendorName={vendorName} />}
         </div>
 
-        <footer className="flex flex-wrap items-center justify-between gap-2 border-t border-[#dde1e5] bg-white px-4 py-2.5 text-[0.6875rem] text-[#69717c] dark:border-[#39434E] dark:bg-[#222831] dark:text-[#aab3bd] sm:px-5">
+        <footer className="flex flex-wrap items-center justify-between gap-2 border-t border-[#e8dadc] bg-white px-4 py-2.5 text-[0.6875rem] text-[#71666a] dark:border-[#351923] dark:bg-[#0d090b] dark:text-[#b9aeb2] sm:px-5">
           <span>Anomalies are audit leads, not proof of misconduct.</span>
           <div className="flex items-center gap-2">
             {onCompare && (
               <button
                 type="button"
                 onClick={onCompare}
-                className="rounded border border-[#46566a] px-2 py-1 font-semibold text-[#46566a] hover:bg-blue-50 dark:hover:bg-blue-950/30"
+                className="rounded border border-[#c8102e] px-2 py-1 font-semibold text-[#c8102e] hover:bg-blue-50 dark:hover:bg-blue-950/30"
               >
                 {inCompare ? "Remove from comparison" : "Add to comparison"}
               </button>
@@ -1014,7 +1014,7 @@ export default function VendorIntelPanel({
               <button
                 type="button"
                 onClick={() => onOpenProject(vendorKey)}
-                className="rounded border border-[#dde1e5] px-2 py-1 font-semibold text-[#30343A] hover:border-[#46566a] dark:border-[#39434E] dark:text-gray-200"
+                className="rounded border border-[#e8dadc] px-2 py-1 font-semibold text-[#292326] hover:border-[#c8102e] dark:border-[#351923] dark:text-gray-200"
               >
                 Open vendor directory
               </button>

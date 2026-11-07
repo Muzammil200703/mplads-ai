@@ -47,7 +47,7 @@ const STATUS_STYLE = {
 
 function Card({ children, className = "" }) {
   return (
-    <div className={`rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-[#171b20] ${className}`}>
+    <div className={`rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-[#000000] ${className}`}>
       {children}
     </div>
   )
@@ -68,7 +68,7 @@ function Chip({ children, className = "" }) {
 
 function Spinner({ label }) {
   return (
-    <div className="flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 p-3 dark:border-gray-700 dark:bg-[#171b20]">
+    <div className="flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 p-3 dark:border-gray-700 dark:bg-[#000000]">
       <div className="h-4 w-4 animate-spin rounded-full border-2 border-blue-600 border-r-transparent" />
       <span className="text-[0.9375rem] text-gray-400">{label}</span>
     </div>
@@ -102,7 +102,7 @@ export function DigitalAuditCard({ detail, onStartInvestigation, investigation }
     : "text-green-600 dark:text-green-400"
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-[#171b20]">
+    <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-[#000000]">
       {/* RISK */}
       <div className="flex items-start justify-between gap-3">
         <div>
@@ -204,7 +204,7 @@ export function DigitalAuditCard({ detail, onStartInvestigation, investigation }
       {/* Exposure + review level */}
       <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
         {exposure && (
-          <div className="rounded-lg border border-gray-200 bg-white p-2.5 dark:border-gray-700 dark:bg-[#222831]">
+          <div className="rounded-lg border border-gray-200 bg-white p-2.5 dark:border-gray-700 dark:bg-[#0d090b]">
             <p className="text-[0.8125rem] font-bold uppercase tracking-wider text-gray-400">Funds under review</p>
             <p className="font-mono text-sm font-bold">{exposure.funds_under_review_display}</p>
             {overspend && exposure.overspend_display && (
@@ -215,7 +215,7 @@ export function DigitalAuditCard({ detail, onStartInvestigation, investigation }
           </div>
         )}
         {audit?.review_level && (
-          <div className="rounded-lg border border-gray-200 bg-white p-2.5 dark:border-gray-700 dark:bg-[#222831]">
+          <div className="rounded-lg border border-gray-200 bg-white p-2.5 dark:border-gray-700 dark:bg-[#0d090b]">
             <p className="text-[0.8125rem] font-bold uppercase tracking-wider text-gray-400">Suggested review level</p>
             <p className="text-[1rem] font-semibold text-gray-800 dark:text-gray-200">{audit.review_level.level}</p>
             <p className="mt-0.5 text-[0.8125rem] text-gray-400">{audit.review_level.basis}</p>
@@ -226,7 +226,7 @@ export function DigitalAuditCard({ detail, onStartInvestigation, investigation }
       {/* START INVESTIGATION */}
       <button
         onClick={onStartInvestigation}
-        className="mt-4 w-full rounded-lg bg-[#46566a] px-4 py-2.5 text-[0.9375rem] font-bold text-white transition hover:bg-[#37455a] dark:bg-blue-600 dark:hover:bg-blue-500"
+        className="mt-4 w-full rounded-lg bg-[#c8102e] px-4 py-2.5 text-[0.9375rem] font-bold text-white transition hover:bg-[#a50f29] dark:bg-blue-600 dark:hover:bg-blue-500"
       >
         {investigation?.investigation
           ? `Open Investigation (${investigation.progress_pct}% complete)`
@@ -577,7 +577,7 @@ export function InvestigationWorkspace({ projectId, onWorkspaceChange }) {
         <button
           onClick={handleStart}
           disabled={busy}
-          className="mt-3 w-full rounded-lg bg-[#46566a] px-4 py-2.5 text-[0.9375rem] font-bold text-white transition hover:bg-[#37455a] disabled:opacity-50 dark:bg-blue-600 dark:hover:bg-blue-500"
+          className="mt-3 w-full rounded-lg bg-[#c8102e] px-4 py-2.5 text-[0.9375rem] font-bold text-white transition hover:bg-[#a50f29] disabled:opacity-50 dark:bg-blue-600 dark:hover:bg-blue-500"
         >
           {busy ? "Starting..." : "START INVESTIGATION"}
         </button>
@@ -721,7 +721,7 @@ export function InvestigationWorkspace({ projectId, onWorkspaceChange }) {
               onChange={(e) => { setNote(e.target.value); setSavedNote(false) }}
               rows={3}
               placeholder="Record verification steps, clarifications and the basis for the final review."
-              className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-[0.9375rem] text-gray-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-gray-600 dark:bg-[#171b20] dark:text-white"
+              className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-[0.9375rem] text-gray-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-gray-600 dark:bg-[#000000] dark:text-white"
             />
             <div className="mt-2 flex items-center gap-2">
               <button
@@ -890,27 +890,27 @@ export function InvestigationWorkspace({ projectId, onWorkspaceChange }) {
                   <div className="mt-2 rounded-lg border border-blue-200 bg-blue-50/40 p-2 dark:border-blue-900/40 dark:bg-blue-950/10">
                     <div className="grid gap-2 sm:grid-cols-2">
                       <label className="text-[0.75rem] font-bold uppercase tracking-wider text-gray-400">Review status
-                        <select value={drafts[finding.key]?.status || "Open"} onChange={(e) => setDraft(finding.key, "status", e.target.value)} className="mt-1 w-full rounded border border-gray-300 bg-white px-2 py-1.5 text-[0.8125rem] font-normal normal-case text-gray-800 dark:border-gray-600 dark:bg-[#171b20] dark:text-gray-200">
+                        <select value={drafts[finding.key]?.status || "Open"} onChange={(e) => setDraft(finding.key, "status", e.target.value)} className="mt-1 w-full rounded border border-gray-300 bg-white px-2 py-1.5 text-[0.8125rem] font-normal normal-case text-gray-800 dark:border-gray-600 dark:bg-[#000000] dark:text-gray-200">
                           {(ws.finding_status_options || []).map((status) => <option key={status} value={status}>{status}</option>)}
                         </select>
                       </label>
                       <label className="text-[0.75rem] font-bold uppercase tracking-wider text-gray-400">Evidence reference
-                        <input value={drafts[finding.key]?.evidence_reference || ""} onChange={(e) => setDraft(finding.key, "evidence_reference", e.target.value)} placeholder="e.g. verification_reports.id=..." className="mt-1 w-full rounded border border-gray-300 bg-white px-2 py-1.5 text-[0.8125rem] font-normal normal-case text-gray-800 dark:border-gray-600 dark:bg-[#171b20] dark:text-gray-200" />
+                        <input value={drafts[finding.key]?.evidence_reference || ""} onChange={(e) => setDraft(finding.key, "evidence_reference", e.target.value)} placeholder="e.g. verification_reports.id=..." className="mt-1 w-full rounded border border-gray-300 bg-white px-2 py-1.5 text-[0.8125rem] font-normal normal-case text-gray-800 dark:border-gray-600 dark:bg-[#000000] dark:text-gray-200" />
                       </label>
                     </div>
                     <label className="mt-2 block text-[0.75rem] font-bold uppercase tracking-wider text-gray-400">Review comment
-                      <textarea value={drafts[finding.key]?.comment || ""} onChange={(e) => setDraft(finding.key, "comment", e.target.value)} rows={2} className="mt-1 w-full rounded border border-gray-300 bg-white px-2 py-1.5 text-[0.8125rem] font-normal normal-case text-gray-800 dark:border-gray-600 dark:bg-[#171b20] dark:text-gray-200" />
+                      <textarea value={drafts[finding.key]?.comment || ""} onChange={(e) => setDraft(finding.key, "comment", e.target.value)} rows={2} className="mt-1 w-full rounded border border-gray-300 bg-white px-2 py-1.5 text-[0.8125rem] font-normal normal-case text-gray-800 dark:border-gray-600 dark:bg-[#000000] dark:text-gray-200" />
                     </label>
                     <div className="mt-2 grid gap-2 sm:grid-cols-2">
                       <label className="text-[0.75rem] font-bold uppercase tracking-wider text-gray-400">Supporting document name
-                        <input value={drafts[finding.key]?.document_name || ""} onChange={(e) => setDraft(finding.key, "document_name", e.target.value)} placeholder="Measurement book / clarification letter" className="mt-1 w-full rounded border border-gray-300 bg-white px-2 py-1.5 text-[0.8125rem] font-normal normal-case text-gray-800 dark:border-gray-600 dark:bg-[#171b20] dark:text-gray-200" />
+                        <input value={drafts[finding.key]?.document_name || ""} onChange={(e) => setDraft(finding.key, "document_name", e.target.value)} placeholder="Measurement book / clarification letter" className="mt-1 w-full rounded border border-gray-300 bg-white px-2 py-1.5 text-[0.8125rem] font-normal normal-case text-gray-800 dark:border-gray-600 dark:bg-[#000000] dark:text-gray-200" />
                       </label>
                       <label className="text-[0.75rem] font-bold uppercase tracking-wider text-gray-400">Document URL
-                        <input value={drafts[finding.key]?.document_url || ""} onChange={(e) => setDraft(finding.key, "document_url", e.target.value)} placeholder="https://..." className="mt-1 w-full rounded border border-gray-300 bg-white px-2 py-1.5 text-[0.8125rem] font-normal normal-case text-gray-800 dark:border-gray-600 dark:bg-[#171b20] dark:text-gray-200" />
+                        <input value={drafts[finding.key]?.document_url || ""} onChange={(e) => setDraft(finding.key, "document_url", e.target.value)} placeholder="https://..." className="mt-1 w-full rounded border border-gray-300 bg-white px-2 py-1.5 text-[0.8125rem] font-normal normal-case text-gray-800 dark:border-gray-600 dark:bg-[#000000] dark:text-gray-200" />
                       </label>
                     </div>
                     <label className="mt-2 block text-[0.75rem] font-bold uppercase tracking-wider text-gray-400">Resolution explanation (required for Verified / Not substantiated / Resolved)
-                      <textarea value={drafts[finding.key]?.resolution || ""} onChange={(e) => setDraft(finding.key, "resolution", e.target.value)} rows={2} className="mt-1 w-full rounded border border-gray-300 bg-white px-2 py-1.5 text-[0.8125rem] font-normal normal-case text-gray-800 dark:border-gray-600 dark:bg-[#171b20] dark:text-gray-200" />
+                      <textarea value={drafts[finding.key]?.resolution || ""} onChange={(e) => setDraft(finding.key, "resolution", e.target.value)} rows={2} className="mt-1 w-full rounded border border-gray-300 bg-white px-2 py-1.5 text-[0.8125rem] font-normal normal-case text-gray-800 dark:border-gray-600 dark:bg-[#000000] dark:text-gray-200" />
                     </label>
                     <div className="mt-2 flex gap-1.5">
                       <button onClick={() => saveReview(finding.key)} disabled={busy} className="rounded bg-blue-600 px-3 py-1.5 text-[0.75rem] font-bold text-white disabled:opacity-50">{busy ? "Saving..." : "Save review"}</button>
@@ -1092,14 +1092,14 @@ export function PredictiveInsightsPanel({ detail }) {
   return (
     <div className="space-y-3">
       {/* Predictive / early-warning estimates */}
-      <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-[#171b20]">
+      <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-[#000000]">
         <h4 className="mb-1 text-xs font-bold uppercase tracking-wider text-gray-400">Predictive Insights</h4>
         <p className="mb-3 text-[0.625rem] text-gray-400 dark:text-gray-500">
           🤖 AI/analytical estimates derived from this project's recorded values — indications for review, not confirmed facts.
         </p>
         <div className="space-y-1.5">
           {predictions.map((p) => (
-            <div key={p.label} className="rounded-lg bg-white px-3 py-2.5 dark:bg-[#222831]">
+            <div key={p.label} className="rounded-lg bg-white px-3 py-2.5 dark:bg-[#0d090b]">
               <div className="flex items-center gap-2">
                 <span className="text-sm">{p.icon}</span>
                 <p className="text-xs font-bold">{p.label}</p>
@@ -1167,7 +1167,7 @@ export function AnomalyExplorerPanel({ projectId }) {
           }`}>{d.finding}</p>
 
           {/* Observed */}
-          <div className="mt-2 rounded-lg bg-gray-50 p-2 dark:bg-[#1c2127]">
+          <div className="mt-2 rounded-lg bg-gray-50 p-2 dark:bg-[#120b0e]">
             <p className="text-[0.8125rem] font-bold uppercase tracking-wider text-gray-400">What we observed</p>
             <div className="mt-1 grid grid-cols-1 gap-1 sm:grid-cols-2">
               {d.observed.map((o, i) => (
@@ -1266,7 +1266,7 @@ export function WhatIfSimulator({ detail }) {
         type="number"
         value={form[key]}
         onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
-        className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-2.5 py-1.5 font-mono text-[1rem] text-gray-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-gray-600 dark:bg-[#171b20] dark:text-white"
+        className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-2.5 py-1.5 font-mono text-[1rem] text-gray-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-gray-600 dark:bg-[#000000] dark:text-white"
       />
     </div>
   )
@@ -1292,7 +1292,7 @@ export function WhatIfSimulator({ detail }) {
           <button
             onClick={run}
             disabled={busy}
-            className="rounded-lg bg-[#46566a] px-4 py-2 text-[0.9375rem] font-bold text-white transition hover:bg-[#37455a] disabled:opacity-50 dark:bg-blue-600 dark:hover:bg-blue-500"
+            className="rounded-lg bg-[#c8102e] px-4 py-2 text-[0.9375rem] font-bold text-white transition hover:bg-[#a50f29] disabled:opacity-50 dark:bg-blue-600 dark:hover:bg-blue-500"
           >
             {busy ? "Simulating..." : "Run simulation"}
           </button>
@@ -1441,14 +1441,14 @@ export function PeerBenchmarkPanel({ projectId, onOpenProject }) {
           <div>
             <label className="block text-[0.8125rem] font-bold uppercase tracking-wider text-gray-400">Scope</label>
             <select value={scope} onChange={(e) => setScope(e.target.value)}
-              className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-2 py-1.5 text-[0.875rem] text-gray-900 outline-none focus:border-blue-500 dark:border-gray-600 dark:bg-[#222831] dark:text-white">
+              className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-2 py-1.5 text-[0.875rem] text-gray-900 outline-none focus:border-blue-500 dark:border-gray-600 dark:bg-[#0d090b] dark:text-white">
               {SCOPE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
           </div>
           <div>
             <label className="block text-[0.8125rem] font-bold uppercase tracking-wider text-gray-400">Category</label>
             <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}
-              className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-2 py-1.5 text-[0.875rem] text-gray-900 outline-none focus:border-blue-500 dark:border-gray-600 dark:bg-[#222831] dark:text-white">
+              className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-2 py-1.5 text-[0.875rem] text-gray-900 outline-none focus:border-blue-500 dark:border-gray-600 dark:bg-[#0d090b] dark:text-white">
               <option value="">Same category</option>
               <option value="all">All categories</option>
             </select>
@@ -1456,7 +1456,7 @@ export function PeerBenchmarkPanel({ projectId, onOpenProject }) {
           <div>
             <label className="block text-[0.8125rem] font-bold uppercase tracking-wider text-gray-400">Value band</label>
             <select value={band} onChange={(e) => setBand(e.target.value)}
-              className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-2 py-1.5 text-[0.875rem] text-gray-900 outline-none focus:border-blue-500 dark:border-gray-600 dark:bg-[#222831] dark:text-white">
+              className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-2 py-1.5 text-[0.875rem] text-gray-900 outline-none focus:border-blue-500 dark:border-gray-600 dark:bg-[#0d090b] dark:text-white">
               <option value="narrow">Narrow (0.7–1.4×)</option>
               <option value="default">Similar (0.3–3×)</option>
               <option value="all">Any value</option>
@@ -1465,7 +1465,7 @@ export function PeerBenchmarkPanel({ projectId, onOpenProject }) {
           <div>
             <label className="block text-[0.8125rem] font-bold uppercase tracking-wider text-gray-400">Status</label>
             <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}
-              className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-2 py-1.5 text-[0.875rem] text-gray-900 outline-none focus:border-blue-500 dark:border-gray-600 dark:bg-[#222831] dark:text-white">
+              className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-2 py-1.5 text-[0.875rem] text-gray-900 outline-none focus:border-blue-500 dark:border-gray-600 dark:bg-[#0d090b] dark:text-white">
               <option value="">All statuses</option>
               <option value="Ongoing">Ongoing</option>
               <option value="Completed">Completed</option>
@@ -1506,7 +1506,7 @@ export function PeerBenchmarkPanel({ projectId, onOpenProject }) {
             {data.interpretations?.length > 0 && (
               <div className="mt-3 space-y-1.5">
                 {data.interpretations.map((t, i) => (
-                  <p key={i} className="rounded-lg bg-gray-50 p-2 text-[0.9375rem] leading-relaxed text-gray-600 dark:bg-[#1c2127] dark:text-gray-300">{t}</p>
+                  <p key={i} className="rounded-lg bg-gray-50 p-2 text-[0.9375rem] leading-relaxed text-gray-600 dark:bg-[#120b0e] dark:text-gray-300">{t}</p>
                 ))}
               </div>
             )}
@@ -1522,7 +1522,7 @@ export function PeerBenchmarkPanel({ projectId, onOpenProject }) {
                   <button
                     key={p.id}
                     onClick={() => onOpenProject && onOpenProject(p.id)}
-                    className="w-full rounded-lg border border-gray-200 p-2 text-left transition hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-[#222831]"
+                    className="w-full rounded-lg border border-gray-200 p-2 text-left transition hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-[#0d090b]"
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
@@ -1634,7 +1634,7 @@ export function AuditCasePanel({ projectId }) {
         <button
           onClick={generate}
           disabled={loading}
-          className="mt-3 rounded-lg bg-[#46566a] px-4 py-2 text-[0.9375rem] font-bold text-white transition hover:bg-[#37455a] disabled:opacity-50 dark:bg-blue-600 dark:hover:bg-blue-500"
+          className="mt-3 rounded-lg bg-[#c8102e] px-4 py-2 text-[0.9375rem] font-bold text-white transition hover:bg-[#a50f29] disabled:opacity-50 dark:bg-blue-600 dark:hover:bg-blue-500"
         >
           {loading ? "Generating..." : "CREATE AUDIT CASE"}
         </button>
@@ -1658,7 +1658,7 @@ export function AuditCasePanel({ projectId }) {
                 ["Reported progress", `${data.financials.completion_percentage}%`],
                 ["Utilization", data.financials.utilization_pct !== null ? `${data.financials.utilization_pct}%` : "N/A"],
               ].map(([k, v]) => (
-                <div key={k} className="rounded-lg bg-gray-50 p-2 dark:bg-[#1c2127]">
+                <div key={k} className="rounded-lg bg-gray-50 p-2 dark:bg-[#120b0e]">
                   <p className="text-[0.8125rem] font-bold uppercase tracking-wider text-gray-400">{k}</p>
                   <p className="text-[1rem] font-semibold text-gray-800 dark:text-gray-200">{v}</p>
                 </div>
@@ -1718,7 +1718,7 @@ export function AuditCasePanel({ projectId }) {
               Report / escalate
             </SectionTitle>
             <p className="text-[1rem] font-semibold text-gray-800 dark:text-gray-200">{data.escalation_draft.subject}</p>
-            <pre className="mt-2 max-h-72 overflow-auto whitespace-pre-wrap rounded-lg bg-gray-50 p-2.5 font-sans text-[0.875rem] leading-relaxed text-gray-600 dark:bg-[#1c2127] dark:text-gray-300">
+            <pre className="mt-2 max-h-72 overflow-auto whitespace-pre-wrap rounded-lg bg-gray-50 p-2.5 font-sans text-[0.875rem] leading-relaxed text-gray-600 dark:bg-[#120b0e] dark:text-gray-300">
 {data.escalation_draft.body}
             </pre>
             <div className="mt-2 flex flex-wrap gap-2">
@@ -1726,7 +1726,7 @@ export function AuditCasePanel({ projectId }) {
               <button onClick={copy} className="rounded-lg border border-gray-300 px-3 py-1.5 text-[0.875rem] font-bold text-gray-700 transition hover:bg-gray-50 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-800">{copied ? "Copied ✓" : "Copy Report"}</button>
               <button onClick={download} className="rounded-lg border border-gray-300 px-3 py-1.5 text-[0.875rem] font-bold text-gray-700 transition hover:bg-gray-50 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-800">Download Report</button>
               {user && canManageCases && (
-                <button onClick={handleSaveCase} className={`rounded-lg px-3 py-1.5 text-[0.875rem] font-bold text-white transition ${caseSaved ? "bg-green-600 hover:bg-green-500" : "bg-[#46566a] hover:bg-[#37455a] dark:bg-blue-600 dark:hover:bg-blue-500"}`}>
+                <button onClick={handleSaveCase} className={`rounded-lg px-3 py-1.5 text-[0.875rem] font-bold text-white transition ${caseSaved ? "bg-green-600 hover:bg-green-500" : "bg-[#c8102e] hover:bg-[#a50f29] dark:bg-blue-600 dark:hover:bg-blue-500"}`}>
                   {caseSaved ? "✓ Case saved" : "Save case"}
                 </button>
               )}
@@ -1750,7 +1750,7 @@ export function AuditCasePanel({ projectId }) {
           </Card>
 
           {data.disclaimers?.length > 0 && (
-            <Card className="bg-gray-50 dark:bg-[#1c2127]">
+            <Card className="bg-gray-50 dark:bg-[#120b0e]">
               <ul className="space-y-1">
                 {data.disclaimers.map((d, i) => (
                   <li key={i} className="text-[0.8125rem] leading-relaxed text-gray-400">• {d}</li>

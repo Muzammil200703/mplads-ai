@@ -204,7 +204,7 @@ export default function VerifyPortal() {
           </p>
         </div>
         {user && can("verification:read_own") && (
-          <span className="rounded-lg bg-white px-3 py-1.5 text-xs font-bold text-[#30343A] shadow-sm dark:bg-[#171b20] dark:text-[#f1f3f5]">
+          <span className="rounded-lg bg-white px-3 py-1.5 text-xs font-bold text-[#292326] shadow-sm dark:bg-[#000000] dark:text-[#f5eff1]">
             Track yours under {user.role === "citizen" ? "My Evidence" : "My Verifications"}
           </span>
         )}

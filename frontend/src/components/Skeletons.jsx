@@ -7,7 +7,7 @@
 export function Shimmer({ className = "" }) {
   return (
     <div
-      className={`animate-pulse rounded bg-gray-200/80 dark:bg-[#2c3540]/80 ${className}`}
+      className={`animate-pulse rounded bg-gray-200/80 dark:bg-[#120b0e]/80 ${className}`}
       aria-hidden="true"
     />
   )
@@ -38,7 +38,7 @@ export function CardsSkeleton({ count = 4, className = "" }) {
       {Array.from({ length: count }).map((_, i) => (
         <div
           key={i}
-          className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-[#222831]"
+          className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-[#0d090b]"
         >
           <Shimmer className="h-3 w-24" />
           <Shimmer className="mt-3 h-7 w-28" />
@@ -56,7 +56,7 @@ export function MobileCardsSkeleton({ rows = 5 }) {
       {Array.from({ length: rows }).map((_, i) => (
         <div
           key={i}
-          className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-[#222831]"
+          className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-[#0d090b]"
         >
           <div className="flex items-center justify-between">
             <Shimmer className="h-4 w-16" />

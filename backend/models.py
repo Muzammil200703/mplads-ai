@@ -627,3 +627,93 @@ class ImportChange(Base):
     __table_args__ = (
         Index("idx_import_change_batch", "batch_id", "table_name"),
     )
+
+
+# ──────────────────────────────────────────────────────────────────────
+# Project change detection
+# ──────────────────────────────────────────────────────────────────────
+
+
+class ProjectSnapshot(Base):
+    """The project values one import batch carried for one project.
+
+    Snapshots are written from the INCOMING dataset (not from the database
+    afterwards), so an unchanged project still has a row here. That is what
+    makes "missing from the latest import" distinguishable from "unchanged":
+    a project with no snapshot in a batch was genuinely absent from the file.
+
+    Only tracked fields are stored; every value comes from the source record,
+    never inferred. `rec_date` / `completion_date` stay NULL unless the source
+    dataset carries those columns (the projects CSV has no date fields; the
+    lifecycle dates live in the linked work datasets).
+    """
+
+    __tablename__ = "project_snapshots"
+
+    id = Column(Integer, primary_key=True, index=True)
+    batch_id = Column(Integer, index=True, nullable=False)
+    project_id = Column(Integer, index=True, nullable=False)
+    source = Column(String, default="csv_upload")
+    dataset_type = Column(String)
+    captured_at = Column(String, nullable=False)
+    project_name = Column(Text)
+    state = Column(String, index=True)
+    district = Column(String)
+    constituency = Column(String)
+    house = Column(String, index=True)
+    project_type = Column(String)
+    status = Column(String, index=True)
+    fy = Column(String)
+    sanctioned_amount = Column(Float)
+    expenditure = Column(Float)
+    completion_percentage = Column(Float)
+    rec_date = Column(String)
+    completion_date = Column(String)
+    fingerprint = Column(String, index=True)
+
+    __table_args__ = (
+        Index("idx_snapshot_batch_project", "batch_id", "project_id"),
+        Index("idx_snapshot_project_captured", "project_id", "captured_at"),
+    )
+
+
+class ProjectChangeEvent(Base):
+    """One recorded change to one project field in one import batch.
+
+    Every row points at a real ProjectSnapshot pair (or at an insertion /
+    absence recorded by the batch), so a change can never be displayed
+    without an import to trace it to.
+    """
+
+    __tablename__ = "project_change_events"
+
+    id = Column(Integer, primary_key=True, index=True)
+    batch_id = Column(Integer, index=True, nullable=False)
+    project_id = Column(Integer, index=True, nullable=False)
+    # new_project | updated_project | financial_change | completion_change |
+    # status_change | missing_from_import | reappeared
+    change_type = Column(String, index=True, nullable=False)
+    field = Column(String, index=True)
+    previous_value = Column(Text)
+    new_value = Column(Text)
+    previous_numeric = Column(Float)
+    new_numeric = Column(Float)
+    delta_numeric = Column(Float)
+    delta_percent = Column(Float)
+    changed_at = Column(String, index=True, nullable=False)
+    house = Column(String, index=True)
+    state = Column(String, index=True)
+    project_status = Column(String, index=True)
+    source = Column(String, default="csv_upload")
+    # high = matched on the stable project id; review = the description itself
+    # changed, so identity deserves a human look before conclusions.
+    confidence = Column(String, default="high")
+    impact = Column(String, index=True)
+    impact_detail = Column(Text)
+
+    __table_args__ = (
+        Index("idx_change_project_at", "project_id", "changed_at"),
+        Index("idx_change_batch", "batch_id"),
+        Index("idx_change_type_field", "change_type", "field"),
+        Index("idx_change_state_house", "state", "house"),
+    )

@@ -39,7 +39,7 @@ export default function ProjectDNASection({ projectId, onOpenProject }) {
 
   if (status === "loading") {
     return (
-      <div className="flex items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-[#171b20]">
+      <div className="flex items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-[#000000]">
         <div className="h-4 w-4 animate-spin rounded-full border-2 border-blue-600 border-r-transparent" />
         <span className="text-xs text-gray-400">Computing project fingerprint…</span>
       </div>
@@ -47,9 +47,9 @@ export default function ProjectDNASection({ projectId, onOpenProject }) {
   }
   if (status === "error") {
     return (
-      <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 text-center dark:border-gray-700 dark:bg-[#171b20]">
+      <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 text-center dark:border-gray-700 dark:bg-[#000000]">
         <p className="text-xs text-gray-500">Could not compute Project DNA.</p>
-        <button onClick={() => setStatus("loading")} className="mt-2 rounded bg-[#46566a] px-3 py-1 text-[0.625rem] font-bold text-white dark:bg-blue-600">Retry</button>
+        <button onClick={() => setStatus("loading")} className="mt-2 rounded bg-[#c8102e] px-3 py-1 text-[0.625rem] font-bold text-white dark:bg-blue-600">Retry</button>
       </div>
     )
   }
@@ -61,7 +61,7 @@ export default function ProjectDNASection({ projectId, onOpenProject }) {
   return (
     <div className="space-y-4">
       {/* Fingerprint */}
-      <div className="rounded-xl border border-gray-200 bg-gray-50/50 p-4 dark:border-gray-700 dark:bg-[#171b20]">
+      <div className="rounded-xl border border-gray-200 bg-gray-50/50 p-4 dark:border-gray-700 dark:bg-[#000000]">
         <p className="text-[0.625rem] font-bold uppercase tracking-wider text-gray-400">Project DNA — Analytical Fingerprint</p>
         <p className="mt-1 text-[0.625rem] text-gray-400">Each dimension is derived from the project's recorded attributes; unavailable data is omitted rather than shown as zero.</p>
         {dims.length > 0 ? (
@@ -74,7 +74,7 @@ export default function ProjectDNASection({ projectId, onOpenProject }) {
       </div>
 
       {/* Twins */}
-      <div className="rounded-xl border border-gray-200 bg-gray-50/50 p-4 dark:border-gray-700 dark:bg-[#171b20]">
+      <div className="rounded-xl border border-gray-200 bg-gray-50/50 p-4 dark:border-gray-700 dark:bg-[#000000]">
         <div className="flex items-baseline justify-between gap-2">
           <p className="text-[0.625rem] font-bold uppercase tracking-wider text-gray-400">Project Twins — Analytical Peers</p>
           <span className="text-[0.625rem] text-gray-400">{twins.cohort_size ?? 0} candidates · {peers.length} shown</span>
@@ -88,7 +88,7 @@ export default function ProjectDNASection({ projectId, onOpenProject }) {
                 <button
                   key={t.id}
                   onClick={() => onOpenProject?.(t.id)}
-                  className="w-full rounded-lg border border-gray-200 bg-white p-3 text-left transition hover:border-blue-300 hover:shadow-soft dark:border-gray-700 dark:bg-[#222831] dark:hover:border-blue-700"
+                  className="w-full rounded-lg border border-gray-200 bg-white p-3 text-left transition hover:border-blue-300 hover:shadow-soft dark:border-gray-700 dark:bg-[#0d090b] dark:hover:border-blue-700"
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
@@ -117,7 +117,7 @@ export default function ProjectDNASection({ projectId, onOpenProject }) {
             {twins.comparisons && Object.keys(twins.comparisons).length > 0 && (
               <div className="mt-3 space-y-1.5">
                 {Object.values(twins.comparisons).map((cmp, i) => (
-                  <p key={i} className="rounded-lg bg-white px-2.5 py-1.5 text-[0.6875rem] text-gray-600 dark:bg-[#222831] dark:text-gray-300">{cmp.text}</p>
+                  <p key={i} className="rounded-lg bg-white px-2.5 py-1.5 text-[0.6875rem] text-gray-600 dark:bg-[#0d090b] dark:text-gray-300">{cmp.text}</p>
                 ))}
               </div>
             )}

@@ -9,7 +9,7 @@ import { formatMoney } from "../utils/format"
 
 function Section({ title, children, accent }) {
   return (
-    <div className="rounded-xl border border-gray-200 bg-gray-50/50 p-4 dark:border-gray-700 dark:bg-[#171b20]">
+    <div className="rounded-xl border border-gray-200 bg-gray-50/50 p-4 dark:border-gray-700 dark:bg-[#000000]">
       <p className={`text-[0.625rem] font-bold uppercase tracking-wider ${accent || "text-gray-400"}`}>{title}</p>
       <div className="mt-2.5">{children}</div>
     </div>
@@ -54,7 +54,7 @@ export default function ForensicModeModal({ projectId, onClose }) {
   if (status === "loading") {
     return (
       <div className="anim-overlay-in fixed inset-0 z-[90] flex items-center justify-center bg-black/50 backdrop-blur-2xs" onClick={onClose}>
-        <div className="anim-card-in rounded-2xl bg-white p-10 text-center shadow-soft-lg dark:bg-[#222831]" onClick={(e) => e.stopPropagation()}>
+        <div className="anim-card-in rounded-2xl bg-white p-10 text-center shadow-soft-lg dark:bg-[#0d090b]" onClick={(e) => e.stopPropagation()}>
           <div className="inline-block h-7 w-7 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent" />
           <p className="mt-3 text-xs font-medium text-gray-500">Assembling forensic evidence…</p>
         </div>
@@ -64,9 +64,9 @@ export default function ForensicModeModal({ projectId, onClose }) {
   if (status === "error") {
     return (
       <div className="anim-overlay-in fixed inset-0 z-[90] flex items-center justify-center bg-black/50 backdrop-blur-2xs" onClick={onClose}>
-        <div className="anim-card-in rounded-2xl bg-white p-8 text-center shadow-soft-lg dark:bg-[#222831]" onClick={(e) => e.stopPropagation()}>
+        <div className="anim-card-in rounded-2xl bg-white p-8 text-center shadow-soft-lg dark:bg-[#0d090b]" onClick={(e) => e.stopPropagation()}>
           <p className="text-sm text-gray-500">Could not load the forensic bundle.</p>
-          <button onClick={onClose} className="mt-4 rounded-lg bg-[#46566a] px-4 py-2 text-xs font-bold text-white dark:bg-blue-600">Close</button>
+          <button onClick={onClose} className="mt-4 rounded-lg bg-[#c8102e] px-4 py-2 text-xs font-bold text-white dark:bg-blue-600">Close</button>
         </div>
       </div>
     )
@@ -85,7 +85,7 @@ export default function ForensicModeModal({ projectId, onClose }) {
 
   return (
     <div className={`anim-overlay-in fixed inset-0 z-[90] flex items-start justify-center overflow-y-auto bg-black/50 p-3 backdrop-blur-2xs transition-opacity sm:p-6 ${closing ? "is-closing" : ""}`} onClick={requestClose}>
-      <div className="anim-card-in my-auto w-full max-w-2xl rounded-2xl border border-[#dde1e5] bg-white p-5 shadow-soft-lg dark:border-[#39434E] dark:bg-[#222831] sm:p-6" onClick={(e) => e.stopPropagation()}>
+      <div className="anim-card-in my-auto w-full max-w-2xl rounded-2xl border border-[#e8dadc] bg-white p-5 shadow-soft-lg dark:border-[#351923] dark:bg-[#0d090b] sm:p-6" onClick={(e) => e.stopPropagation()}>
 
         {/* Header */}
         <div className="flex items-start justify-between gap-3">
@@ -163,7 +163,7 @@ export default function ForensicModeModal({ projectId, onClose }) {
             {(rules.triggered || []).length > 0 ? (
               <div className="mt-2 space-y-1.5">
                 {rules.triggered.map((r, i) => (
-                  <div key={i} className="flex items-center justify-between gap-2 rounded-lg bg-white px-2.5 py-1.5 dark:bg-[#222831]">
+                  <div key={i} className="flex items-center justify-between gap-2 rounded-lg bg-white px-2.5 py-1.5 dark:bg-[#0d090b]">
                     <span className="text-[0.6875rem] font-semibold">{r.reason}</span>
                     <span className="flex shrink-0 items-center gap-1.5">
                       {r.source === "ml" && <span className="rounded bg-purple-100 px-1.5 py-0.5 text-[0.5625rem] font-bold text-purple-700 dark:bg-purple-950 dark:text-purple-300">ML</span>}
@@ -188,7 +188,7 @@ export default function ForensicModeModal({ projectId, onClose }) {
               <>
                 <div className="space-y-1.5">
                   {vend.vendors.slice(0, 5).map((v, i) => (
-                    <div key={i} className="flex items-center justify-between gap-2 rounded-lg bg-white px-2.5 py-1.5 dark:bg-[#222831]">
+                    <div key={i} className="flex items-center justify-between gap-2 rounded-lg bg-white px-2.5 py-1.5 dark:bg-[#0d090b]">
                       <span className="truncate text-[0.6875rem] font-semibold">{v.vendor}</span>
                       <span className="shrink-0 font-mono text-[0.625rem] text-gray-500">{v.transactions} txns · {formatMoney(v.total_amount)}</span>
                     </div>
@@ -206,7 +206,7 @@ export default function ForensicModeModal({ projectId, onClose }) {
             {ground.evidence_count > 0 ? (
               <div className="space-y-1.5">
                 {ground.reports.map((r, i) => (
-                  <div key={i} className="rounded-lg bg-white px-2.5 py-1.5 dark:bg-[#222831]">
+                  <div key={i} className="rounded-lg bg-white px-2.5 py-1.5 dark:bg-[#0d090b]">
                     <div className="flex items-center justify-between gap-2">
                       <span className="text-[0.6875rem] font-bold">{r.status}</span>
                       <span className="text-[0.625rem] text-gray-400">{r.reporter} ({r.reporter_role})</span>

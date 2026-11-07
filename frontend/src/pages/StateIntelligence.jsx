@@ -42,7 +42,7 @@ function signedMoney(value) {
 
 function CompareMetric({ label, selected, benchmark, formatter, delta }) {
   return (
-    <div className="rounded-lg border border-gray-100 bg-white p-3 dark:border-gray-700/60 dark:bg-[#222831]">
+    <div className="rounded-lg border border-gray-100 bg-white p-3 dark:border-gray-700/60 dark:bg-[#0d090b]">
       <p className="text-[0.625rem] font-bold uppercase tracking-wide text-gray-400">{label}</p>
       <div className="mt-1.5 flex items-end justify-between gap-2">
         <div className="min-w-0">
@@ -297,9 +297,9 @@ const StateIntelligence = memo(function StateIntelligence({
 
   if (loading && states.length === 0) {
     return (
-      <div className="min-h-full bg-[#f4f5f6] p-4 sm:p-6 dark:bg-[#171b20]">
-        <h1 className="text-2xl font-bold text-[#30343A] dark:text-white">State Intelligence</h1>
-        <div className="mt-6 rounded-xl border border-gray-200 bg-white p-16 text-center dark:border-gray-700 dark:bg-[#222831]">
+      <div className="min-h-full bg-[#faf7f6] p-4 sm:p-6 dark:bg-[#000000]">
+        <h1 className="text-2xl font-bold text-[#292326] dark:text-white">State Intelligence</h1>
+        <div className="mt-6 rounded-xl border border-gray-200 bg-white p-16 text-center dark:border-gray-700 dark:bg-[#0d090b]">
           <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent" />
           <p className="mt-3 text-sm font-medium">Loading state intelligence...</p>
         </div>
@@ -326,11 +326,11 @@ const StateIntelligence = memo(function StateIntelligence({
   const compareName = compareAggregate?.display_name || compareAggregate?.state || "Comparison state"
 
   return (
-    <div className="min-h-full bg-[#f4f5f6] p-4 sm:p-6 text-[#30343A] transition-colors duration-200 dark:bg-[#171b20] dark:text-[#f1f3f5]">
+    <div className="min-h-full bg-[#faf7f6] p-4 sm:p-6 text-[#292326] transition-colors duration-200 dark:bg-[#000000] dark:text-[#f5eff1]">
       <div className="mx-auto max-w-[1440px] space-y-4 sm:space-y-6">
         <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
           <div>
-            <h2 className="text-2xl font-bold text-[#30343A] dark:text-white">State Intelligence</h2>
+            <h2 className="text-2xl font-bold text-[#292326] dark:text-white">State Intelligence</h2>
             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
               Comprehensive analytics across <strong>{states.length}</strong> states and union territories.
             </p>
@@ -339,7 +339,7 @@ const StateIntelligence = memo(function StateIntelligence({
             <select
               value={house}
               onChange={(e) => changeHouse(e.target.value)}
-              className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-2xs outline-none transition focus:border-blue-500 dark:border-gray-600 dark:bg-[#222831] dark:text-white"
+              className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-2xs outline-none transition focus:border-blue-500 dark:border-gray-600 dark:bg-[#0d090b] dark:text-white"
               title="Filter states by House"
             >
               {HOUSES.map((h) => (
@@ -352,7 +352,7 @@ const StateIntelligence = memo(function StateIntelligence({
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Search state..."
-              className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-900 shadow-2xs outline-none transition focus:border-blue-500 sm:w-64 dark:border-gray-600 dark:bg-[#222831] dark:text-white"
+              className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-900 shadow-2xs outline-none transition focus:border-blue-500 sm:w-64 dark:border-gray-600 dark:bg-[#0d090b] dark:text-white"
             />
           </div>
         </div>
@@ -420,8 +420,8 @@ const StateIntelligence = memo(function StateIntelligence({
               onClick={() => handleSort(opt.value)}
               className={`rounded-lg px-3 py-1.5 text-[0.6875rem] font-bold transition ${
                 sortBy === opt.value
-                  ? "bg-[#46566a] text-white dark:bg-blue-600"
-                  : "border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:bg-[#222831] dark:text-gray-300"
+                  ? "bg-[#c8102e] text-white dark:bg-blue-600"
+                  : "border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:bg-[#0d090b] dark:text-gray-300"
               }`}
             >
               {opt.label}
@@ -431,7 +431,7 @@ const StateIntelligence = memo(function StateIntelligence({
         </div>
 
         {/* EXISTING BENCHMARKING SECTION, extended with state-to-state comparison. */}
-        <div id="state-benchmarking" className="scroll-mt-24 rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-[#222831]">
+        <div id="state-benchmarking" className="scroll-mt-24 rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-[#0d090b]">
           <div className="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between">
             <h3 className="text-sm font-bold uppercase tracking-wider text-gray-400">State / Constituency Benchmarking</h3>
             <span className="font-mono text-[0.625rem] text-gray-400">
@@ -444,7 +444,7 @@ const StateIntelligence = memo(function StateIntelligence({
               <select
                 value={benchState}
                 onChange={(e) => handleBenchStateChange(e.target.value)}
-                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-[#171b20] dark:text-white"
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-[#000000] dark:text-white"
               >
                 <option value="">Select State</option>
                 {states.map((s) => (
@@ -460,7 +460,7 @@ const StateIntelligence = memo(function StateIntelligence({
                 value={benchConstituency}
                 onChange={(e) => setBenchConstituency(e.target.value)}
                 disabled={!benchState}
-                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm disabled:opacity-50 dark:border-gray-600 dark:bg-[#171b20] dark:text-white"
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm disabled:opacity-50 dark:border-gray-600 dark:bg-[#000000] dark:text-white"
               >
                 <option value="">All Constituencies</option>
                 {benchConstituencies.map((c) => (
@@ -471,7 +471,7 @@ const StateIntelligence = memo(function StateIntelligence({
             <button
               onClick={loadBenchmarking}
               disabled={(!benchState && !benchConstituency) || benchLoading}
-              className="rounded-lg bg-[#46566a] px-4 py-2 text-xs font-bold text-white transition hover:opacity-80 disabled:opacity-50 dark:bg-blue-600"
+              className="rounded-lg bg-[#c8102e] px-4 py-2 text-xs font-bold text-white transition hover:opacity-80 disabled:opacity-50 dark:bg-blue-600"
             >
               {benchLoading ? "Loading..." : "Compare with benchmark"}
             </button>
@@ -481,11 +481,11 @@ const StateIntelligence = memo(function StateIntelligence({
           {benchData && benchData.comparisons?.length > 0 && (
             <div className="mt-4 space-y-4">
               {benchData.comparisons.map((comp, ci) => (
-                <div key={ci} className="rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-[#171b20]">
+                <div key={ci} className="rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-[#000000]">
                   <h4 className="mb-3 text-xs font-bold text-gray-700 dark:text-gray-300">{comp.label}</h4>
                   <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                     {comp.metrics.map((m, mi) => (
-                      <div key={mi} className="rounded-lg bg-white p-3 dark:bg-[#222831]">
+                      <div key={mi} className="rounded-lg bg-white p-3 dark:bg-[#0d090b]">
                         <p className="text-[0.625rem] font-bold uppercase text-gray-400">{m.metric}</p>
                         <p className="font-mono text-lg font-bold">{m.selected}{m.unit}</p>
                         <p className="text-[0.625rem] text-gray-400">Benchmark: {m.benchmark}{m.unit}</p>
@@ -524,7 +524,7 @@ const StateIntelligence = memo(function StateIntelligence({
                 value={compareCode}
                 onChange={(e) => setCompareCode(e.target.value)}
                 disabled={!selectedAggregate}
-                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm disabled:opacity-50 dark:border-gray-600 dark:bg-[#171b20] dark:text-white sm:w-64"
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm disabled:opacity-50 dark:border-gray-600 dark:bg-[#000000] dark:text-white sm:w-64"
               >
                 <option value="">Select comparison state</option>
                 {states
@@ -580,7 +580,7 @@ const StateIntelligence = memo(function StateIntelligence({
 
                 <div className="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700/60">
                   <table className="w-full text-left text-xs">
-                    <thead className="bg-gray-50 text-[0.625rem] uppercase tracking-wide text-gray-400 dark:bg-[#1c2127]">
+                    <thead className="bg-gray-50 text-[0.625rem] uppercase tracking-wide text-gray-400 dark:bg-[#120b0e]">
                       <tr>
                         <th className="p-2.5 font-bold">Risk distribution</th>
                         <th className="p-2.5 text-right font-bold">{selectedName}</th>
@@ -625,11 +625,11 @@ const StateIntelligence = memo(function StateIntelligence({
         </div>
 
         {/* Table */}
-        <div id="state-table" className="scroll-mt-24 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-[#222831]">
+        <div id="state-table" className="scroll-mt-24 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-[#0d090b]">
           <div className="hidden lg:block overflow-x-auto">
             <table className="w-full min-w-[1100px]">
               <thead>
-                <tr className="border-b border-gray-200 bg-gray-50 text-left text-xs font-bold uppercase tracking-wider text-gray-700 dark:border-gray-700 dark:bg-[#1c2127] dark:text-gray-300">
+                <tr className="border-b border-gray-200 bg-gray-50 text-left text-xs font-bold uppercase tracking-wider text-gray-700 dark:border-gray-700 dark:bg-[#120b0e] dark:text-gray-300">
                   {columns.map((col) => (
                     <th
                       key={col.key}
@@ -646,7 +646,7 @@ const StateIntelligence = memo(function StateIntelligence({
                 {filteredStates.map((s) => (
                   <tr
                     key={s.state}
-                    className="cursor-pointer transition hover:bg-blue-50/40 dark:hover:bg-[#2c3540]"
+                    className="cursor-pointer transition hover:bg-blue-50/40 dark:hover:bg-[#120b0e]"
                     onClick={() => onNavigateToProjects && onNavigateToProjects(s.drill_state || s.state)}
                   >
                     <td className="p-3 text-sm font-semibold">{s.display_name || s.state}</td>
@@ -678,7 +678,7 @@ const StateIntelligence = memo(function StateIntelligence({
             {filteredStates.map((s) => (
               <div
                 key={s.state}
-                className="p-4 cursor-pointer transition hover:bg-blue-50/40 dark:hover:bg-[#2c3540]"
+                className="p-4 cursor-pointer transition hover:bg-blue-50/40 dark:hover:bg-[#120b0e]"
                 onClick={() => onNavigateToProjects && onNavigateToProjects(s.drill_state || s.state)}
               >
                 <div className="flex items-start justify-between">
@@ -707,7 +707,7 @@ const StateIntelligence = memo(function StateIntelligence({
         </div>
 
         {filteredStates.length === 0 && !loading && (
-          <div className="rounded-xl border border-gray-200 bg-white p-8 text-center dark:border-gray-700 dark:bg-[#222831]">
+          <div className="rounded-xl border border-gray-200 bg-white p-8 text-center dark:border-gray-700 dark:bg-[#0d090b]">
             <p className="text-sm text-gray-500">No states match the search term.</p>
           </div>
         )}

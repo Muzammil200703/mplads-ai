@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react"
 import { useAuth } from "../context/AuthContext"
-import { askAssistant, getAssistantSuggestions, getAssistantContextHelp } from "../services/api"
+import {
+  askAssistant, getAssistantSuggestions, getAssistantContextHelp, getAssistantQueryResults,
+} from "../services/api"
 
 /* ═══════════════════════════════════════════════════════════════════
    MPLADS AI ASSISTANT — universal role-aware widget (floating panel)
@@ -130,37 +132,37 @@ function StructuredBlocks({ data }) {
   return (
     <div className="mt-3 space-y-3">
       {hasRows && (
-        <div className="overflow-hidden rounded-lg border border-[#dde1e5] dark:border-[#39434E]">
+        <div className="overflow-hidden rounded-lg border border-[#e8dadc] dark:border-[#351923]">
           <div className="max-h-[260px] overflow-auto">
             <table className="min-w-full border-collapse text-left text-[0.6875rem]">
-              <thead className="sticky top-0 bg-[#eceff2] dark:bg-[#1c2127]">
-                <tr>{table.columns.map((c, i) => <th key={i} className="whitespace-nowrap border-b border-[#dde1e5] px-2 py-1.5 font-bold dark:border-[#39434E]">{c}</th>)}</tr>
+              <thead className="sticky top-0 bg-[#f8f1f1] dark:bg-[#120b0e]">
+                <tr>{table.columns.map((c, i) => <th key={i} className="whitespace-nowrap border-b border-[#e8dadc] px-2 py-1.5 font-bold dark:border-[#351923]">{c}</th>)}</tr>
               </thead>
               <tbody>
                 {(table.rows || []).map((row, i) => (
-                  <tr key={i} className="odd:bg-white even:bg-[#f4f5f6] dark:odd:bg-[#222831] dark:even:bg-[#222831]">
-                    {(row || []).map((cell, j) => <td key={j} className="whitespace-nowrap border-b border-[#dde1e5] px-2 py-1.5 align-top dark:border-[#39434E]">{cell}</td>)}
+                  <tr key={i} className="odd:bg-white even:bg-[#faf7f6] dark:odd:bg-[#0d090b] dark:even:bg-[#0d090b]">
+                    {(row || []).map((cell, j) => <td key={j} className="whitespace-nowrap border-b border-[#e8dadc] px-2 py-1.5 align-top dark:border-[#351923]">{cell}</td>)}
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-          {table.caption && <p className="bg-[#f4f5f6] px-2 py-1 text-[0.625rem] text-[#69717c] dark:bg-[#1c2127] dark:text-[#aab3bd]">{table.caption}</p>}
+          {table.caption && <p className="bg-[#faf7f6] px-2 py-1 text-[0.625rem] text-[#71666a] dark:bg-[#120b0e] dark:text-[#b9aeb2]">{table.caption}</p>}
         </div>
       )}
 
       {findings.length > 0 && (
         <section>
-          <p className="mb-1 text-[0.6563rem] font-bold uppercase tracking-wide text-[#69717c] dark:text-[#aab3bd]">Findings</p>
+          <p className="mb-1 text-[0.6563rem] font-bold uppercase tracking-wide text-[#71666a] dark:text-[#b9aeb2]">Findings</p>
           <div className="space-y-1.5">
             {findings.map((f, i) => (
-              <div key={i} className="rounded-lg border border-[#dde1e5] bg-white p-2 dark:border-[#39434E] dark:bg-[#171b20]">
+              <div key={i} className="rounded-lg border border-[#e8dadc] bg-white p-2 dark:border-[#351923] dark:bg-[#000000]">
                 <div className="flex items-start justify-between gap-2">
                   <p className="text-[0.75rem] font-semibold">{f.title}</p>
-                  <span className="shrink-0 rounded-full bg-[#eceff2] px-1.5 py-0.5 text-[0.5938rem] font-bold uppercase text-[#30343A] dark:bg-[#222831] dark:text-gray-200">{f.kind || "note"}</span>
+                  <span className="shrink-0 rounded-full bg-[#f8f1f1] px-1.5 py-0.5 text-[0.5938rem] font-bold uppercase text-[#292326] dark:bg-[#0d090b] dark:text-gray-200">{f.kind || "note"}</span>
                 </div>
-                <p className="mt-0.5 text-[0.6875rem] leading-snug text-[#69717c] dark:text-[#aab3bd]">{f.detail}</p>
-                {f.evidence && <p className="mt-1 text-[0.625rem] text-[#69717c] dark:text-[#aab3bd]">Source: {f.evidence}</p>}
+                <p className="mt-0.5 text-[0.6875rem] leading-snug text-[#71666a] dark:text-[#b9aeb2]">{f.detail}</p>
+                {f.evidence && <p className="mt-1 text-[0.625rem] text-[#71666a] dark:text-[#b9aeb2]">Source: {f.evidence}</p>}
               </div>
             ))}
           </div>
@@ -169,10 +171,10 @@ function StructuredBlocks({ data }) {
 
       {recommendations.length > 0 && (
         <section>
-          <p className="mb-1 text-[0.6563rem] font-bold uppercase tracking-wide text-[#69717c] dark:text-[#aab3bd]">Recommended next steps</p>
+          <p className="mb-1 text-[0.6563rem] font-bold uppercase tracking-wide text-[#71666a] dark:text-[#b9aeb2]">Recommended next steps</p>
           <div className="space-y-1.5">
             {recommendations.map((r, i) => (
-              <div key={i} className="rounded-lg border border-[#dde1e5] bg-white p-2 dark:border-[#39434E] dark:bg-[#171b20]">
+              <div key={i} className="rounded-lg border border-[#e8dadc] bg-white p-2 dark:border-[#351923] dark:bg-[#000000]">
                 <p className="text-[0.75rem] font-semibold">{r.category} — {r.title}</p>
                 <p className="mt-0.5 text-[0.6875rem] leading-snug"><span className="font-semibold">Why:</span> {r.why}</p>
                 <p className="mt-0.5 text-[0.6875rem] leading-snug"><span className="font-semibold">Record:</span> {r.evidence}</p>
@@ -185,12 +187,187 @@ function StructuredBlocks({ data }) {
       )}
 
       {limitations.length > 0 && (
-        <section className="rounded-lg bg-[#f4f5f6] p-2 dark:bg-[#1c2127]">
-          <p className="mb-0.5 text-[0.6563rem] font-bold uppercase tracking-wide text-[#69717c] dark:text-[#aab3bd]">Limitations</p>
-          <ul className="list-disc space-y-0.5 pl-4 text-[0.6563rem] leading-snug text-[#69717c] dark:text-[#aab3bd]">
+        <section className="rounded-lg bg-[#faf7f6] p-2 dark:bg-[#120b0e]">
+          <p className="mb-0.5 text-[0.6563rem] font-bold uppercase tracking-wide text-[#71666a] dark:text-[#b9aeb2]">Limitations</p>
+          <ul className="list-disc space-y-0.5 pl-4 text-[0.6563rem] leading-snug text-[#71666a] dark:text-[#b9aeb2]">
             {limitations.map((item, i) => <li key={i}>{item}</li>)}
           </ul>
         </section>
+      )}
+    </div>
+  )
+}
+
+/* ── Natural-language query block ────────────────────────────────────
+   Shows what was actually executed and returned: applied filters, the
+   generated SELECT (viewable + copyable), a compact chart, row count and
+   timing, the full stored result on demand, CSV export and any execution
+   error. Every number comes from the backend — nothing is derived here. */
+const compactNumber = (value, money) => {
+  const n = Number(value)
+  if (!Number.isFinite(n)) return "—"
+  const abs = Math.abs(n)
+  const short = abs >= 1e7 ? `${(n / 1e7).toFixed(2)} Cr`
+    : abs >= 1e5 ? `${(n / 1e5).toFixed(2)} L`
+      : abs >= 1e3 ? `${(n / 1e3).toFixed(1)}k`
+        : `${Math.round(n * 100) / 100}`
+  return money ? `₹${short}` : short
+}
+
+function QueryResult({ query, chart }) {
+  const [copied, setCopied] = useState(false)
+  const [full, setFull] = useState(null)
+  const [loading, setLoading] = useState(false)
+  const [showSql, setShowSql] = useState(false)
+
+  if (!query) return null
+  const status = query.status || "ok"
+  const failed = status === "error"
+  const unavailable = status === "unavailable"
+
+  const copySql = async () => {
+    try {
+      await navigator.clipboard.writeText(query.sql || "")
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1600)
+    } catch { setCopied(false) }
+  }
+
+  const loadFull = async () => {
+    if (!query.id || loading) return
+    setLoading(true)
+    try { setFull(await getAssistantQueryResults(query.id)) } catch { /* keep compact view */ }
+    setLoading(false)
+  }
+
+  const exportCsv = async () => {
+    if (!query.id) return
+    setLoading(true)
+    try {
+      const data = full || await getAssistantQueryResults(query.id)
+      const cols = data.columns || []
+      const escape = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`
+      const csv = [cols.map(escape).join(","), ...(data.rows || []).map((r) => r.map(escape).join(","))].join("\n")
+      const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }))
+      const a = document.createElement("a")
+      a.href = url
+      a.download = `mplads-query-${String(query.id).slice(0, 8)}.csv`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch { /* export is best-effort */ }
+    setLoading(false)
+  }
+
+  return (
+    <div className="mt-2 overflow-hidden rounded-lg border border-[#e8dadc] dark:border-[#351923]">
+      <div className="flex items-center justify-between gap-2 bg-[#f8f1f1] px-2 py-1.5 dark:bg-[#120b0e]">
+        <p className="text-[0.6563rem] font-bold uppercase tracking-wide text-[#71666a] dark:text-[#b9aeb2]">
+          {failed ? "⚠ Query blocked"
+            : unavailable ? "ℹ Historical data unavailable"
+              : `Query · ${query.row_count ?? 0} row${query.row_count === 1 ? "" : "s"}${query.elapsed_ms ? ` · ${query.elapsed_ms} ms` : ""}`}
+        </p>
+        <div className="flex shrink-0 items-center gap-1">
+          {query.sql && (
+            <button
+              onClick={copySql}
+              className="rounded px-1.5 py-0.5 text-[0.625rem] font-semibold text-[#292326] hover:bg-black/5 dark:text-gray-200 dark:hover:bg-white/10"
+            >{copied ? "Copied" : "Copy SQL"}</button>
+          )}
+          {query.sql && (
+            <button
+              onClick={() => setShowSql((s) => !s)}
+              className="rounded px-1.5 py-0.5 text-[0.625rem] font-semibold text-[#c8102e] hover:bg-black/5 dark:text-blue-300 dark:hover:bg-white/10"
+            >{showSql ? "Hide SQL" : "View SQL"}</button>
+          )}
+          {query.can_export && query.id && !failed && (
+            <button
+              onClick={exportCsv}
+              disabled={loading}
+              className="rounded px-1.5 py-0.5 text-[0.625rem] font-semibold text-[#292326] hover:bg-black/5 disabled:opacity-40 dark:text-gray-200 dark:hover:bg-white/10"
+            >CSV</button>
+          )}
+        </div>
+      </div>
+
+      {query.filters?.length > 0 && (
+        <div className="flex flex-wrap gap-1 border-t border-[#e8dadc] px-2 py-1.5 dark:border-[#351923]">
+          {query.filters.map((f, i) => (
+            <span key={i} className="rounded-full bg-[#f8f1f1] px-1.5 py-0.5 text-[0.5938rem] font-semibold text-[#71666a] dark:bg-[#210a12] dark:text-[#e2a4b4]">
+              {f.label}: {f.value}
+            </span>
+          ))}
+        </div>
+      )}
+
+      {chart?.items?.length > 0 && !failed && (
+        <div className="space-y-1 border-t border-[#e8dadc] px-2 py-2 dark:border-[#351923]">
+          <p className="text-[0.5938rem] font-bold uppercase tracking-wide text-[#71666a] dark:text-[#b9aeb2]">
+            {chart.value_column} by {chart.label_column}
+          </p>
+          {chart.items.map((item, i) => {
+            const max = Math.max(...chart.items.map((x) => Math.abs(Number(x.value) || 0)), 1)
+            const width = Math.max(3, Math.round((Math.abs(Number(item.value) || 0) / max) * 100))
+            return (
+              <div key={i} className="flex items-center gap-2">
+                <span className="w-[38%] shrink-0 truncate text-[0.625rem] text-[#292326] dark:text-gray-200" title={item.label}>{item.label}</span>
+                <span className="h-2 flex-1 overflow-hidden rounded-full bg-[#f1e6e8] dark:bg-[#210a12]">
+                  <span className="block h-full rounded-full bg-[#c8102e] dark:bg-blue-500" style={{ width: `${width}%` }} />
+                </span>
+                <span className="w-[24%] shrink-0 text-right text-[0.625rem] font-semibold text-[#292326] dark:text-gray-100">
+                  {compactNumber(item.value, chart.money)}
+                </span>
+              </div>
+            )
+          })}
+        </div>
+      )}
+
+      {showSql && query.sql && (
+        <div className="border-t border-[#e8dadc] dark:border-[#351923]">
+          <pre className="max-h-[180px] overflow-auto bg-[#faf7f6] p-2 text-[0.625rem] leading-relaxed text-[#292326] dark:bg-[#000000] dark:text-[#f5eff1]">
+            {query.sql}
+          </pre>
+          <p className="bg-[#faf7f6] px-2 pb-1.5 text-[0.5938rem] text-[#71666a] dark:bg-[#000000] dark:text-[#82767b]">
+            Read-only SELECT, validated and executed with a row cap and timeout.
+          </p>
+        </div>
+      )}
+
+      {query.truncated && !full && query.id && (
+        <button
+          onClick={loadFull}
+          disabled={loading}
+          className="block w-full border-t border-[#e8dadc] px-2 py-1.5 text-left text-[0.6563rem] font-semibold text-[#c8102e] hover:bg-[#faf7f6] disabled:opacity-50 dark:border-[#351923] dark:text-blue-300 dark:hover:bg-[#120b0e]"
+        >
+          {loading ? "Loading…" : `Show all ${query.row_count} rows`}
+        </button>
+      )}
+
+      {full && (
+        <div className="max-h-[240px] overflow-auto border-t border-[#e8dadc] dark:border-[#351923]">
+          <table className="min-w-full border-collapse text-left text-[0.6875rem]">
+            <thead className="sticky top-0 bg-[#f8f1f1] dark:bg-[#120b0e]">
+              <tr>{(full.columns || []).map((c, i) => (
+                <th key={i} className="whitespace-nowrap border-b border-[#e8dadc] px-2 py-1.5 font-bold dark:border-[#351923]">{c}</th>
+              ))}</tr>
+            </thead>
+            <tbody>
+              {(full.rows || []).map((row, i) => (
+                <tr key={i} className="odd:bg-white even:bg-[#faf7f6] dark:odd:bg-[#0d090b] dark:even:bg-[#0d090b]">
+                  {row.map((cell, j) => (
+                    <td key={j} className="whitespace-nowrap border-b border-[#e8dadc] px-2 py-1.5 dark:border-[#351923]">{String(cell ?? "—")}</td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {failed && query.error && (
+        <p className="border-t border-[#e8dadc] bg-red-50 px-2 py-1.5 text-[0.6563rem] leading-snug text-red-700 dark:border-[#351923] dark:bg-[#210a12] dark:text-red-300">
+          {query.error}
+        </p>
       )}
     </div>
   )
@@ -207,6 +384,7 @@ export default function AssistantWidget({
   open: controlledOpen,
   onOpenChange,
   contextState,
+  house,
 }) {
   const { user } = useAuth()
 
@@ -396,7 +574,7 @@ export default function AssistantWidget({
       // project (restored history keeps asking about the same project).
       const ctxPid = contextProjectId || lastProjectId
       const page = ctxPid ? `project:${ctxPid}` : contextMpId ? `mp:${contextMpId}` : currentPage
-      const res = await askAssistant(question, page, sessionRef.current)
+      const res = await askAssistant(question, page, sessionRef.current, house)
       if (res.project_id) {
         setLastProjectId(res.project_id)
         if (convMetaRef.current && !convMetaRef.current.projectId) {
@@ -419,6 +597,8 @@ export default function AssistantWidget({
           limitations: res.limitations || [],
           intent: res.intent || "help",
         },
+        query: res.query || null,
+        chart: res.chart || null,
         ts: Date.now(),
       }])
       // Auto-navigation should reveal the page, but an analytical answer must
@@ -526,7 +706,7 @@ export default function AssistantWidget({
         onClick={() => setOpen((o) => !o)}
         aria-label="MPLADS AI Assistant"
         title="MPLADS AI Assistant"
-        className={`fixed bottom-5 right-5 z-[70] flex h-13 w-13 items-center justify-center rounded-full bg-[#46566a] text-xl text-white shadow-soft transition-[transform,opacity] duration-200 hover:scale-105 hover:bg-[#37455a] active:scale-95 dark:bg-blue-600 dark:hover:bg-blue-500 ${modalPresent ? "!z-[85]" : ""} ${open ? "pointer-events-none opacity-0" : ""}`}
+        className={`fixed bottom-5 right-5 z-[70] flex h-13 w-13 items-center justify-center rounded-full bg-[#c8102e] text-xl text-white shadow-soft transition-[transform,opacity] duration-200 hover:scale-105 hover:bg-[#a50f29] active:scale-95 dark:bg-blue-600 dark:hover:bg-blue-500 ${modalPresent ? "!z-[85]" : ""} ${open ? "pointer-events-none opacity-0" : ""}`}
         style={{ height: 52, width: 52 }}
       >
         {open ? "✕" : "✦"}
@@ -534,13 +714,13 @@ export default function AssistantWidget({
 
       {/* Panel */}
       {open && (
-        <div        className="pop-in-up fixed bottom-20 right-5 z-[70] flex h-[520px] max-h-[calc(100vh-6rem)] w-[380px] max-w-[calc(100vw-2.5rem)] flex-col overflow-hidden rounded-2xl border border-[#dde1e5] bg-white shadow-soft-lg dark:border-[#39434E] dark:bg-[#171b20]" style={{ transformOrigin: "bottom right", ...(modalSync ? { top: modalSync.top, bottom: "auto", height: modalSync.height, maxHeight: "none" } : {}), ...(modalPresent ? { zIndex: 85 } : {}) }}>
+        <div        className="pop-in-up fixed bottom-20 right-5 z-[70] flex h-[520px] max-h-[calc(100vh-6rem)] w-[380px] max-w-[calc(100vw-2.5rem)] flex-col overflow-hidden rounded-2xl border border-[#e8dadc] bg-white shadow-soft-lg dark:border-[#351923] dark:bg-[#000000]" style={{ transformOrigin: "bottom right", ...(modalSync ? { top: modalSync.top, bottom: "auto", height: modalSync.height, maxHeight: "none" } : {}), ...(modalPresent ? { zIndex: 85 } : {}) }}>
           {/* Header */}
-          <div className="flex flex-none items-center gap-2.5 border-b border-[#dde1e5] bg-[#f4f5f6] px-4 py-3 dark:border-[#39434E] dark:bg-[#1c2127]">
-            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#46566a] text-sm text-white dark:bg-blue-600">✦</span>
+          <div className="flex flex-none items-center gap-2.5 border-b border-[#e8dadc] bg-[#faf7f6] px-4 py-3 dark:border-[#351923] dark:bg-[#120b0e]">
+            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#c8102e] text-sm text-white dark:bg-blue-600">✦</span>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-bold text-[#30343A] dark:text-[#f1f3f5]">MPLADS AI Assistant</p>
-              <p className="truncate text-[0.6875rem] text-[#69717c] dark:text-[#aab3bd]">
+              <p className="truncate text-sm font-bold text-[#292326] dark:text-[#f5eff1]">MPLADS AI Assistant</p>
+              <p className="truncate text-[0.6875rem] text-[#71666a] dark:text-[#b9aeb2]">
                 {lastProjectId
                   ? `Project: ${contextProjectName || `#${lastProjectId}`}`
                   : user
@@ -552,7 +732,7 @@ export default function AssistantWidget({
               onClick={startNewChat}
               title="New Chat (keeps history)"
               aria-label="New Chat"
-              className="flex h-8 w-8 items-center justify-center rounded-full text-[#69717c] transition hover:bg-black/5 dark:text-[#aab3bd] dark:hover:bg-white/10"
+              className="flex h-8 w-8 items-center justify-center rounded-full text-[#71666a] transition hover:bg-black/5 dark:text-[#b9aeb2] dark:hover:bg-white/10"
             >
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14"/></svg>
             </button>
@@ -560,7 +740,7 @@ export default function AssistantWidget({
               onClick={() => setShowHistory((s) => !s)}
               title="History"
               aria-label="History"
-              className={`flex h-8 w-8 items-center justify-center rounded-full transition hover:bg-black/5 dark:hover:bg-white/10 ${showHistory ? "bg-black/5 text-[#30343A] dark:bg-white/10 dark:text-[#f1f3f5]" : "text-[#69717c] dark:text-[#aab3bd]"}`}
+              className={`flex h-8 w-8 items-center justify-center rounded-full transition hover:bg-black/5 dark:hover:bg-white/10 ${showHistory ? "bg-black/5 text-[#292326] dark:bg-white/10 dark:text-[#f5eff1]" : "text-[#71666a] dark:text-[#b9aeb2]"}`}
             >
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
             </button>
@@ -568,7 +748,7 @@ export default function AssistantWidget({
               onClick={() => setOpen(false)}
               title="Close assistant"
               aria-label="Close assistant"
-              className="flex h-8 w-8 items-center justify-center rounded-full text-[#69717c] transition hover:bg-black/5 dark:text-[#aab3bd] dark:hover:bg-white/10"
+              className="flex h-8 w-8 items-center justify-center rounded-full text-[#71666a] transition hover:bg-black/5 dark:text-[#b9aeb2] dark:hover:bg-white/10"
             >
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
             </button>
@@ -576,9 +756,9 @@ export default function AssistantWidget({
 
           {/* History drawer */}
           {showHistory && (
-            <div className="flex flex-none flex-col overflow-hidden border-b border-[#dde1e5] bg-[#f4f5f6] dark:border-[#39434E] dark:bg-[#1c2127]" style={{ maxHeight: "55%" }}>
+            <div className="flex flex-none flex-col overflow-hidden border-b border-[#e8dadc] bg-[#faf7f6] dark:border-[#351923] dark:bg-[#120b0e]" style={{ maxHeight: "55%" }}>
               <div className="flex items-center justify-between px-4 pb-1.5 pt-2.5">
-                <p className="text-[0.6875rem] font-bold uppercase tracking-wide text-[#69717c] dark:text-[#aab3bd]">Past conversations</p>
+                <p className="text-[0.6875rem] font-bold uppercase tracking-wide text-[#71666a] dark:text-[#b9aeb2]">Past conversations</p>
                 {history.length > 0 && (
                   <button onClick={clearHistory} className="rounded px-1.5 py-0.5 text-[0.6875rem] font-semibold text-red-600 transition hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/40">
                     Clear all
@@ -587,7 +767,7 @@ export default function AssistantWidget({
             </div>
               <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-2">
                 {history.length === 0 ? (
-                  <p className="px-2 py-3 text-[0.75rem] text-[#69717c] dark:text-[#aab3bd]">
+                  <p className="px-2 py-3 text-[0.75rem] text-[#71666a] dark:text-[#b9aeb2]">
                     No saved conversations yet. Chats are saved here automatically as you talk.
                   </p>
                 ) : (
@@ -597,8 +777,8 @@ export default function AssistantWidget({
                       onClick={() => openConversation(c)}
                       className="mb-1 block w-full rounded-lg px-2.5 py-2 text-left transition hover:bg-black/5 dark:hover:bg-white/5"
                     >
-                      <p className="truncate text-[0.78rem] font-semibold text-[#30343A] dark:text-gray-100">{convTitle(c)}</p>
-                      <p className="text-[0.6563rem] text-[#69717c] dark:text-[#aab3bd]">
+                      <p className="truncate text-[0.78rem] font-semibold text-[#292326] dark:text-gray-100">{convTitle(c)}</p>
+                      <p className="text-[0.6563rem] text-[#71666a] dark:text-[#b9aeb2]">
                         {new Date(c.ts).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
                         {c.projectId ? ` · Project #${c.projectId}` : ""}
                         {` · ${c.messages?.length || 0} messages`}
@@ -613,7 +793,7 @@ export default function AssistantWidget({
           {/* Messages */}
           <div ref={scrollRef} className="assistant-scroll min-h-0 flex-1 space-y-3.5 overflow-y-auto px-4 py-4">
             {messages.length === 0 && !showHistory && (
-              <div className="rounded-xl bg-[#eceff2] p-4 text-[0.8125rem] leading-snug text-[#30343A] dark:bg-[#222831] dark:text-[#f1f3f5]">
+              <div className="rounded-xl bg-[#f8f1f1] p-4 text-[0.8125rem] leading-snug text-[#292326] dark:bg-[#0d090b] dark:text-[#f5eff1]">
                 {contextProjectId
                   ? `Project context loaded (#${contextProjectId}). Ask me anything about this project — its risk, spending, timeline, vendor, peers, data quality — or say "generate an audit brief".`
                   : contextMpId
@@ -624,48 +804,49 @@ export default function AssistantWidget({
               </div>
             )}
             {messages.length === 0 && !showHistory && contextChip && (
-              <p className="px-1 text-[0.6875rem] font-semibold uppercase tracking-wide text-[#69717c] dark:text-[#aab3bd]">
+              <p className="px-1 text-[0.6875rem] font-semibold uppercase tracking-wide text-[#71666a] dark:text-[#b9aeb2]">
                 {contextChip}
               </p>
             )}
             {messages.length === 0 && !showHistory && contextHelp && (
               <button
                 onClick={() => send("What does this page show?")}
-                className="w-full rounded-xl border border-[#dde1e5] bg-white p-3 text-left transition hover:bg-[#eceff2] dark:border-[#39434E] dark:bg-[#171b20] dark:hover:bg-[#222831]">
-                <p className="text-[0.6875rem] font-bold uppercase tracking-wide text-[#69717c] dark:text-[#aab3bd]">
+                className="w-full rounded-xl border border-[#e8dadc] bg-white p-3 text-left transition hover:bg-[#f8f1f1] dark:border-[#351923] dark:bg-[#000000] dark:hover:bg-[#0d090b]">
+                <p className="text-[0.6875rem] font-bold uppercase tracking-wide text-[#71666a] dark:text-[#b9aeb2]">
                   📍 About this page
                 </p>
-                <p className="mt-1 line-clamp-2 text-[0.75rem] leading-snug text-[#30343A] dark:text-gray-100">
+                <p className="mt-1 line-clamp-2 text-[0.75rem] leading-snug text-[#292326] dark:text-gray-100">
                   {contextHelp}
                 </p>
               </button>
             )}
             {messages.map((m, i) => (
               m.role === "system" ? (
-                <p key={i} className="rise-in text-center text-[0.6875rem] font-semibold uppercase tracking-wide text-[#69717c] dark:text-[#aab3bd]">
+                <p key={i} className="rise-in text-center text-[0.6875rem] font-semibold uppercase tracking-wide text-[#71666a] dark:text-[#b9aeb2]">
                   {m.text}
                 </p>
               ) : m.role === "user" ? (
                 <div key={i} className="flex justify-end">
-                  <p className="rise-in max-w-[85%] rounded-2xl rounded-br-md bg-[#46566a] px-3.5 py-2.5 text-[0.8125rem] text-white dark:bg-blue-600">
+                  <p className="rise-in max-w-[85%] rounded-2xl rounded-br-md bg-[#c8102e] px-3.5 py-2.5 text-[0.8125rem] text-white dark:bg-blue-600">
                     {m.text}
                   </p>
                 </div>
               ) : (
                 <div key={i} className="flex justify-start">
-                  <div className="rise-in max-w-[92%] rounded-2xl rounded-bl-md border border-[#dde1e5] bg-[#f4f5f6] px-3.5 py-2.5 text-[#30343A] dark:border-[#39434E] dark:bg-[#222831] dark:text-gray-100">
+                  <div className="rise-in max-w-[92%] rounded-2xl rounded-bl-md border border-[#e8dadc] bg-[#faf7f6] px-3.5 py-2.5 text-[#292326] dark:border-[#351923] dark:bg-[#0d090b] dark:text-gray-100">
                     <AnswerBody text={m.text} />
                     <StructuredBlocks data={m.structured} />
+                    <QueryResult query={m.query} chart={m.chart} />
                     {m.retry && !busy && (
                       <button
                         onClick={() => send(m.retry)}
-                        className="mt-2 rounded-full border border-[#46566a] px-2.5 py-1 text-[0.6875rem] font-bold text-[#30343A] hover:bg-[#eceff2] dark:border-blue-500 dark:text-blue-300 dark:hover:bg-[#1c2127]"
+                        className="mt-2 rounded-full border border-[#c8102e] px-2.5 py-1 text-[0.6875rem] font-bold text-[#292326] hover:bg-[#f8f1f1] dark:border-blue-500 dark:text-blue-300 dark:hover:bg-[#120b0e]"
                       >
                         Retry
                       </button>
                     )}
                     {m.actions?.length > 0 && (
-                      <div className="mt-2 flex flex-wrap gap-1.5 border-t border-[#dde1e5] pt-2 dark:border-[#39434E]">
+                      <div className="mt-2 flex flex-wrap gap-1.5 border-t border-[#e8dadc] pt-2 dark:border-[#351923]">
                         {m.actions.map((a, j) => {
                           const ex = m.exec?.[j]
                           const done = ex && ex.status === "ok"
@@ -676,7 +857,7 @@ export default function AssistantWidget({
                               onClick={() => runAction(a)}
                               className={done
                                 ? "flex items-center gap-1 rounded-full bg-green-600/10 px-2.5 py-1 text-[0.6875rem] font-bold text-green-700 dark:text-green-300"
-                                : "rounded-full bg-[#46566a] px-2.5 py-1 text-[0.6875rem] font-bold text-white transition hover:bg-[#37455a] dark:bg-blue-600 dark:hover:bg-blue-500"}
+                                : "rounded-full bg-[#c8102e] px-2.5 py-1 text-[0.6875rem] font-bold text-white transition hover:bg-[#a50f29] dark:bg-blue-600 dark:hover:bg-blue-500"}
                             >
                               {done ? "✓ " : failed ? "⚠ " : a.action === "open_project" ? "🗂 " : "→ "}{a.label}
                             </button>
@@ -690,10 +871,10 @@ export default function AssistantWidget({
             ))}
             {busy && (
               <div className="flex justify-start">
-                <div className="flex items-center gap-1.5 rounded-2xl border border-[#dde1e5] bg-[#f4f5f6] px-3 py-2.5 dark:border-[#39434E] dark:bg-[#222831]">
-                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[#46566a] dark:bg-blue-400" style={{ animationDelay: "0ms" }} />
-                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[#46566a] dark:bg-blue-400" style={{ animationDelay: "120ms" }} />
-                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[#46566a] dark:bg-blue-400" style={{ animationDelay: "240ms" }} />
+                <div className="flex items-center gap-1.5 rounded-2xl border border-[#e8dadc] bg-[#faf7f6] px-3 py-2.5 dark:border-[#351923] dark:bg-[#0d090b]">
+                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[#c8102e] dark:bg-blue-400" style={{ animationDelay: "0ms" }} />
+                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[#c8102e] dark:bg-blue-400" style={{ animationDelay: "120ms" }} />
+                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[#c8102e] dark:bg-blue-400" style={{ animationDelay: "240ms" }} />
                 </div>
               </div>
             )}
@@ -701,12 +882,12 @@ export default function AssistantWidget({
 
           {/* Suggestions */}
           {suggestions.length > 0 && !busy && !showHistory && (
-            <div className="flex flex-none flex-wrap gap-1.5 border-t border-[#dde1e5] px-3 pt-2.5 dark:border-[#39434E]">
+            <div className="flex flex-none flex-wrap gap-1.5 border-t border-[#e8dadc] px-3 pt-2.5 dark:border-[#351923]">
               {suggestions.slice(0, 5).map((s, i) => (
                 <button
                   key={`${i}-${s}`}
                   onClick={() => send(s)}
-                  className="rounded-full border border-[#dde1e5] bg-white px-2.5 py-1 text-[0.6875rem] font-semibold text-[#30343A] transition hover:bg-[#eceff2] dark:border-[#39434E] dark:bg-[#171b20] dark:text-[#f1f3f5] dark:hover:bg-[#222831]"
+                  className="rounded-full border border-[#e8dadc] bg-white px-2.5 py-1 text-[0.6875rem] font-semibold text-[#292326] transition hover:bg-[#f8f1f1] dark:border-[#351923] dark:bg-[#000000] dark:text-[#f5eff1] dark:hover:bg-[#0d090b]"
                 >
                   {s}
                 </button>
@@ -729,13 +910,13 @@ export default function AssistantWidget({
               rows={1}
               placeholder={ph}
               maxLength={500}
-              className="assistant-input min-w-0 flex-1 resize-none overflow-y-auto rounded-2xl border border-[#dde1e5] bg-white px-3.5 py-2.5 text-[0.8125rem] outline-none focus:border-[#46566a] dark:border-[#39434E] dark:bg-[#222831] dark:text-gray-100 dark:focus:border-blue-500"
+              className="assistant-input min-w-0 flex-1 resize-none overflow-y-auto rounded-2xl border border-[#e8dadc] bg-white px-3.5 py-2.5 text-[0.8125rem] outline-none focus:border-[#c8102e] dark:border-[#351923] dark:bg-[#0d090b] dark:text-gray-100 dark:focus:border-blue-500"
             />
             <button
               onClick={() => send()}
               disabled={busy || !input.trim()}
               aria-label="Send"
-              className="flex h-9 w-9 flex-none items-center justify-center rounded-full bg-[#46566a] text-white transition hover:bg-[#37455a] disabled:opacity-40 dark:bg-blue-600 dark:hover:bg-blue-500"
+              className="flex h-9 w-9 flex-none items-center justify-center rounded-full bg-[#c8102e] text-white transition hover:bg-[#a50f29] disabled:opacity-40 dark:bg-blue-600 dark:hover:bg-blue-500"
             >
               ➤
             </button>

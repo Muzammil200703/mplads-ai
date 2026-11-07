@@ -54,6 +54,7 @@ function TopBar({
   isMobile,
   selectedFY,
   onFYChange,
+  onOpenCommandPalette,
 }) {
   const [availableFYs, setAvailableFYs] = useState([])
   const [history, setHistory] = useState(loadHistory)
@@ -166,7 +167,7 @@ function TopBar({
 
   return (
     <header
-      className="fixed left-0 right-0 top-0 z-[70] h-[64px] lg:h-[72px] border-b border-[#dde1e5] bg-[#f4f5f6] text-[#30343A] dark:border-[#39434E] dark:bg-[#171b20] dark:text-[#f1f3f5] transition-colors duration-300"
+      className="fixed left-0 right-0 top-0 z-[70] h-[64px] lg:h-[72px] border-b border-[#e8dadc] bg-[#faf7f6] text-[#292326] dark:border-[#351923] dark:bg-[#000000] dark:text-[#f5eff1] transition-colors duration-300"
     >
       <div
         className={`
@@ -184,19 +185,19 @@ flex h-full min-w-0 items-center gap-1.5 px-2 sm:gap-3 sm:px-4 lg:gap-4 lg:px-5 
           className="
             flex h-10 w-10 shrink-0 items-center
             justify-center rounded-lg
-            border border-[#dde1e5]
-            bg-[#eceff2]
-            text-[#30343A]
+            border border-[#e8dadc]
+            bg-[#f8f1f1]
+            text-[#292326]
             transition-all duration-200
-            hover:bg-[#eceff2]
-            hover:border-[#46566a]
+            hover:bg-[#f8f1f1]
+            hover:border-[#c8102e]
             hover:shadow-sm
             active:scale-95
-            dark:border-[#39434E]
-            dark:bg-[#222831]
-            dark:text-[#f1f3f5]
-            dark:hover:bg-[#2c3540]
-            dark:hover:border-[#7c8795]
+            dark:border-[#351923]
+            dark:bg-[#0d090b]
+            dark:text-[#f5eff1]
+            dark:hover:bg-[#120b0e]
+            dark:hover:border-[#8b7d81]
           "
           aria-label="Toggle sidebar"
           title="Toggle sidebar (Ctrl+B)"
@@ -219,8 +220,8 @@ flex h-full min-w-0 items-center gap-1.5 px-2 sm:gap-3 sm:px-4 lg:gap-4 lg:px-5 
                   transition-all duration-150
                   ${
                     active
-                      ? `bg-[#eceff2] font-semibold text-[#30343A] dark:bg-[#222831] dark:text-white`
-                      : `text-[#69717c] hover:bg-[#eceff2] hover:text-[#30343A] dark:text-[#cbd2d9] dark:hover:bg-[#222831] dark:hover:text-white`
+                      ? `bg-[#f8f1f1] font-semibold text-[#292326] dark:bg-[#3a0d1c] dark:text-white`
+                      : `text-[#71666a] hover:bg-[#f8f1f1] hover:text-[#292326] dark:text-[#cdc1c5] dark:hover:bg-[#0d090b] dark:hover:text-white`
                   }
                 `}
               >
@@ -230,7 +231,7 @@ flex h-full min-w-0 items-center gap-1.5 px-2 sm:gap-3 sm:px-4 lg:gap-4 lg:px-5 
                     className="
                       absolute bottom-0 left-2 right-2
                       h-[2px] rounded-full
-                      bg-[#46566a]
+                      bg-[#c8102e]
                     "
                   />
                 )}
@@ -246,8 +247,8 @@ flex h-full min-w-0 items-center gap-1.5 px-2 sm:gap-3 sm:px-4 lg:gap-4 lg:px-5 
             className="
               pointer-events-none absolute inset-y-0 left-3
               flex items-center
-              text-[#7c8795]
-              dark:text-[#aab3bd]
+              text-[#7a6f74]
+              dark:text-[#b9aeb2]
             "
           >
             <svg
@@ -285,18 +286,54 @@ flex h-full min-w-0 items-center gap-1.5 px-2 sm:gap-3 sm:px-4 lg:gap-4 lg:px-5 
             }}
             className="
               h-10 w-full rounded-lg
-              border border-[#dde1e5]
+              border border-[#e8dadc]
               bg-white
-              pl-9 pr-3
-              text-sm text-[#30343A]
+              pl-9 pr-16
+              text-sm text-[#292326]
               outline-none
-              placeholder:text-[#aab3bd]
-              focus:border-[#46566a] focus:ring-1 focus:ring-[#46566a]
-              dark:border-[#39434E] dark:bg-[#222831] dark:text-[#f1f3f5]
-              dark:placeholder:text-[#69717c]
-              dark:focus:border-[#7c8795] dark:focus:ring-[#7c8795]
+              placeholder:text-[#b9aeb2]
+              focus:border-[#c8102e] focus:ring-1 focus:ring-[#c8102e]
+              dark:border-[#351923] dark:bg-[#0d090b] dark:text-[#f5eff1]
+              dark:placeholder:text-[#82767b]
+              dark:focus:border-[#8b7d81] dark:focus:ring-[#8b7d81]
             "
           />
+
+          {/* Command palette trigger — the visible, mobile-friendly entry
+              point for the same interface Ctrl/Cmd+K opens. */}
+          {onOpenCommandPalette && (
+            <button
+              type="button"
+              onClick={() => {
+                setShowHistory(false)
+                onOpenCommandPalette()
+              }}
+              aria-label="Open command palette"
+              title="Command palette (Ctrl+K)"
+              className="
+                absolute right-1.5 top-1/2 flex -translate-y-1/2 items-center gap-1
+                rounded-md border border-[#e8dadc] bg-[#faf7f6] px-1.5 py-1
+                text-[0.625rem] font-semibold leading-none text-[#7a6f74]
+                transition-colors
+                hover:border-[#c8102e] hover:text-[#c8102e]
+                dark:border-[#351923] dark:bg-[#140c10] dark:text-[#b9aeb2]
+                dark:hover:border-[#8b7d81] dark:hover:text-[#f5eff1]
+              "
+            >
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                aria-hidden="true"
+                className="h-3 w-3"
+              >
+                <path d="M9 9V6a3 3 0 1 0-3 3h3Zm0 0v6m0-6h6m-6 6H6a3 3 0 1 0 3 3v-3Zm6-6h3a3 3 0 1 0-3-3v3Zm0 0v6m0 0h3a3 3 0 1 1-3 3v-3Z" />
+              </svg>
+              <span>K</span>
+            </button>
+          )}
 
           {/* ── Recent Searches Dropdown ── */}
           {showHistory && (
@@ -305,24 +342,24 @@ flex h-full min-w-0 items-center gap-1.5 px-2 sm:gap-3 sm:px-4 lg:gap-4 lg:px-5 
                 pop-in-down
                 absolute left-0 right-0 top-full z-[80] mt-1
                 overflow-hidden rounded-xl
-                border border-[#dde1e5]
+                border border-[#e8dadc]
                 bg-white
                 shadow-soft
-                dark:border-[#39434E] dark:bg-[#222831]
+                dark:border-[#351923] dark:bg-[#0d090b]
               "
             >
               {historyCleared ? (
-                <div className="px-4 py-3 text-xs text-[#aab3bd] dark:text-[#69717c]">
+                <div className="px-4 py-3 text-xs text-[#b9aeb2] dark:text-[#82767b]">
                   History cleared
                 </div>
               ) : history.length === 0 ? (
-                <div className="px-4 py-3 text-xs text-[#aab3bd] dark:text-[#69717c]">
+                <div className="px-4 py-3 text-xs text-[#b9aeb2] dark:text-[#82767b]">
                   No recent searches
                 </div>
               ) : (
                 <>
-                  <div className="flex items-center justify-between border-b border-[#eceff2] px-4 py-2 dark:border-[#39434E]">
-                    <span className="text-[0.6875rem] font-semibold uppercase tracking-wide text-[#aab3bd] dark:text-[#69717c]">
+                  <div className="flex items-center justify-between border-b border-[#f8f1f1] px-4 py-2 dark:border-[#351923]">
+                    <span className="text-[0.6875rem] font-semibold uppercase tracking-wide text-[#b9aeb2] dark:text-[#82767b]">
                       Recent Searches
                     </span>
                     <button
@@ -346,14 +383,14 @@ flex h-full min-w-0 items-center gap-1.5 px-2 sm:gap-3 sm:px-4 lg:gap-4 lg:px-5 
                           className="
                             flex w-full items-center gap-3
                             px-4 py-2.5
-                            text-left text-sm text-[#2c3540]
+                            text-left text-sm text-[#120b0e]
                             transition-colors
-                            hover:bg-[#f4f5f6]
-                            dark:text-[#cbd2d9]
-                            dark:hover:bg-[#2c3540]
+                            hover:bg-[#faf7f6]
+                            dark:text-[#cdc1c5]
+                            dark:hover:bg-[#120b0e]
                           "
                         >
-                          <span className="shrink-0 text-[#aab3bd] dark:text-[#69717c]">
+                          <span className="shrink-0 text-[#b9aeb2] dark:text-[#82767b]">
                             🕒
                           </span>
                           <span className="truncate">{term}</span>
@@ -378,7 +415,7 @@ flex h-full min-w-0 items-center gap-1.5 px-2 sm:gap-3 sm:px-4 lg:gap-4 lg:px-5 
           <span
             className="
               text-[0.6875rem] font-semibold uppercase tracking-wide
-              text-[#7c8795] dark:text-[#69717c]
+              text-[#7a6f74] dark:text-[#82767b]
             "
           >
             FY
@@ -388,12 +425,12 @@ flex h-full min-w-0 items-center gap-1.5 px-2 sm:gap-3 sm:px-4 lg:gap-4 lg:px-5 
             onChange={(e) => onFYChange && onFYChange(e.target.value)}
             className="
               h-10 rounded-lg
-              border border-[#dde1e5] bg-white
-              px-3 text-sm font-medium text-[#30343A]
+              border border-[#e8dadc] bg-white
+              px-3 text-sm font-medium text-[#292326]
               outline-none
-              focus:border-[#46566a] focus:ring-1 focus:ring-[#46566a]
-              dark:border-[#39434E] dark:bg-[#222831] dark:text-[#f1f3f5]
-              dark:focus:border-[#7c8795] dark:focus:ring-[#7c8795]
+              focus:border-[#c8102e] focus:ring-1 focus:ring-[#c8102e]
+              dark:border-[#351923] dark:bg-[#0d090b] dark:text-[#f5eff1]
+              dark:focus:border-[#8b7d81] dark:focus:ring-[#8b7d81]
             "
           >
             <option value="">All FY</option>

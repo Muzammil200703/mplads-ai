@@ -405,6 +405,14 @@ export async function getProjects(params = {}) {
     request(`/projects${buildQuery(params)}`))
 }
 
+// Global command-palette search: live as-you-type, so abortable calls bypass
+// the cache entirely (a stale page for a previous query is worse than a
+// refetch). The endpoint is bounded server-side.
+export async function globalSearchRecords(params = {}) {
+  const { signal, ...queryParams } = params
+  return request(`/global-search${buildQuery(queryParams)}`, signal ? { signal } : undefined)
+}
+
 export async function searchProjects(params = {}) {
   const { signal, ...queryParams } = params
   const options = signal ? { signal } : {}
@@ -413,6 +421,52 @@ export async function searchProjects(params = {}) {
   if (signal) return request(`/search/projects${buildQuery(queryParams)}`, options)
   return cachedGet(`data_search_${buildQuery(queryParams)}`, 15000, () =>
     request(`/search/projects${buildQuery(queryParams)}`))
+}
+
+// ── Project change history (recorded imports only) ──────────────────
+// No caching: an admin may commit an import while a drawer is open, and a
+// stale change list is worse than one extra request.
+export async function getProjectChanges(projectId) {
+  return request(`/changes/projects/${projectId}`)
+}
+
+export async function getProjectChangeHistory(projectId) {
+  return request(`/changes/projects/${projectId}/history`)
+}
+
+export async function getChangesFeed(params = {}) {
+  return request(`/changes/projects${buildQuery(params)}`)
+}
+
+export async function getChangesSummary() {
+  return request(`/changes/summary`)
+}
+
+export async function getImportChanges(batchId) {
+  return request(`/changes/imports/${batchId}`)
+}
+
+// ── Historical replay (committed import checkpoints only) ───────────
+// Read-only. Every figure is aggregated server-side from the snapshots that
+// import wrote, so these calls never substitute current project values.
+export async function getHistorySnapshots() {
+  return request(`/history/snapshots`)
+}
+
+export async function getHistorySnapshot(batchId) {
+  return request(`/history/snapshots/${batchId}`)
+}
+
+export async function getHistoricalProject(projectId, batchId) {
+  return request(`/history/projects/${projectId}${buildQuery({ batch_id: batchId })}`)
+}
+
+export async function getHistoryDashboard(params = {}) {
+  return request(`/history/dashboard${buildQuery(params)}`)
+}
+
+export async function getHistoryComparison(params = {}) {
+  return request(`/history/compare${buildQuery(params)}`)
 }
 
 export async function getProjectTimeline(projectId) {
@@ -884,11 +938,34 @@ export async function closeInquiry(inquiryId) {
 
 // ═══════════════ MPLADS AI ASSISTANT ═══════════════
 
-export async function askAssistant(question, page, sessionId) {
+export async function askAssistant(question, page, sessionId, house) {
   return request("/assistant/ask", {
     method: "POST",
-    body: JSON.stringify({ question, page: page || null, session_id: sessionId || null }),
+    body: JSON.stringify({
+      question, page: page || null, session_id: sessionId || null, house: house || null,
+    }),
   })
+}
+
+// ── Natural-language database query (same assistant engine) ──────────
+// The conversational path is /assistant/ask; these expose the query layer
+// explicitly (direct data question, validator-only check, stored result).
+export async function queryAssistant(question, sessionId, house) {
+  return request("/assistant/query", {
+    method: "POST",
+    body: JSON.stringify({ question, session_id: sessionId || null, house: house || null }),
+  })
+}
+
+export async function validateAssistantQuery(sql) {
+  return request("/assistant/query/validate", {
+    method: "POST",
+    body: JSON.stringify({ sql }),
+  })
+}
+
+export async function getAssistantQueryResults(queryId) {
+  return request(`/assistant/query/${encodeURIComponent(queryId)}/results`)
 }
 
 export async function getAssistantSuggestions(page) {

@@ -90,16 +90,16 @@ const METRICS = [
 
 const PALETTES = {
   light: {
-    total_projects: ["#edf0f4", "#c3cdd8", "#a5b2c1", "#69798d", "#46566a"],
-    total_expenditure: ["#f0f2f5", "#d4dbe3", "#b0bdca", "#8493a5", "#5a6776"],
-    fund_utilization: ["#eef2f5", "#d5dfe8", "#b2c4d2", "#8fa3b4", "#54687e"],
+    total_projects: ["#fcebec", "#f2b7bd", "#e78d96", "#d95d6b", "#c8102e"],
+    total_expenditure: ["#f8f1f1", "#ead9da", "#d6b9bd", "#b7959a", "#8b7d81"],
+    fund_utilization: ["#f9f3f3", "#eedcdd", "#d9bcbf", "#b89299", "#7f676c"],
     completed_projects: ["#e9f6f0", "#ceebdf", "#a3dac3", "#43ae87", "#269b71"],
     high_risk_projects: ["#fef7ea", "#fdebcb", "#f8be5f", "#f59e0b", "#e14b4b"],
   },
   dark: {
-    total_projects: ["#2c3540", "#3b4959", "#54687e", "#8493a5", "#a5b2c1"],
-    total_expenditure: ["#333f4c", "#44505e", "#5a6776", "#8493a5", "#b0bdca"],
-    fund_utilization: ["#2c3540", "#3c4b5b", "#54687e", "#8fa3b4", "#a9bac9"],
+    total_projects: ["#210a12", "#3a0d1c", "#641329", "#a32346", "#d33b62"],
+    total_expenditure: ["#241016", "#402b34", "#6b4a56", "#9d7c88", "#c9a9b3"],
+    fund_utilization: ["#1c0810", "#2f0a14", "#641329", "#b25a72", "#d0a0ad"],
     completed_projects: ["#123b2c", "#175c45", "#1f8661", "#43ae87", "#74c4a5"],
     high_risk_projects: ["#2a2318", "#3a2f1a", "#b2720a", "#f59e0b", "#e46666"],
   },
@@ -283,14 +283,14 @@ function freshnessMessage(freshness) {
 function noDataPatternStyle(darkMode) {
   return darkMode
     ? {
-        backgroundColor: "#2c3540",
+        backgroundColor: "#120b0e",
         backgroundImage:
-          "repeating-linear-gradient(45deg, transparent, transparent 3px, #39434E 3px, #39434E 4px)",
+          "repeating-linear-gradient(45deg, transparent, transparent 3px, #351923 3px, #351923 4px)",
       }
     : {
-        backgroundColor: "#eceff2",
+        backgroundColor: "#f8f1f1",
         backgroundImage:
-          "repeating-linear-gradient(45deg, transparent, transparent 3px, #cbd2d9 3px, #cbd2d9 4px)",
+          "repeating-linear-gradient(45deg, transparent, transparent 3px, #dfcbcd 3px, #dfcbcd 4px)",
       }
 }
 
@@ -327,9 +327,9 @@ const GeographicDistribution = memo(function GeographicDistribution({
   const isCompact = useMediaQuery("(max-width: 1023px)")
 
   const cardClasses = darkMode
-    ? "bg-[#222831] border-[#2c3540]"
-    : "bg-white border-[#dde1e5]"
-  const mutedText = darkMode ? "text-[#aab3bd]" : "text-[#69717c]"
+    ? "bg-[#0d090b] border-[#351923]"
+    : "bg-white border-[#e8dadc]"
+  const mutedText = darkMode ? "text-[#b9aeb2]" : "text-[#71666a]"
   const palette = PALETTES[darkMode ? "dark" : "light"][metric]
   const selectedMetric = METRICS.find((item) => item.id === metric) || METRICS[0]
   const selectionEnabled = typeof onSelectState === "function"
@@ -548,7 +548,7 @@ const GeographicDistribution = memo(function GeographicDistribution({
       <div
         className={
           sheet
-            ? "sticky top-0 z-10 -mx-4 mb-3 flex items-start justify-between gap-3 border-b border-gray-100 bg-white px-4 pb-3 pt-4 dark:border-gray-700/60 dark:bg-[#222831]"
+            ? "sticky top-0 z-10 -mx-4 mb-3 flex items-start justify-between gap-3 border-b border-gray-100 bg-white px-4 pb-3 pt-4 dark:border-gray-700/60 dark:bg-[#0d090b]"
             : "flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between"
         }
       >
@@ -578,7 +578,7 @@ const GeographicDistribution = memo(function GeographicDistribution({
           aria-label={sheet ? "Close state details" : undefined}
           className={
             sheet
-              ? "shrink-0 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-[0.6875rem] font-bold text-gray-600 shadow-sm transition hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:border-gray-700 dark:bg-[#222831] dark:text-gray-300 dark:hover:bg-gray-800"
+              ? "shrink-0 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-[0.6875rem] font-bold text-gray-600 shadow-sm transition hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:border-gray-700 dark:bg-[#0d090b] dark:text-gray-300 dark:hover:bg-gray-800"
               : "self-start rounded-md border border-gray-200 px-2.5 py-1 text-[0.6875rem] font-bold text-gray-500 transition hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
           }
         >
@@ -792,7 +792,7 @@ const GeographicDistribution = memo(function GeographicDistribution({
           <div className="relative">
           <div
             ref={mapRef}
-            className="relative min-h-[280px] overflow-hidden rounded-lg border border-gray-200 bg-gradient-to-b from-slate-50 to-white dark:border-gray-700/60 dark:from-[#171b20] dark:to-[#171b20]"
+            className="relative min-h-[280px] overflow-hidden rounded-lg border border-gray-200 bg-gradient-to-b from-slate-50 to-white dark:border-gray-700/60 dark:from-[#000000] dark:to-[#000000]"
           >
             <svg
             viewBox={`0 0 ${MAP_WIDTH} ${MAP_HEIGHT}`}
@@ -811,14 +811,14 @@ const GeographicDistribution = memo(function GeographicDistribution({
                 <rect
                   width="6"
                   height="6"
-                  fill={darkMode ? "#2c3540" : "#eceff2"}
+                  fill={darkMode ? "#120b0e" : "#f8f1f1"}
                 />
                 <line
                   x1="0"
                   y1="0"
                   x2="0"
                   y2="6"
-                  stroke={darkMode ? "#39434E" : "#cbd2d9"}
+                  stroke={darkMode ? "#351923" : "#dfcbcd"}
                   strokeWidth="2"
                 />
               </pattern>
@@ -842,10 +842,10 @@ const GeographicDistribution = memo(function GeographicDistribution({
                   stroke={
                     isHovered || isSelected
                       ? darkMode
-                        ? "#b0bdca"
-                        : "#46566a"
+                        ? "#c9a9b3"
+                        : "#c8102e"
                       : darkMode
-                        ? "#171b20"
+                        ? "#000000"
                         : "#ffffff"
                   }
                   strokeWidth={isHovered || isSelected ? 2 : 1}
@@ -885,8 +885,8 @@ const GeographicDistribution = memo(function GeographicDistribution({
           </svg>
 
           {loading && (
-            <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/55 backdrop-blur-[1px] dark:bg-[#171b20]/55">
-              <div className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-semibold shadow-sm dark:border-gray-700 dark:bg-[#222831]">
+            <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/55 backdrop-blur-[1px] dark:bg-[#000000]/55">
+              <div className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-semibold shadow-sm dark:border-gray-700 dark:bg-[#0d090b]">
                 <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-solid border-blue-600 border-r-transparent" />
                 Loading state aggregates…
               </div>
@@ -894,8 +894,8 @@ const GeographicDistribution = memo(function GeographicDistribution({
           )}
 
           {!geo && !geoError && (
-            <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/55 backdrop-blur-[1px] dark:bg-[#171b20]/55">
-              <div className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-semibold shadow-sm dark:border-gray-700 dark:bg-[#222831]">
+            <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/55 backdrop-blur-[1px] dark:bg-[#000000]/55">
+              <div className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-semibold shadow-sm dark:border-gray-700 dark:bg-[#0d090b]">
                 <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-solid border-blue-600 border-r-transparent" />
                 Loading India boundaries…
               </div>
@@ -907,7 +907,7 @@ const GeographicDistribution = memo(function GeographicDistribution({
           {/* HOVER / FOCUS TOOLTIP */}
           {hover && (
             <div
-              className="pointer-events-none absolute z-20 w-[240px] rounded-xl border border-gray-200 bg-white/95 p-3 text-[#30343A] shadow-soft-lg backdrop-blur dark:border-gray-700 dark:bg-[#222831]/95 dark:text-[#f1f3f5] sm:w-[252px]"
+              className="pointer-events-none absolute z-20 w-[240px] rounded-xl border border-gray-200 bg-white/95 p-3 text-[#292326] shadow-soft-lg backdrop-blur dark:border-gray-700 dark:bg-[#0d090b]/95 dark:text-[#f5eff1] sm:w-[252px]"
               style={{ left: hover.left, top: hover.top }}
             >
               <div className="flex items-start justify-between gap-2">
