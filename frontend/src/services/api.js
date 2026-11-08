@@ -568,8 +568,16 @@ export async function getVendorRelationships(vendorKey, params = {}) {
 }
 
 export async function getVendorComparison(keys = [], params = {}) {
+  // Use client-side cache to avoid redundant API calls when the same
+  // vendor set is compared multiple times (e.g., modal open/close cycles).
+  // Cache TTL: 2 minutes — comparison data is stable within a analysis session.
+  const cacheKey = `vendor_comparison_${keys.sort().join(",")}_${JSON.stringify(params)}`
+  cached = cacheGet(cacheKey, 120000)
+  if (cached !== undefined) return cached
   const query = buildQuery({ keys: keys.join(","), ...params })
-  return request(`/vendor-intelligence/compare${query}`)
+  const promise = request(`/vendor-intelligence/compare${query}`)
+  cacheSet(cacheKey, await promise)
+  return promise
 }
 
 export async function getVendorBehaviourScan(params = {}) {

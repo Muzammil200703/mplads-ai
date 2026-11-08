@@ -643,7 +643,7 @@ def vendor_network(
             models.Expenditure.ida != "",
             models.Expenditure.vendor.isnot(None),
             models.Expenditure.vendor != "",
-            ~_func.lower(_func.trim(models.Expenditure.ida)).in_((("", "na", "n/a", "-", "not available", "nil"),)),
+            ~_func.lower(_func.trim(models.Expenditure.ida)).notin_(["", "na", "n/a", "-", "not available", "nil"]),
         )
         .all()
     )
