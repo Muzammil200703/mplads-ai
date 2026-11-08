@@ -534,6 +534,15 @@ app.add_middleware(
     max_age=3600,
 )
 
+@app.middleware("http")
+async def logging_middleware(request, call_next):
+    """Structured request logging to stdout."""
+    start_time = time.time()
+    response = await call_next(request)
+    duration_ms = (time.time() - start_time) * 1000
+    # Log method, path, status, duration - no secrets or sensitive user data
+    print(f"{request.method} {request.url.path} {response.status_code} {duration_ms:.0f}ms")
+    return response
 
 def get_db():
     db = SessionLocal()
@@ -799,6 +808,27 @@ def health_check(db: Session = Depends(get_db)):
 
 
 # =========================================================
+
+@app.get("/healthz", tags=["System"])
+async def healthz_check():
+    """Liveness check: process is running. No DB dependency."""
+    return {"status": "alive"}
+
+@app.get("/ready", tags=["System"])
+async def ready_check(db: Session = Depends(get_db)):
+    """Readiness check: lightweight DB connectivity test."""
+    try:
+        count = db.query(func.count(models.Project.id)).scalar()
+        return {
+            "status": "ready",
+            "database": "connected",
+            "data_ready": bool(count),
+        }
+    except Exception:
+        return JSONResponse(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            content={"status": "not ready", "database": "disconnected"},
+        )
 # FILTERS ENDPOINTS
 # =========================================================
 

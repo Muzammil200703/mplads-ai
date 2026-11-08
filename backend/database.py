@@ -16,6 +16,34 @@ def normkey(value) -> str:
     UDF `normkey` on every connection and importable for direct use."""
     return re.sub(r"[^a-z0-9]+", " ", str(value or "").lower()).strip()
 
+
+
+def _retryable_db_operation(func, max_retries=3, base_delay=1.0):
+    """Retry a database operation with exponential backoff for retryable errors.
+
+    Only retries on sqlite3.OperationalError with "database is locked"
+    or similar transient lock errors. Other errors are raised immediately.
+    This prevents a single locked writer from crashing the entire request.
+    """
+    import sqlite3
+    import time
+
+    last_error = None
+    for attempt in range(max_retries + 1):
+        try:
+            return func()
+        except sqlite3.OperationalError as e:
+            if "database is locked" in str(e).lower() and attempt < max_retries:
+                delay = base_delay * (2 ** attempt)  # 1s, 2s, 4s
+                last_error = e
+                time.sleep(delay)
+                continue
+            raise
+        except Exception:
+            # For non-SQLite errors, raise immediately
+            raise
+    raise last_error from None
+
 DATABASE_URL = f"sqlite:///{DB_PATH}"
 
 engine = create_engine(
@@ -79,6 +107,27 @@ SessionLocal = sessionmaker(
     bind=engine
 )
 
+# Convenience: run a DB operation with exponential backoff retry for lock errors.
+# Usage: with_retry(lambda db: db.query(models.Project).first())
+def with_retry_operation(func):
+    """Run a database function with retry on locked errors.
+
+    Creates a new session, runs the provided function, commits if successful,
+    and ensures the session is closed. Retries on sqlite3.OperationalError.
+    """
+    import sqlite3
+    from database import SessionLocal, engine
+
+    db = SessionLocal()
+    try:
+        result = func(db)
+        db.commit()
+        return result
+    except sqlite3.OperationalError:
+        db.rollback()
+        raise
+    finally:
+        db.close()
 Base = declarative_base()
 
 

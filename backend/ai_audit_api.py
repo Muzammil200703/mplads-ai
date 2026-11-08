@@ -21,7 +21,7 @@ import os
 import statistics
 import threading
 from datetime import datetime
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -626,49 +626,55 @@ def vendor_network(
     # release the grouped result immediately
     del vendor_rows
 
-    # ── 2. SQL-side cluster candidate discovery: (ida, family) groups ──
+    # ── 2. SQL-side cluster candidate discovery: (ida, vendor) pairs ──
     # A cluster = vendors sharing the same IDA whose names share the same
-    # first-two-word family. Doing the family split in SQL avoids holding
-    # per-IDA vendor sets for all ~10k IDAs in Python at once.
-    # Scalar (per-row) "first two words" key — legal in GROUP BY, unlike an
-    # aggregate. Padding guarantees instr() always finds a space.
-    _s = _func.lower(_func.trim(models.Expenditure.vendor)) + "   "
-    _p1 = _func.instr(_s, " ")
-    _p2 = _func.instr(_func.substr(_s, _p1 + 1), " ")
-    _fam = _func.trim(_func.substr(_s, 1, _p1 + _p2 - 1))
-    family_rows = (
+    # first-two-word family. The family key is computed in Python below to
+    # avoid the SQLite "aggregate functions are not allowed in the GROUP BY clause"
+    # error that arises when using a complex expr (_fam = trim(substr(...))) in
+    # GROUP BY alongside HAVING count(distinct ...).
+    # We fetch (ida, vendor) pairs in SQL, then group by (ida, family) in Python.
+    vendor_ida_rows = (
         db.query(
             _func.lower(_func.trim(models.Expenditure.ida)).label("ida_key"),
-            _fam.label("family"),
-            _func.count(_func.distinct(_func.lower(_func.trim(models.Expenditure.vendor)))).label("members"),
-            _func.coalesce(_func.sum(models.Expenditure.expenditure_amount), 0.0).label("total"),
+            _func.lower(_func.trim(models.Expenditure.vendor)).label("vkey"),
         )
         .filter(
             models.Expenditure.ida.isnot(None),
             models.Expenditure.ida != "",
-            ~_func.lower(_func.trim(models.Expenditure.ida)).in_(("", "na", "n/a", "-", "not available", "nil"),),
             models.Expenditure.vendor.isnot(None),
             models.Expenditure.vendor != "",
+            ~_func.lower(_func.trim(models.Expenditure.ida)).in_((("", "na", "n/a", "-", "not available", "nil"),)),
         )
-        .group_by("ida_key", "family")
-        .having(_func.count(_func.distinct(_func.lower(_func.trim(models.Expenditure.vendor)))) >= min_cluster)
         .all()
     )
-    candidates = []
-    for ida_key, family, members, total in family_rows:
-        members = int(members)
+
+    # Compute the "first-two-words" family key for each vendor in Python.
+    # This is equivalent to the original SQL _fam = trim(substr(vendor, 1, instr(vendor, ' ', 1) + instr(substr(vendor, instr(vendor, ' ', 1) + 1), ' '))) 
+    # but uses Python str.split() which is reliable and avoids the GROUP BY issue.
+    def _family_key(vendor_name: str) -> str:
+        parts = str(vendor_name or "").strip().lower().split()
+        return " ".join(parts[:2]) if len(parts) >= 2 else str(vendor_name or "").strip().lower()
+
+    family_groups: Dict[Tuple[str, str], int] = {}
+    for ida_key, vkey in vendor_ida_rows:
+        fam = _family_key(vkey)
+        key = (ida_key, fam)
+        family_groups[key] = family_groups.get(key, 0) + 1
+
+    # Filter groups that meet the minimum cluster size threshold.
+    candidates: List[Dict[str, Any]] = []
+    for (ida_key, fam), members in family_groups.items():
         if members < min_cluster:
             continue
-        total_value = float(total)
-        risk = min(100, 45 + 12 * members + (10 if total_value > 10_000_000 else 0))
+        total = vendor_stats.get(ida_key, {}).get("total_value", 0.0)
+        risk = min(100, 45 + 12 * members + (10 if total > 10_000_000 else 0))
         candidates.append({
             "ida": str(ida_key).title(),
-            "name_family": str(family).strip(),
+            "name_family": str(fam).strip(),
             "member_count": members,
-            "combined_value": round(total_value, 0),
+            "combined_value": round(total, 0),
             "risk_score": risk,
         })
-    del family_rows
     candidates.sort(key=lambda c: c["risk_score"], reverse=True)
     top_candidates = candidates[:limit]
     cluster_count = len(candidates)
