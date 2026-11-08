@@ -1,57 +1,39 @@
-INFO:     Started server process [9416]
+INFO:     Started server process [2008]
 INFO:     Waiting for application startup.
 INFO:     Application startup complete.
 INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
-INFO:     127.0.0.1:52040 - "GET /health HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52040 - "GET /v1/models HTTP/1.1" 404 Not Found
-INFO:     127.0.0.1:52043 - "GET /intel/root-cause/46162 HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52044 - "GET /intel/root-cause/46162 HTTP/1.1" 403 Forbidden
-INFO:     127.0.0.1:52045 - "GET /intel/root-cause/99999999 HTTP/1.1" 404 Not Found
-INFO:     127.0.0.1:52046 - "GET /intel/emerging-risk?state=Bihar HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52048 - "GET /intel/emerging-risk?state=Bihar&house=Lok%20Sabha HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52049 - "GET /intel/evolution?state=Bihar HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52050 - "GET /intel/clusters?state=Bihar HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52055 - "GET /intel/clusters/1/projects?limit=10 HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52056 - "GET /intel/reconciliation?limit=8 HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52057 - "POST /intel/reconciliation/review/cdce31dcf0f8112e18e3f73c HTTP/1.1" 403 Forbidden
-INFO:     127.0.0.1:52058 - "POST /intel/reconciliation/review/cdce31dcf0f8112e18e3f73c HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52059 - "GET /intel/reconciliation?limit=8 HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52064 - "POST /intel/multiagent/46162/run HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52065 - "PATCH /agent/findings/3 HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52066 - "POST /intel/multiagent/46162/run HTTP/1.1" 403 Forbidden
-INFO:     127.0.0.1:52067 - "GET /intel/memory/46162 HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52068 - "POST /intel/memory/46162 HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52069 - "PATCH /intel/memory/entry/4 HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52070 - "GET /intel/memory/46162 HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52071 - "PATCH /intel/memory/entry/4 HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52072 - "GET /intel/memory/46162 HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52073 - "GET /intel/memory/46162 HTTP/1.1" 403 Forbidden
-INFO:     127.0.0.1:52074 - "GET /intel/geo/coverage?state=Bihar HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52075 - "GET /intel/geo/districts?state=Bihar HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52078 - "GET /intel/geo/districts?house=Lok%20Sabha HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52079 - "GET /intel/geo/districts?house=Rajya%20Sabha HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52080 - "GET /intel/geo/districts HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52081 - "GET /health HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52081 - "GET /v1/models HTTP/1.1" 404 Not Found
-INFO:     127.0.0.1:52082 - "GET /intel/geo/spatial?state=Bihar HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52083 - "GET /intel/geo/progress?state=Bihar&house=Lok%20Sabha HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52084 - "GET /intel/geo/outliers?state=Bihar HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52085 - "GET /intel/geo/coverage?state=Bihar HTTP/1.1" 403 Forbidden
-INFO:     127.0.0.1:52092 - "GET /agent/projects/1/latest HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52094 - "GET /agent/projects/1/latest HTTP/1.1" 403 Forbidden
-INFO:     127.0.0.1:52095 - "POST /agent/projects/1/run HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52096 - "GET /agent/projects/1/report HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52097 - "POST /agent/projects/1/run HTTP/1.1" 403 Forbidden
-INFO:     127.0.0.1:52098 - "GET /predict/projects/1 HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52100 - "GET /predict/projects/1 HTTP/1.1" 403 Forbidden
-INFO:     127.0.0.1:52101 - "GET /predict/projects/99999999 HTTP/1.1" 404 Not Found
-INFO:     127.0.0.1:52102 - "POST /assistant/ask HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52103 - "POST /assistant/ask HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52107 - "POST /assistant/ask HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52108 - "POST /assistant/ask HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52111 - "GET /health HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52111 - "GET /v1/models HTTP/1.1" 404 Not Found
-INFO:     127.0.0.1:52133 - "GET /health HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52133 - "GET /v1/models HTTP/1.1" 404 Not Found
-INFO:     127.0.0.1:52144 - "GET /health HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52144 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:64931 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64937 - "POST /auth/forgot-password HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64938 - "POST /auth/reset-password HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64939 - "POST /auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64940 - "GET /auth/users HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64941 - "GET /auth/users HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:64942 - "GET /auth/users HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:64943 - "POST /auth/change-password HTTP/1.1" 400 Bad Request
+INFO:     127.0.0.1:64944 - "POST /auth/change-password HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64945 - "POST /auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64946 - "POST /auth/forgot-password HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64947 - "POST /auth/reset-password HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64948 - "POST /auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64949 - "GET /auth/users HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64970 - "GET /auth/users HTTP/1.1" 403 Forbidden
+INFO:     127.0.0.1:64971 - "GET /auth/users HTTP/1.1" 403 Forbidden
+INFO:     127.0.0.1:64972 - "GET /auth/users HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65106 - "OPTIONS /auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65106 - "POST /auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65141 - "GET /filters/fys HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65141 - "GET /filters/fys HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65141 - "GET /dashboard/house?house=All HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65141 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65141 - "GET /dashboard/overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65145 - "GET /dashboard/house?house=All HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65145 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65143 - "GET /dashboard/anomalies-summary HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65143 - "GET /dashboard/anomalies-summary HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65141 - "GET /ai/narrative-insights HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65141 - "GET /ai/narrative-insights HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65142 - "GET /dashboard/states HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65142 - "GET /dashboard/states HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65144 - "GET /dashboard/early-warning HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65142 - "GET /dashboard/early-warning HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65142 - "GET /dashboard/state-map HTTP/1.1" 200 OK

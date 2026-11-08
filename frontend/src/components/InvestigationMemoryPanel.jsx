@@ -30,7 +30,7 @@ function FindingList({ title, items, empty }) {
             <div key={`${f.key || f.id}-${f.origin}`} className="rounded-lg border border-gray-200 bg-white p-2 dark:border-gray-700 dark:bg-[#0d090b]">
               <div className="flex flex-wrap items-center justify-between gap-1">
                 <p className="text-[0.83rem] font-bold text-gray-900 dark:text-white">{f.title}</p>
-                <span className={`rounded px-1.5 py-0.5 text-[0.62rem] font-bold ${ORIGIN_TONE[f.origin] || ORIGIN_TONE["ai-suggested"]}`}>
+                <span className={`rounded-sm px-1.5 py-0.5 text-[0.62rem] font-bold ${ORIGIN_TONE[f.origin] || ORIGIN_TONE["ai-suggested"]}`}>
                   {f.origin}
                 </span>
               </div>
@@ -163,10 +163,10 @@ export default function InvestigationMemoryPanel({ projectId }) {
                 <div className="flex flex-wrap items-center justify-between gap-1">
                   <p className="text-[0.83rem] font-bold text-gray-900 dark:text-white">{e.title || e.kind}</p>
                   <div className="flex flex-wrap gap-1">
-                    <span className={`rounded px-1.5 py-0.5 text-[0.62rem] font-bold ${e.confirmed ? ORIGIN_TONE["auditor-confirmed"] : ORIGIN_TONE["ai-suggested"]}`}>
+                    <span className={`rounded-sm px-1.5 py-0.5 text-[0.62rem] font-bold ${e.confirmed ? ORIGIN_TONE["auditor-confirmed"] : ORIGIN_TONE["ai-suggested"]}`}>
                       {e.confirmed ? "auditor-confirmed" : `${e.origin} · unconfirmed`}
                     </span>
-                    <span className="rounded bg-gray-100 px-1.5 py-0.5 text-[0.62rem] font-bold text-gray-500 dark:bg-gray-800 dark:text-gray-300">{e.kind}</span>
+                    <span className="rounded-sm bg-gray-100 px-1.5 py-0.5 text-[0.62rem] font-bold text-gray-500 dark:bg-gray-800 dark:text-gray-300">{e.kind}</span>
                   </div>
                 </div>
                 {e.body && <p className="mt-0.5 whitespace-pre-line text-[0.8rem] text-gray-600 dark:text-gray-300">{e.body}</p>}
@@ -179,12 +179,12 @@ export default function InvestigationMemoryPanel({ projectId }) {
                     <div className="flex gap-1">
                       {!e.confirmed && (
                         <button type="button" disabled={busy} onClick={() => patch(e.id, { confirmed: true })}
-                          className="rounded border border-green-300 px-1.5 py-0.5 text-[0.68rem] font-bold text-green-700 hover:bg-green-50 disabled:opacity-50 dark:border-green-800 dark:text-green-300 dark:hover:bg-green-950/30">
+                          className="rounded-sm border border-green-300 px-1.5 py-0.5 text-[0.68rem] font-bold text-green-700 hover:bg-green-50 disabled:opacity-50 dark:border-green-800 dark:text-green-300 dark:hover:bg-green-950/30">
                           Confirm
                         </button>
                       )}
                       <button type="button" disabled={busy} onClick={() => patch(e.id, { status: "removed" })}
-                        className="rounded border border-gray-300 px-1.5 py-0.5 text-[0.68rem] font-bold text-gray-600 hover:bg-gray-50 disabled:opacity-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800">
+                        className="rounded-sm border border-gray-300 px-1.5 py-0.5 text-[0.68rem] font-bold text-gray-600 hover:bg-gray-50 disabled:opacity-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800">
                         Remove
                       </button>
                     </div>

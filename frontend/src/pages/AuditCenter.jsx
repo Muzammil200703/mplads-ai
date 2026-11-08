@@ -42,7 +42,7 @@ function FlagPill({ label }) {
     : label.includes("Cost") ? "bg-orange-100 text-orange-700 dark:bg-orange-950 dark:text-orange-300"
     : label.includes("GPS") ? "bg-cyan-100 text-cyan-700 dark:bg-cyan-950 dark:text-cyan-300"
     : "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300"
-  return <span className={`inline-block whitespace-nowrap rounded px-1.5 py-0.5 text-[0.6875rem] font-semibold ${tone}`}>{label}</span>
+  return <span className={`inline-block whitespace-nowrap rounded-sm px-1.5 py-0.5 text-[0.6875rem] font-semibold ${tone}`}>{label}</span>
 }
 
 /* local import-free FlagPill used by the table; ForensicsPanel has its own shared copy */

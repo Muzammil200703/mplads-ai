@@ -108,7 +108,7 @@ function TopBar({
     }
   }, [searchQuery])
 
-  const handleBlur = useCallback((e) => {
+  const handleBlur = useCallback(() => {
     // Delay hiding so click on history item registers first
     setTimeout(() => {
       if (!historyRef.current?.contains(document.activeElement)) {
@@ -170,21 +170,16 @@ function TopBar({
       className="fixed left-0 right-0 top-0 z-[70] h-[64px] lg:h-[72px] border-b border-[#e8dadc] bg-[#faf7f6] text-[#292326] dark:border-[#351923] dark:bg-[#000000] dark:text-[#f5eff1] transition-colors duration-300"
     >
       <div
-        className={`
-flex h-full min-w-0 items-center gap-1.5 px-2 sm:gap-3 sm:px-4 lg:gap-4 lg:px-5 transition-all duration-300 ${
-          isMobile || collapsed ? "" : "pl-60"
-        }
-        `}
-        style={{
-          paddingLeft: isMobile ? "1.25rem" : collapsed ? "0.75rem" : undefined,
-        }}
+        className={`flex h-full min-w-0 items-center gap-2 px-3 transition-all duration-300 sm:gap-3 sm:px-4 lg:gap-4 lg:px-5 ${
+          collapsed ? "lg:pl-3" : ""
+        }`}
       >
         {/* MENU BUTTON */}
         <button
           onClick={onMenuClick}
           className="
             flex h-10 w-10 shrink-0 items-center
-            justify-center rounded-lg
+            justify-center rounded-full
             border border-[#e8dadc]
             bg-[#f8f1f1]
             text-[#292326]
@@ -285,10 +280,10 @@ flex h-full min-w-0 items-center gap-1.5 px-2 sm:gap-3 sm:px-4 lg:gap-4 lg:px-5 
               }
             }}
             className="
-              h-10 w-full rounded-lg
+              h-10 w-full min-w-0 rounded-lg
               border border-[#e8dadc]
               bg-white
-              pl-9 pr-16
+              pl-9 pr-14
               text-sm text-[#292326]
               outline-none
               placeholder:text-[#b9aeb2]
@@ -311,8 +306,8 @@ flex h-full min-w-0 items-center gap-1.5 px-2 sm:gap-3 sm:px-4 lg:gap-4 lg:px-5 
               aria-label="Open command palette"
               title="Command palette (Ctrl+K)"
               className="
-                absolute right-1.5 top-1/2 flex -translate-y-1/2 items-center gap-1
-                rounded-md border border-[#e8dadc] bg-[#faf7f6] px-1.5 py-1
+                absolute right-2 top-1/2 flex h-6 min-w-6 -translate-y-1/2 items-center justify-center gap-1
+                rounded-md border border-[#e8dadc] bg-[#faf7f6] px-1.5
                 text-[0.625rem] font-semibold leading-none text-[#7a6f74]
                 transition-colors
                 hover:border-[#c8102e] hover:text-[#c8102e]

@@ -271,20 +271,20 @@ function QueryResult({ query, chart }) {
           {query.sql && (
             <button
               onClick={copySql}
-              className="rounded px-1.5 py-0.5 text-[0.625rem] font-semibold text-[#292326] hover:bg-black/5 dark:text-gray-200 dark:hover:bg-white/10"
+              className="rounded-sm px-1.5 py-0.5 text-[0.625rem] font-semibold text-[#292326] hover:bg-black/5 dark:text-gray-200 dark:hover:bg-white/10"
             >{copied ? "Copied" : "Copy SQL"}</button>
           )}
           {query.sql && (
             <button
               onClick={() => setShowSql((s) => !s)}
-              className="rounded px-1.5 py-0.5 text-[0.625rem] font-semibold text-[#c8102e] hover:bg-black/5 dark:text-blue-300 dark:hover:bg-white/10"
+              className="rounded-sm px-1.5 py-0.5 text-[0.625rem] font-semibold text-[#c8102e] hover:bg-black/5 dark:text-blue-300 dark:hover:bg-white/10"
             >{showSql ? "Hide SQL" : "View SQL"}</button>
           )}
           {query.can_export && query.id && !failed && (
             <button
               onClick={exportCsv}
               disabled={loading}
-              className="rounded px-1.5 py-0.5 text-[0.625rem] font-semibold text-[#292326] hover:bg-black/5 disabled:opacity-40 dark:text-gray-200 dark:hover:bg-white/10"
+              className="rounded-sm px-1.5 py-0.5 text-[0.625rem] font-semibold text-[#292326] hover:bg-black/5 disabled:opacity-40 dark:text-gray-200 dark:hover:bg-white/10"
             >CSV</button>
           )}
         </div>
@@ -427,6 +427,30 @@ export default function AssistantWidget({
      after the panel is already open. */
   const [modalSync, setModalSync] = useState(null) // {top, height} | null
   const [modalPresent, setModalPresent] = useState(false) // project modal on screen (raises FAB + panel above its overlay)
+
+  /* ── Scroll-aware launcher (phones) ── a fixed button would keep covering
+     right-aligned counts while the page scrolls, so it steps out of the way
+     on downward scroll and returns as soon as the user stops or scrolls up.
+     Desktop keeps the button permanently visible. */
+  const [fabHidden, setFabHidden] = useState(false)
+  useEffect(() => {
+    let lastTop = null
+    let idle
+    const onScroll = (e) => {
+      const el = e.target
+      if (!(el instanceof HTMLElement)) return
+      const top = el.scrollTop
+      if (lastTop !== null && window.innerWidth < 1024) {
+        if (top > lastTop + 8) setFabHidden(true)
+        else if (top < lastTop - 8) setFabHidden(false)
+      }
+      lastTop = top
+      clearTimeout(idle)
+      idle = setTimeout(() => setFabHidden(false), 900)
+    }
+    document.addEventListener("scroll", onScroll, true)
+    return () => { document.removeEventListener("scroll", onScroll, true); clearTimeout(idle) }
+  }, [])
   useEffect(() => {
     const measure = () => {
       const card = document.querySelector("[data-mplads-modal-card]")
@@ -708,7 +732,7 @@ export default function AssistantWidget({
         onClick={() => setOpen((o) => !o)}
         aria-label="MPLADS AI Assistant"
         title="MPLADS AI Assistant"
-        className={`fixed bottom-5 right-5 z-[70] flex h-13 w-13 items-center justify-center rounded-full bg-[#c8102e] text-xl text-white shadow-soft transition-[transform,opacity] duration-200 hover:scale-105 hover:bg-[#a50f29] active:scale-95 dark:bg-blue-600 dark:hover:bg-blue-500 ${modalPresent ? "!z-[85]" : ""} ${open ? "pointer-events-none opacity-0" : ""}`}
+        className={`assistant-fab fixed z-[70] flex h-13 w-13 items-center justify-center rounded-full bg-[#c8102e] text-xl text-white shadow-soft transition-[transform,opacity] duration-200 hover:scale-105 hover:bg-[#a50f29] active:scale-95 dark:bg-blue-600 dark:hover:bg-blue-500 ${modalPresent ? "!z-[85]" : ""} ${open || fabHidden ? "pointer-events-none opacity-0" : ""} ${fabHidden ? "translate-y-2" : ""}`}
         style={{ height: 52, width: 52 }}
       >
         {open ? "✕" : "✦"}
@@ -716,7 +740,7 @@ export default function AssistantWidget({
 
       {/* Panel */}
       {open && (
-        <div        className="pop-in-up fixed bottom-20 right-5 z-[70] flex h-[520px] max-h-[calc(100vh-6rem)] w-[380px] max-w-[calc(100vw-2.5rem)] flex-col overflow-hidden rounded-2xl border border-[#e8dadc] bg-white shadow-soft-lg dark:border-[#351923] dark:bg-[#000000]" style={{ transformOrigin: "bottom right", ...(modalSync ? { top: modalSync.top, bottom: "auto", height: modalSync.height, maxHeight: "none" } : {}), ...(modalPresent ? { zIndex: 85 } : {}) }}>
+        <div        className="pop-in-up fixed z-[70] flex h-[520px] max-h-[calc(100vh-6rem)] w-[380px] max-w-[calc(100vw-2.5rem)] flex-col overflow-hidden rounded-2xl border border-[#e8dadc] bg-white shadow-soft-lg dark:border-[#351923] dark:bg-[#000000]" style={{ right: "calc(1.25rem + env(safe-area-inset-right, 0px))", bottom: "calc(5rem + env(safe-area-inset-bottom, 0px))", transformOrigin: "bottom right", ...(modalSync ? { top: modalSync.top, bottom: "auto", height: modalSync.height, maxHeight: "none" } : {}), ...(modalPresent ? { zIndex: 85 } : {}) }}>
           {/* Header */}
           <div className="flex flex-none items-center gap-2.5 border-b border-[#e8dadc] bg-[#faf7f6] px-4 py-3 dark:border-[#351923] dark:bg-[#120b0e]">
             <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#c8102e] text-sm text-white dark:bg-blue-600">✦</span>
@@ -762,7 +786,7 @@ export default function AssistantWidget({
               <div className="flex items-center justify-between px-4 pb-1.5 pt-2.5">
                 <p className="text-[0.6875rem] font-bold uppercase tracking-wide text-[#71666a] dark:text-[#b9aeb2]">Past conversations</p>
                 {history.length > 0 && (
-                  <button onClick={clearHistory} className="rounded px-1.5 py-0.5 text-[0.6875rem] font-semibold text-red-600 transition hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/40">
+                  <button onClick={clearHistory} className="rounded-sm px-1.5 py-0.5 text-[0.6875rem] font-semibold text-red-600 transition hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/40">
                     Clear all
                   </button>
                 )}
@@ -795,7 +819,7 @@ export default function AssistantWidget({
           {/* Messages */}
           <div ref={scrollRef} className="assistant-scroll min-h-0 flex-1 space-y-3.5 overflow-y-auto px-4 py-4">
             {messages.length === 0 && !showHistory && (
-              <div className="rounded-xl bg-[#f8f1f1] p-4 text-[0.8125rem] leading-snug text-[#292326] dark:bg-[#0d090b] dark:text-[#f5eff1]">
+              <div className="anim-panel-in rounded-xl bg-[#f8f1f1] p-4 text-[0.8125rem] leading-snug text-[#292326] dark:bg-[#0d090b] dark:text-[#f5eff1]">
                 {contextProjectId
                   ? `Project context loaded (#${contextProjectId}). Ask me anything about this project — its risk, spending, timeline, vendor, peers, data quality — or say "generate an audit brief".`
                   : contextMpId
@@ -824,18 +848,18 @@ export default function AssistantWidget({
             )}
             {messages.map((m, i) => (
               m.role === "system" ? (
-                <p key={i} className="rise-in text-center text-[0.6875rem] font-semibold uppercase tracking-wide text-[#71666a] dark:text-[#b9aeb2]">
+                <p key={i} className="assistant-message rise-in text-center text-[0.6875rem] font-semibold uppercase tracking-wide text-[#71666a] dark:text-[#b9aeb2]">
                   {m.text}
                 </p>
               ) : m.role === "user" ? (
                 <div key={i} className="flex justify-end">
-                  <p className="rise-in max-w-[85%] rounded-2xl rounded-br-md bg-[#c8102e] px-3.5 py-2.5 text-[0.8125rem] text-white dark:bg-blue-600">
+                  <p className="assistant-message rise-in max-w-[85%] rounded-2xl rounded-br-md bg-[#c8102e] px-3.5 py-2.5 text-[0.8125rem] text-white dark:bg-blue-600">
                     {m.text}
                   </p>
                 </div>
               ) : (
                 <div key={i} className="flex justify-start">
-                  <div className="rise-in max-w-[92%] rounded-2xl rounded-bl-md border border-[#e8dadc] bg-[#faf7f6] px-3.5 py-2.5 text-[#292326] dark:border-[#351923] dark:bg-[#0d090b] dark:text-gray-100">
+                  <div className="assistant-message rise-in max-w-[92%] rounded-2xl rounded-bl-md border border-[#e8dadc] bg-[#faf7f6] px-3.5 py-2.5 text-[#292326] dark:border-[#351923] dark:bg-[#0d090b] dark:text-gray-100">
                     <AnswerBody text={m.text} />
                     <StructuredBlocks data={m.structured} />
                     <QueryResult query={m.query} chart={m.chart} />
@@ -875,9 +899,9 @@ export default function AssistantWidget({
             {busy && (
               <div className="flex justify-start">
                 <div className="flex items-center gap-1.5 rounded-2xl border border-[#e8dadc] bg-[#faf7f6] px-3 py-2.5 dark:border-[#351923] dark:bg-[#0d090b]">
-                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[#c8102e] dark:bg-blue-400" style={{ animationDelay: "0ms" }} />
-                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[#c8102e] dark:bg-blue-400" style={{ animationDelay: "120ms" }} />
-                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[#c8102e] dark:bg-blue-400" style={{ animationDelay: "240ms" }} />
+                  <span className="typing-dot h-1.5 w-1.5 rounded-full bg-[#c8102e] dark:bg-blue-400" />
+                  <span className="typing-dot h-1.5 w-1.5 rounded-full bg-[#c8102e] dark:bg-blue-400" />
+                  <span className="typing-dot h-1.5 w-1.5 rounded-full bg-[#c8102e] dark:bg-blue-400" />
                 </div>
               </div>
             )}

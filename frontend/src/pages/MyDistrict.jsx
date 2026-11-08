@@ -115,13 +115,13 @@ function MyDistrictInner({ onOpenProject }) {
                 {(inquiries?.items || []).map((i) => (
                   <div key={i.inquiry_id} className="rounded-lg border border-[#e8dadc] p-3 dark:border-[#351923]">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className={`rounded px-2 py-0.5 text-xs font-bold uppercase ${INQ_BADGE[i.status] || ""}`}>{i.status}</span>
-                      <span className="rounded bg-[#f8f1f1] px-2 py-0.5 font-mono text-xs font-bold text-[#292326] dark:bg-[#0d090b] dark:text-[#f5eff1]">#{i.project_id}</span>
+                      <span className={`rounded-sm px-2 py-0.5 text-xs font-bold uppercase ${INQ_BADGE[i.status] || ""}`}>{i.status}</span>
+                      <span className="rounded-sm bg-[#f8f1f1] px-2 py-0.5 font-mono text-xs font-bold text-[#292326] dark:bg-[#0d090b] dark:text-[#f5eff1]">#{i.project_id}</span>
                       <span className="min-w-0 flex-1 truncate text-[0.9375rem] font-semibold text-[#292326] dark:text-[#f5eff1]">{i.project_name || "Project"}</span>
                     </div>
                     <p className="mt-2 text-sm text-[#292326] dark:text-gray-200"><span className="font-bold">Auditor asks:</span> {i.question}</p>
                     {i.status !== "open" && i.response_text && (
-                      <p className="mt-1 rounded bg-gray-50 p-2 text-sm text-[#71666a] dark:bg-[#0d090b] dark:text-[#b9aeb2]">
+                      <p className="mt-1 rounded-sm bg-gray-50 p-2 text-sm text-[#71666a] dark:bg-[#0d090b] dark:text-[#b9aeb2]">
                         <span className="font-bold">Your response ({i.responded_by_name}, {i.responded_at?.replace("T", " ").slice(0, 16)}):</span> {i.response_text}
                       </p>
                     )}
@@ -171,7 +171,7 @@ function MyDistrictInner({ onOpenProject }) {
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
-                      {p.risk_level && <span className={`rounded px-2 py-0.5 text-xs font-bold ${RISK_BADGE[p.risk_level] || "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300"}`}>{p.risk_level} {p.risk_score != null ? `· ${p.risk_score}` : ""}</span>}
+                      {p.risk_level && <span className={`rounded-sm px-2 py-0.5 text-xs font-bold ${RISK_BADGE[p.risk_level] || "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300"}`}>{p.risk_level} {p.risk_score != null ? `· ${p.risk_score}` : ""}</span>}
                       <button onClick={() => onOpenProject?.(p.project_id)} className="rounded-lg border border-[#e8dadc] px-3 py-1.5 text-xs font-bold text-[#292326] transition hover:bg-[#f8f1f1] dark:border-[#351923] dark:text-[#f5eff1] dark:hover:bg-[#0d090b]">Open</button>
                     </div>
                   </div>

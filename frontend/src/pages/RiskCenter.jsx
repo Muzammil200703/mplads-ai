@@ -129,26 +129,33 @@ const HBarChart = memo(function HBarChart({ items, maxCount, barColor = "bg-blue
         return (
           <div
             key={item.label}
-            className={`group flex items-center gap-3 ${onClickItem ? "cursor-pointer" : ""}`}
+            className={`group grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 sm:grid-cols-[11rem_minmax(0,1fr)_auto] ${onClickItem ? "cursor-pointer" : ""}`}
             onClick={() => onClickItem && onClickItem(item)}
           >
-            <span className="w-44 flex-shrink-0 truncate text-right text-sm font-semibold text-gray-700 dark:text-gray-300" title={item.label}>
+            {/* Mobile: name left, count right on the same row. Desktop keeps
+                the original label | bar | count arrangement. */}
+            <span
+              className="min-w-0 text-[0.8125rem] font-semibold leading-snug text-gray-700 [overflow-wrap:anywhere] sm:col-start-1 sm:row-start-1 sm:text-right sm:text-sm dark:text-gray-300"
+              title={item.label}
+            >
               {item.label}
             </span>
-            <div className="min-w-0 flex-1">
-              <div className="h-8 overflow-hidden rounded bg-gray-100 dark:bg-gray-700/60">
+            <span className="flex items-baseline justify-end gap-1.5 whitespace-nowrap text-right sm:col-start-3 sm:row-start-1">
+              <span className="font-mono text-[0.8125rem] font-bold text-gray-600 sm:text-sm dark:text-gray-400">
+                {item.count.toLocaleString("en-IN")}
+              </span>
+              {item.pct !== undefined && (
+                <span className="font-mono text-[0.6875rem] text-gray-400 sm:text-xs">{item.pct}%</span>
+              )}
+            </span>
+            <div className="col-span-2 mt-0.5 min-w-0 sm:col-span-1 sm:col-start-2 sm:row-start-1 sm:mt-0">
+              <div className="h-2 overflow-hidden rounded-sm bg-gray-100 sm:h-8 dark:bg-gray-700/60">
                 <div
-                  className={`bar-fill h-full rounded ${barColor} transition-all duration-300 group-hover:opacity-80`}
+                  className={`bar-fill h-full rounded-sm ${barColor} transition-all duration-300 group-hover:opacity-80`}
                   style={{ width: `${Math.max(2, width)}%` }}
                 />
               </div>
             </div>
-            <span className="w-24 flex-shrink-0 text-right font-mono text-sm font-bold text-gray-600 dark:text-gray-400">
-              {item.count.toLocaleString("en-IN")}
-            </span>
-            {item.pct !== undefined && (
-              <span className="w-12 flex-shrink-0 text-right font-mono text-xs text-gray-400">{item.pct}%</span>
-            )}
           </div>
         )
       })}
@@ -671,7 +678,7 @@ const RiskCenter = memo(function RiskCenter({ drillDownParams, onClearDrillDown,
                           )}
                         </td>
                         <td className="px-4 py-2.5 text-xs">
-                          <p className="font-semibold">{a.state || "N/A"}{a.house && <span className="ml-1.5 rounded bg-gray-100 px-1.5 py-px text-[0.5625rem] font-bold uppercase tracking-wide text-gray-500 dark:bg-[#120b0e] dark:text-gray-400" title={`House: ${a.house}`}>{a.house === "Lok Sabha" ? "LS" : a.house === "Rajya Sabha" ? "RS" : ""}</span>}</p>
+                          <p className="font-semibold">{a.state || "N/A"}{a.house && <span className="ml-1.5 rounded-sm bg-gray-100 px-1.5 py-px text-[0.5625rem] font-bold uppercase tracking-wide text-gray-500 dark:bg-[#120b0e] dark:text-gray-400" title={`House: ${a.house}`}>{a.house === "Lok Sabha" ? "LS" : a.house === "Rajya Sabha" ? "RS" : ""}</span>}</p>
                           <p className="text-gray-500">{a.constituency || "N/A"}</p>
                         </td>
                         <td className="px-4 py-2.5 text-right font-mono text-xs tabular-nums">{formatMoney(a.sanctioned_amount)}</td>
@@ -687,7 +694,7 @@ const RiskCenter = memo(function RiskCenter({ drillDownParams, onClearDrillDown,
                         </td>
                         <td className="px-4 py-2.5 text-center font-mono text-sm font-bold">{a.risk_score}</td>
                         <td className="px-4 py-2.5 text-center">{a.ml_anomaly ? <span className="rounded-full bg-purple-100 px-2 py-0.5 text-[0.625rem] font-bold text-purple-700 dark:bg-purple-950 dark:text-purple-300">ML</span> : <span className="text-gray-300">—</span>}</td>
-                        <td className="px-4 py-2.5 text-center"><button onClick={(e) => { e.stopPropagation(); handleOpenDetail(a) }} className="rounded p-1 text-gray-600 hover:bg-gray-200 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-700">👁</button></td>
+                        <td className="px-4 py-2.5 text-center"><button onClick={(e) => { e.stopPropagation(); handleOpenDetail(a) }} className="rounded-sm p-1 text-gray-600 hover:bg-gray-200 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-700">👁</button></td>
                       </tr>
                     ))}
                   </tbody>
@@ -709,19 +716,31 @@ const RiskCenter = memo(function RiskCenter({ drillDownParams, onClearDrillDown,
                           {a.ml_anomaly && <span className="rounded-full bg-purple-100 px-1.5 py-0.5 text-[0.625rem] font-bold text-purple-700 dark:bg-purple-950 dark:text-purple-300">ML</span>}
                         </div>
                         <p className="mt-1 truncate font-semibold text-sm text-gray-900 dark:text-white" title={a.project_name}>{a.project_name || "Unnamed"}</p>
-                        <p className="text-[0.6875rem] text-gray-500">{a.state || "N/A"}{a.constituency ? `, ${a.constituency}` : ""}</p>
+                        <p className="mt-0.5 break-words text-[0.6875rem] leading-snug text-gray-500">
+                          {a.state || "N/A"}{a.constituency ? `, ${a.constituency}` : ""}
+                          {a.house && !`${a.state || ""} ${a.constituency || ""}`.includes(a.house) ? ` · ${a.house}` : ""}
+                        </p>
                       </div>
                       <div className="text-right shrink-0">
                         <p className="font-mono text-sm font-bold">Score {a.risk_score}</p>
                       </div>
                     </div>
-                    <div className="mt-2 grid grid-cols-3 gap-x-3 gap-y-1 text-xs">
-                      <div className="flex justify-between"><span className="text-gray-500">Sanctioned</span><span className="font-mono font-semibold">{formatMoney(a.sanctioned_amount)}</span></div>
-                      <div className="flex justify-between"><span className="text-gray-500">Spent</span><span className="font-mono font-semibold">{formatMoney(a.expenditure)}</span></div>
-                      <div className="flex justify-between"><span className="text-gray-500">Progress</span><span className="font-mono font-semibold">{a.completion_percentage}%</span></div>
+                    <div className="metric-grid-3 mt-2.5">
+                      {[
+                        ["Sanctioned", formatMoney(a.sanctioned_amount)],
+                        ["Spent", formatMoney(a.expenditure)],
+                        ["Progress", `${a.completion_percentage ?? 0}%`],
+                      ].map(([label, value]) => (
+                        <div key={label} className="metric-cell">
+                          <span className="metric-label">{label}</span>
+                          <span className="metric-value text-gray-900 dark:text-gray-100">{value}</span>
+                        </div>
+                      ))}
                     </div>
-                    <div className="mt-1.5 flex items-center gap-2 text-[0.6875rem] text-gray-500 dark:text-gray-400">
-                      <span title={DELAY_TOOLTIP}>Delayed By: <span className="font-mono font-semibold text-gray-700 dark:text-gray-300">{a.activity_days !== null && a.activity_days !== undefined ? `~${a.activity_days.toLocaleString("en-IN")} days` : "—"}</span> ⓘ</span>
+                    <div className="mt-2 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[0.6875rem] text-gray-500 dark:text-gray-400">
+                      <span className="whitespace-nowrap" title={DELAY_TOOLTIP}>
+                        Delayed By: <span className="font-mono font-semibold text-gray-700 dark:text-gray-300">{a.activity_days !== null && a.activity_days !== undefined ? `~${a.activity_days.toLocaleString("en-IN")} days` : "—"}</span> ⓘ
+                      </span>
                       {a.delay_indicator && (
                         <span className={`rounded-full px-1.5 py-px text-[0.5625rem] font-bold ${DELAY_BADGE_STYLES[a.delay_severity] || DELAY_BADGE_STYLES.low}`}>{a.delay_indicator}</span>
                       )}
@@ -827,7 +846,7 @@ const RiskCenter = memo(function RiskCenter({ drillDownParams, onClearDrillDown,
                 <h3 className="mt-2 text-lg font-bold text-gray-900 dark:text-white leading-tight">{s.project_name}</h3>
                 <p className="text-xs text-gray-500 mt-0.5">📍 {s.state || "N/A"} — {s.constituency || "N/A"} {s.project_type ? `· ${s.project_type}` : ""}</p>
               </div>
-              <button onClick={() => { setSelectedAnomaly(null); window.dispatchEvent(new CustomEvent("assistant-project-context", { detail: { projectId: null } })) }} className="ml-3 flex-shrink-0 rounded p-1 text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700">✕</button>
+              <button onClick={() => { setSelectedAnomaly(null); window.dispatchEvent(new CustomEvent("assistant-project-context", { detail: { projectId: null } })) }} className="ml-3 flex-shrink-0 rounded-sm p-1 text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700">✕</button>
             </div>
 
             {/* ── SCROLLABLE BODY ── */}
@@ -997,7 +1016,7 @@ const RiskCenter = memo(function RiskCenter({ drillDownParams, onClearDrillDown,
                                 <td className="py-2 font-semibold text-gray-700 dark:text-gray-300">{sig.signal}</td>
                                 <td className="py-2 text-right font-mono font-bold text-gray-900 dark:text-white">{sig.value}</td>
                                 <td className="py-2 text-right">
-                                  <span className={`inline-block rounded px-1.5 py-0.5 text-[0.625rem] font-bold ${
+                                  <span className={`inline-block rounded-sm px-1.5 py-0.5 text-[0.625rem] font-bold ${
                                     sig.impact === "HIGH" ? "bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300"
                                     : sig.impact === "MEDIUM" ? "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300"
                                     : sig.impact === "LOW" ? "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300"
@@ -1025,7 +1044,7 @@ const RiskCenter = memo(function RiskCenter({ drillDownParams, onClearDrillDown,
                           return (
                             <div key={i} className="rounded-lg border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-[#0d090b]">
                               <div className="flex items-center gap-2 mb-1.5">
-                                <span className={`rounded border px-1.5 py-0.5 text-[0.5625rem] font-bold ${severityColor(sev)}`}>{sev}</span>
+                                <span className={`rounded-sm border px-1.5 py-0.5 text-[0.5625rem] font-bold ${severityColor(sev)}`}>{sev}</span>
                                 <span className="text-xs font-bold text-gray-800 dark:text-gray-200">{reason}</span>
                               </div>
                               <p className="text-[0.6875rem] text-gray-600 dark:text-gray-400 leading-relaxed pl-1">
@@ -1045,10 +1064,17 @@ const RiskCenter = memo(function RiskCenter({ drillDownParams, onClearDrillDown,
                       <p className="text-xs text-amber-800 dark:text-amber-200">
                         Reported progress or expenditure may not reflect the latest project status. A risk score indicates an anomaly based on available data and does not by itself confirm project delay or irregularity.
                       </p>
-                      <div className="mt-2 grid grid-cols-3 gap-2 text-[0.625rem]">
-                        <div><span className="font-bold text-amber-600 dark:text-amber-400">Sanctioned:</span> {formatMoney(sanctioned)}</div>
-                        <div><span className="font-bold text-amber-600 dark:text-amber-400">Recorded Expenditure:</span> ₹0</div>
-                        <div><span className="font-bold text-amber-600 dark:text-amber-400">Recorded Progress:</span> 0%</div>
+                      <div className="metric-grid-3 mt-2">
+                        {[
+                          ["Sanctioned", formatMoney(sanctioned)],
+                          ["Recorded Expenditure", "₹0"],
+                          ["Recorded Progress", "0%"],
+                        ].map(([label, value]) => (
+                          <div key={label} className="metric-cell">
+                            <span className="metric-label text-amber-600 dark:text-amber-400">{label}</span>
+                            <span className="metric-value text-[0.75rem] text-amber-800 dark:text-amber-200">{value}</span>
+                          </div>
+                        ))}
                       </div>
                       <p className="mt-2 text-[0.625rem] italic text-amber-600/70 dark:text-amber-400/70">This indicator does not confirm project delay or irregularity.</p>
                     </div>

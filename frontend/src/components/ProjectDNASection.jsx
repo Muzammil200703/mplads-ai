@@ -49,7 +49,7 @@ export default function ProjectDNASection({ projectId, onOpenProject }) {
     return (
       <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 text-center dark:border-gray-700 dark:bg-[#000000]">
         <p className="text-xs text-gray-500">Could not compute Project DNA.</p>
-        <button onClick={() => setStatus("loading")} className="mt-2 rounded bg-[#c8102e] px-3 py-1 text-[0.625rem] font-bold text-white dark:bg-blue-600">Retry</button>
+        <button onClick={() => setStatus("loading")} className="mt-2 rounded-sm bg-[#c8102e] px-3 py-1 text-[0.625rem] font-bold text-white dark:bg-blue-600">Retry</button>
       </div>
     )
   }
@@ -96,7 +96,7 @@ export default function ProjectDNASection({ projectId, onOpenProject }) {
                       <p className="truncate text-xs font-semibold">{t.project_name}</p>
                       <p className="text-[0.625rem] text-gray-500">{t.constituency || "N/A"} · {t.status}</p>
                     </div>
-                    <span className="shrink-0 rounded bg-blue-100 px-2 py-0.5 font-mono text-[0.625rem] font-bold text-blue-700 dark:bg-blue-950 dark:text-blue-300">{t.similarity}%</span>
+                    <span className="shrink-0 rounded-sm bg-blue-100 px-2 py-0.5 font-mono text-[0.625rem] font-bold text-blue-700 dark:bg-blue-950 dark:text-blue-300">{t.similarity}%</span>
                   </div>
                   <div className="mt-2 grid grid-cols-4 gap-2 text-[0.625rem]">
                     <div><p className="text-gray-400">Sanctioned</p><p className="font-bold">{formatMoney(t.sanctioned_amount)}</p></div>

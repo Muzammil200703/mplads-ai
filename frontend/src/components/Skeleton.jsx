@@ -2,7 +2,7 @@ import React from "react"
 
 /** Skeleton bar that pulses */
 function Bar({ className = "" }) {
-  return <div className={`animate-pulse rounded bg-gray-200 dark:bg-gray-700 ${className}`} />
+  return <div className={`animate-pulse rounded-sm bg-gray-200 dark:bg-gray-700 ${className}`} />
 }
 
 /** Generic card skeleton */

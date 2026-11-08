@@ -25,7 +25,7 @@ export function FlagPill({ label }) {
     : label.includes("GPS") ? "bg-cyan-100 text-cyan-700 dark:bg-cyan-950 dark:text-cyan-300"
     : label.includes("Dispute") || label.includes("Stalled") || label.includes("Delayed") ? "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300"
     : "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300"
-  return <span className={`inline-block whitespace-nowrap rounded px-1.5 py-0.5 text-[0.6875rem] font-semibold ${tone}`}>{label}</span>
+  return <span className={`inline-block whitespace-nowrap rounded-sm px-1.5 py-0.5 text-[0.6875rem] font-semibold ${tone}`}>{label}</span>
 }
 
 function ScoreDial({ score, severity }) {
@@ -96,7 +96,7 @@ export default function ForensicsPanel({ projectId, onOpenProject }) {
   if (!data) {
     return (
       <div className="space-y-3">
-        <div className="h-6 w-2/3 animate-pulse rounded bg-gray-200 dark:bg-gray-700" />
+        <div className="h-6 w-2/3 animate-pulse rounded-sm bg-gray-200 dark:bg-gray-700" />
         <div className="h-24 animate-pulse rounded-xl bg-gray-100 dark:bg-gray-800" />
         <div className="h-24 animate-pulse rounded-xl bg-gray-100 dark:bg-gray-800" />
       </div>
@@ -117,7 +117,7 @@ export default function ForensicsPanel({ projectId, onOpenProject }) {
           </p>
           <div className="mt-2 flex flex-wrap gap-1.5">
             {flags.length === 0
-              ? <span className="rounded bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-700 dark:bg-green-950 dark:text-green-300">No AI flags</span>
+              ? <span className="rounded-sm bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-700 dark:bg-green-950 dark:text-green-300">No AI flags</span>
               : flags.map((f) => <FlagPill key={f.type} label={f.label} />)}
           </div>
         </div>
@@ -130,7 +130,7 @@ export default function ForensicsPanel({ projectId, onOpenProject }) {
           <h4 className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-gray-500">
             <span aria-hidden>📋</span> Project Details
           </h4>
-          <span className="rounded bg-gray-100 px-1.5 py-0.5 text-[0.5625rem] font-bold uppercase tracking-wide text-gray-500 dark:bg-gray-800">Source data</span>
+          <span className="rounded-sm bg-gray-100 px-1.5 py-0.5 text-[0.5625rem] font-bold uppercase tracking-wide text-gray-500 dark:bg-gray-800">Source data</span>
         </div>
         <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-3">
           <div>
@@ -170,7 +170,7 @@ export default function ForensicsPanel({ projectId, onOpenProject }) {
             <h4 className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-gray-500">
               <span aria-hidden>🤖</span> AI-Detected Indicators
             </h4>
-            <span className="rounded bg-purple-100 px-1.5 py-0.5 text-[0.5625rem] font-bold uppercase tracking-wide text-purple-600 dark:bg-purple-950 dark:text-purple-300">AI / system inference</span>
+            <span className="rounded-sm bg-purple-100 px-1.5 py-0.5 text-[0.5625rem] font-bold uppercase tracking-wide text-purple-600 dark:bg-purple-950 dark:text-purple-300">AI / system inference</span>
           </div>
           <ul className="mt-2 space-y-2">
             {flags.map((f) => (

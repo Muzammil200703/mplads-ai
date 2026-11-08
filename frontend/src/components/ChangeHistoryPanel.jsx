@@ -187,11 +187,11 @@ export default function ChangeHistoryPanel({ projectId }) {
 
                 {(event.previous_value || event.new_value) && (
                   <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
-                    <span className="rounded bg-gray-100 px-1.5 py-0.5 text-gray-600 line-through decoration-gray-400 dark:bg-gray-900 dark:text-gray-400">
+                    <span className="rounded-sm bg-gray-100 px-1.5 py-0.5 text-gray-600 line-through decoration-gray-400 dark:bg-gray-900 dark:text-gray-400">
                       {event.previous_value ?? "not recorded"}
                     </span>
                     <span aria-hidden="true" className="text-gray-400">→</span>
-                    <span className="rounded bg-gray-100 px-1.5 py-0.5 font-semibold text-gray-900 dark:bg-gray-900 dark:text-gray-100">
+                    <span className="rounded-sm bg-gray-100 px-1.5 py-0.5 font-semibold text-gray-900 dark:bg-gray-900 dark:text-gray-100">
                       {event.new_value ?? "not recorded"}
                     </span>
                   </div>

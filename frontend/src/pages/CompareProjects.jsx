@@ -434,7 +434,7 @@ export default function CompareProjects({ fy, drillDownParams, onClearDrillDown 
                     <span className="max-w-[180px] truncate">{p.project_name || "Unnamed"}</span>
                     <button
                       onClick={() => handleRemove(s.id)}
-                      className="ml-1 rounded p-0.5 text-blue-400 hover:bg-blue-200 hover:text-blue-700 dark:hover:bg-blue-800"
+                      className="ml-1 rounded-sm p-0.5 text-blue-400 hover:bg-blue-200 hover:text-blue-700 dark:hover:bg-blue-800"
                     >✕</button>
                   </span>
                 )
@@ -518,7 +518,7 @@ export default function CompareProjects({ fy, drillDownParams, onClearDrillDown 
                               </span>
                               <button
                                 onClick={() => handleRemove(p.id)}
-                                className="shrink-0 rounded p-1 text-gray-400 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-950/50"
+                                className="shrink-0 rounded-sm p-1 text-gray-400 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-950/50"
                                 title="Remove from comparison"
                               >
                                 ✕
@@ -773,10 +773,10 @@ export default function CompareProjects({ fy, drillDownParams, onClearDrillDown 
                           {pct.toFixed(1)}%
                         </span>
                       </div>
-                      <div className="relative h-6 w-full overflow-hidden rounded bg-gray-100 dark:bg-gray-700">
+                      <div className="relative h-6 w-full overflow-hidden rounded-sm bg-gray-100 dark:bg-gray-700">
                         <div className="absolute inset-y-0 left-0 bg-blue-200/60 dark:bg-blue-800/40" style={{ width: "100%" }} />
                         <div
-                          className={`bar-start absolute inset-y-0 left-0 rounded ${overBudget ? "bg-red-500/80" : "bg-blue-500/80"}`}
+                          className={`bar-start absolute inset-y-0 left-0 rounded-sm ${overBudget ? "bg-red-500/80" : "bg-blue-500/80"}`}
                           style={{ width: `${Math.min(100, pct)}%` }}
                         />
                       </div>

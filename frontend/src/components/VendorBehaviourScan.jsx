@@ -165,7 +165,7 @@ export default function VendorBehaviourScan({ house = "", onSelectVendor }) {
                   </p>
                   <div className="mt-1 flex flex-wrap gap-1">
                     {vendor.flag_labels.map((label) => (
-                      <span key={label} className="rounded bg-amber-50 px-1.5 py-0.5 text-[0.625rem] font-semibold text-amber-700 dark:bg-amber-950/40 dark:text-amber-300">
+                      <span key={label} className="rounded-sm bg-amber-50 px-1.5 py-0.5 text-[0.625rem] font-semibold text-amber-700 dark:bg-amber-950/40 dark:text-amber-300">
                         {label}
                       </span>
                     ))}

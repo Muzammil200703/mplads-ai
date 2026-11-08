@@ -137,8 +137,8 @@ function QueueInner({ onOpenProject }) {
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[0.6875rem] font-bold uppercase tracking-wide text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">Citizen Evidence</span>
-                      <span className={`rounded px-2 py-0.5 text-xs font-bold uppercase ${STATUS_BADGE[r.review_status] || ""}`}>{r.review_status}</span>
-                      <span className={`rounded px-2 py-0.5 text-xs font-bold ${OBSERVED_BADGE[r.citizen_status] || "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300"}`}>{r.citizen_status}</span>
+                      <span className={`rounded-sm px-2 py-0.5 text-xs font-bold uppercase ${STATUS_BADGE[r.review_status] || ""}`}>{r.review_status}</span>
+                      <span className={`rounded-sm px-2 py-0.5 text-xs font-bold ${OBSERVED_BADGE[r.citizen_status] || "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300"}`}>{r.citizen_status}</span>
                     </div>
                     <p className="mt-1.5 truncate text-[0.9375rem] font-semibold text-[#292326] dark:text-[#f5eff1]">
                       #{r.project_id} {r.project_name || "Project"}
@@ -146,7 +146,7 @@ function QueueInner({ onOpenProject }) {
                     <p className="text-[0.8125rem] text-[#71666a] dark:text-[#b9aeb2]">
                       {r.project_state || "—"} · official status: {r.project_official_status || "—"}
                     </p>
-                    {r.note && <p className="mt-1 rounded bg-gray-50 p-2 text-[0.8125rem] text-[#71666a] dark:bg-[#0d090b] dark:text-[#b9aeb2]">“{r.note}”</p>}
+                    {r.note && <p className="mt-1 rounded-sm bg-gray-50 p-2 text-[0.8125rem] text-[#71666a] dark:bg-[#0d090b] dark:text-[#b9aeb2]">“{r.note}”</p>}
                     <p className="mt-1.5 text-xs text-[#71666a]/70 dark:text-[#b9aeb2]/70">
                       By {r.reporter} · {r.created_at?.replace("T", " ").slice(0, 16)} · GPS: {r.lat != null ? `${r.lat.toFixed(4)}, ${r.lon?.toFixed(4)} (${r.gps_source})` : "not captured"} {r.photo_hash_id ? "· 📷 photo stored" : ""}
                     </p>

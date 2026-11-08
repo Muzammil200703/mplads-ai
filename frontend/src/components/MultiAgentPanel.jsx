@@ -106,7 +106,7 @@ export default function MultiAgentPanel({ projectId }) {
 
         {runInfo && (
           <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[0.72rem] text-gray-500 dark:text-gray-400">
-            <span className="rounded bg-gray-100 px-1.5 py-0.5 font-bold text-gray-600 dark:bg-gray-800 dark:text-gray-300">{runInfo.status}</span>
+            <span className="rounded-sm bg-gray-100 px-1.5 py-0.5 font-bold text-gray-600 dark:bg-gray-800 dark:text-gray-300">{runInfo.status}</span>
             <span>{String(runInfo.created_at || "").replace("T", " ").slice(0, 16)}</span>
             {runInfo.run_by && <span>· {runInfo.run_by}</span>}
             {runInfo.duplicate_findings_removed > 0 && <span>· {runInfo.duplicate_findings_removed} duplicate(s) removed</span>}
@@ -122,7 +122,7 @@ export default function MultiAgentPanel({ projectId }) {
                 <div key={key} className={`rounded-lg border p-2 ${failed ? "border-red-200 dark:border-red-900/40" : "border-gray-200 dark:border-gray-700"}`}>
                   <div className="flex items-center justify-between gap-1">
                     <p className="truncate text-[0.78rem] font-bold text-gray-800 dark:text-gray-200">{AGENT_LABELS[key] || key}</p>
-                    <span className={`rounded px-1.5 py-0.5 text-[0.6rem] font-bold ${failed ? "bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300" : "bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-300"}`}>
+                    <span className={`rounded-sm px-1.5 py-0.5 text-[0.6rem] font-bold ${failed ? "bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300" : "bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-300"}`}>
                       {a.status || "done"}
                     </span>
                   </div>
@@ -174,15 +174,15 @@ export default function MultiAgentPanel({ projectId }) {
                 </p>
               </div>
               <div className="flex flex-wrap gap-1">
-                <span className={`rounded px-1.5 py-0.5 text-[0.62rem] font-bold ${CONFIDENCE_TONE[f.confidence] || CONFIDENCE_TONE.low}`}>{f.confidence}</span>
-                <span className={`rounded px-1.5 py-0.5 text-[0.62rem] font-bold ${STATUS_TONE[f.status] || STATUS_TONE.New}`}>{f.status}</span>
+                <span className={`rounded-sm px-1.5 py-0.5 text-[0.62rem] font-bold ${CONFIDENCE_TONE[f.confidence] || CONFIDENCE_TONE.low}`}>{f.confidence}</span>
+                <span className={`rounded-sm px-1.5 py-0.5 text-[0.62rem] font-bold ${STATUS_TONE[f.status] || STATUS_TONE.New}`}>{f.status}</span>
               </div>
             </div>
 
             <p className="mt-1 text-[0.82rem] leading-snug text-gray-600 dark:text-gray-300">{f.explanation}</p>
 
             {f.suggested_verification && (
-              <p className="mt-1 rounded bg-blue-50 px-2 py-1 text-[0.75rem] text-blue-700 dark:bg-blue-950/30 dark:text-blue-300">
+              <p className="mt-1 rounded-sm bg-blue-50 px-2 py-1 text-[0.75rem] text-blue-700 dark:bg-blue-950/30 dark:text-blue-300">
                 <span className="font-bold">Verify:</span> {f.suggested_verification}
               </p>
             )}
@@ -198,9 +198,9 @@ export default function MultiAgentPanel({ projectId }) {
             {open[f.id] && (
               <div className="mt-1 space-y-1">
                 {(f.evidence?.records || []).map((r, i) => (
-                  <div key={i} className="rounded border border-gray-200 bg-gray-50 px-2 py-1 dark:border-gray-700 dark:bg-gray-900/40">
+                  <div key={i} className="rounded-sm border border-gray-200 bg-gray-50 px-2 py-1 dark:border-gray-700 dark:bg-gray-900/40">
                     <div className="flex flex-wrap items-center gap-1.5">
-                      <span className="rounded bg-gray-200 px-1.5 py-0.5 text-[0.6rem] font-bold uppercase text-gray-500 dark:bg-gray-700 dark:text-gray-300">{r.type || "record"}</span>
+                      <span className="rounded-sm bg-gray-200 px-1.5 py-0.5 text-[0.6rem] font-bold uppercase text-gray-500 dark:bg-gray-700 dark:text-gray-300">{r.type || "record"}</span>
                       <code className="break-all text-[0.7rem] font-semibold text-blue-700 dark:text-blue-300">{r.reference}</code>
                     </div>
                     <div className="mt-0.5 flex flex-wrap gap-x-2.5 gap-y-0.5">

@@ -21,6 +21,9 @@ class User(Base):
     # district-scoped views; admins manage these via the admin panel).
     assigned_district = Column(String, index=True)
     assigned_state = Column(String, index=True)
+    # Set when a password is reset/provisioned: the account must choose a new
+    # password before the workspace is usable again.
+    must_change_password = Column(Boolean, nullable=False, default=False, server_default="0")
 
 
 class PasswordReset(Base):

@@ -216,7 +216,7 @@ export default function VendorNetwork() {
                         ) : (
                           <div className="flex flex-wrap gap-1">
                             {v.conflict_flags.map((f) => (
-                              <span key={f} className="rounded bg-red-100 px-1.5 py-0.5 text-[0.6875rem] font-semibold text-red-700 dark:bg-red-950 dark:text-red-300">{f}</span>
+                              <span key={f} className="rounded-sm bg-red-100 px-1.5 py-0.5 text-[0.6875rem] font-semibold text-red-700 dark:bg-red-950 dark:text-red-300">{f}</span>
                             ))}
                           </div>
                         )}

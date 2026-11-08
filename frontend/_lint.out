@@ -1,0 +1,134 @@
+
+C:\Users\Admin\.gemini\antigravity\scratch\mplads-ai\frontend\src\App.jsx
+    1:47  error    'memo' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       no-unused-vars
+  167:5   error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  165 |     const handler = (e) => setIsMobile(e.matches)
+  166 |     mq.addEventListener("change", handler)
+> 167 |     setIsMobile(mq.matches)
+      |     ^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  168 |     return () => mq.removeEventListener("change", handler)
+  169 |   }, [])
+  170 |   return isMobile                           react-hooks/set-state-in-effect
+  174:26  error    'authLoading' is assigned a value but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       no-unused-vars
+  235:6   warning  React Hook useEffect has a missing dependency: 'toggleSidebar'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       react-hooks/exhaustive-deps
+  295:37  error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  293 |   }, [])
+  294 |   useEffect(() => {
+> 295 |     if (currentPage !== "Projects") setAssistantProjectId(null)
+      |                                     ^^^^^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  296 |   }, [currentPage])
+  297 |
+  298 |   // Display names for the assistant's project-context indicator. Ids remain  react-hooks/set-state-in-effect
+  349:8   error    Error: Cannot access refs during render
+
+React refs are values that are not needed for rendering. Refs should only be accessed outside of render, such as in event handlers or effects. Accessing a ref value (the `current` property) during render can cause your component not to update as expected (https://react.dev/reference/react/useRef).
+
+  347 |   const visitedPages = useRef(new Set(["Overview"]))
+  348 |   // Add current page to visited set synchronously (not in useEffect)
+> 349 |   if (!visitedPages.current.has(currentPage)) {
+      |        ^^^^^^^^^^^^^^^^^^^^ Passing a ref to a function may read its value during render
+  350 |     visitedPages.current.add(currentPage)
+  351 |   }
+  352 |                                                                                                                                                                                                                                                                                                                                                         react-hooks/refs
+  349:8   error    Error: Cannot access refs during render
+
+React refs are values that are not needed for rendering. Refs should only be accessed outside of render, such as in event handlers or effects. Accessing a ref value (the `current` property) during render can cause your component not to update as expected (https://react.dev/reference/react/useRef).
+
+  347 |   const visitedPages = useRef(new Set(["Overview"]))
+  348 |   // Add current page to visited set synchronously (not in useEffect)
+> 349 |   if (!visitedPages.current.has(currentPage)) {
+      |        ^^^^^^^^^^^^^^^^^^^^^^^^ Passing a ref to a function may read its value during render
+  350 |     visitedPages.current.add(currentPage)
+  351 |   }
+  352 |                                                                                                                                                                                                                                                                                                                                                     react-hooks/refs
+  350:5   error    Error: Cannot access refs during render
+
+React refs are values that are not needed for rendering. Refs should only be accessed outside of render, such as in event handlers or effects. Accessing a ref value (the `current` property) during render can cause your component not to update as expected (https://react.dev/reference/react/useRef).
+
+  348 |   // Add current page to visited set synchronously (not in useEffect)
+  349 |   if (!visitedPages.current.has(currentPage)) {
+> 350 |     visitedPages.current.add(currentPage)
+      |     ^^^^^^^^^^^^^^^^^^^^ Passing a ref to a function may read its value during render
+  351 |   }
+  352 |
+  353 |   // Subtle page transition: when the active page changes, briefly apply an                                                                                                                                                                                                                                                                                                                                     react-hooks/refs
+  350:5   error    Error: Cannot access refs during render
+
+React refs are values that are not needed for rendering. Refs should only be accessed outside of render, such as in event handlers or effects. Accessing a ref value (the `current` property) during render can cause your component not to update as expected (https://react.dev/reference/react/useRef).
+
+  348 |   // Add current page to visited set synchronously (not in useEffect)
+  349 |   if (!visitedPages.current.has(currentPage)) {
+> 350 |     visitedPages.current.add(currentPage)
+      |     ^^^^^^^^^^^^^^^^^^^^^^^^ Passing a ref to a function may read its value during render
+  351 |   }
+  352 |
+  353 |   // Subtle page transition: when the active page changes, briefly apply an                                                                                                                                                                                                                                                                                                                                 react-hooks/refs
+  429:7   error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  427 |   useEffect(() => {
+  428 |     if (user && (currentPage === "Sign in" || currentPage === "Sign up")) {
+> 429 |       setCurrentPage("Overview")
+      |       ^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  430 |     }
+  431 |   }, [user]) // eslint-disable-line react-hooks/exhaustive-deps
+  432 |                              react-hooks/set-state-in-effect
+  507:10  error    Error: Cannot access refs during render
+
+React refs are values that are not needed for rendering. Refs should only be accessed outside of render, such as in event handlers or effects. Accessing a ref value (the `current` property) during render can cause your component not to update as expected (https://react.dev/reference/react/useRef).
+
+  505 |           <HistoricalReplayPanel house={selectedHouse} />
+  506 |         )}
+> 507 |         {renderPage()}
+      |          ^^^^^^^^^^ This function accesses a ref value
+  508 |       </main>
+  509 |
+  510 |       <AssistantWidget                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   react-hooks/refs
+
+C:\Users\Admin\.gemini\antigravity\scratch\mplads-ai\frontend\src\components\AssistantWidget.jsx
+  518:6  warning  React Hook useEffect has a missing dependency: 'setOpen'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              react-hooks/exhaustive-deps
+  533:5  error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  531 |     ctxSwitchRef.current = contextProjectId
+  532 |     saveNow()
+> 533 |     setMessages([])
+      |     ^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  534 |     setSuggestions(ROLE_SUGGESTIONS[roleKey] || ROLE_SUGGESTIONS.guest)
+  535 |     setContextHelp(null)
+  536 |     setShowHistory(false)  react-hooks/set-state-in-effect
+  581:5  warning  Unused eslint-disable directive (no problems were reported from 'react-hooks/exhaustive-deps')
+
+C:\Users\Admin\.gemini\antigravity\scratch\mplads-ai\frontend\src\components\Sidebar.jsx
+  101:3  error  'onClose' is defined but never used  no-unused-vars
+
+C:\Users\Admin\.gemini\antigravity\scratch\mplads-ai\frontend\src\index.css
+  0:0  warning  File ignored because no matching configuration was supplied
+
+✖ 16 problems (12 errors, 4 warnings)
+  0 errors and 1 warning potentially fixable with the `--fix` option.
+

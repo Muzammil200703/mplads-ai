@@ -150,7 +150,7 @@ export default function ForensicModeModal({ projectId, onClose }) {
             {(ml.top_factors || []).length > 0 && (
               <div className="mt-2 flex flex-wrap gap-1.5">
                 {ml.top_factors.map((f, i) => (
-                  <span key={i} className="rounded bg-purple-100 px-2 py-0.5 text-[0.625rem] font-bold text-purple-700 dark:bg-purple-950 dark:text-purple-300">{f}</span>
+                  <span key={i} className="rounded-sm bg-purple-100 px-2 py-0.5 text-[0.625rem] font-bold text-purple-700 dark:bg-purple-950 dark:text-purple-300">{f}</span>
                 ))}
               </div>
             )}
@@ -166,7 +166,7 @@ export default function ForensicModeModal({ projectId, onClose }) {
                   <div key={i} className="flex items-center justify-between gap-2 rounded-lg bg-white px-2.5 py-1.5 dark:bg-[#0d090b]">
                     <span className="text-[0.6875rem] font-semibold">{r.reason}</span>
                     <span className="flex shrink-0 items-center gap-1.5">
-                      {r.source === "ml" && <span className="rounded bg-purple-100 px-1.5 py-0.5 text-[0.5625rem] font-bold text-purple-700 dark:bg-purple-950 dark:text-purple-300">ML</span>}
+                      {r.source === "ml" && <span className="rounded-sm bg-purple-100 px-1.5 py-0.5 text-[0.5625rem] font-bold text-purple-700 dark:bg-purple-950 dark:text-purple-300">ML</span>}
                       {r.points != null && <span className="font-mono text-[0.6875rem] font-bold text-red-600 dark:text-red-400">+{r.points}</span>}
                     </span>
                   </div>

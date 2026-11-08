@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react"
-import { fetchMe, getToken, login as apiLogin, signup as apiSignup, logout as apiLogout } from "../services/api"
+import { fetchMe, getToken, login as apiLogin, signup as apiSignup, logout as apiLogout, changePassword as apiChangePassword } from "../services/api"
 
 const AuthContext = createContext(null)
 
@@ -66,6 +66,12 @@ export function AuthProvider({ children }) {
     return data.user
   }, [])
 
+  const changePassword = useCallback(async (currentPassword, newPassword) => {
+    const data = await apiChangePassword(currentPassword, newPassword)
+    if (data?.user) setUser(data.user)
+    return data
+  }, [])
+
   const logout = useCallback(() => {
     apiLogout()
     setUser(null)
@@ -90,8 +96,8 @@ export function AuthProvider({ children }) {
   )
 
   const value = useMemo(
-    () => ({ user, loading, login, signup, logout, hasRole, can }),
-    [user, loading, login, signup, logout, hasRole, can]
+    () => ({ user, loading, login, signup, changePassword, logout, hasRole, can }),
+    [user, loading, login, signup, changePassword, logout, hasRole, can]
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

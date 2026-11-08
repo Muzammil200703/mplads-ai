@@ -8,7 +8,7 @@ import {
 } from "../services/api"
 import { useAuth } from "../context/AuthContext"
 // Project-selection interface: the original full ProjectDetail view
-// (presented as a centered rounded card), code-split so it only loads
+// (presented as a centered rounded-sm card), code-split so it only loads
 // when a user actually selects a project.
 const ProjectDetail = lazy(() => import("../components/ProjectDetail"))
 import { formatMoney, formatNumber, formatDateHuman } from "../utils/format"
@@ -721,7 +721,7 @@ const Projects = memo(function Projects({ projectSearchQuery, onClearProjectSear
       </div>
 
       {/* Project selection interface — the full ProjectDetail view in a
-          centered rounded card. Rendered over the still-mounted list;
+          centered rounded-sm card. Rendered over the still-mounted list;
           closing restores the exact search/filter/scroll state. */}
       {detailProjectId && (
         <Suspense fallback={null}>

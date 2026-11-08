@@ -912,7 +912,7 @@ const GeographicDistribution = memo(function GeographicDistribution({
             >
               <div className="flex items-start justify-between gap-2">
                 <p className="text-sm font-bold leading-tight">{hoveredName}</p>
-                <span className="shrink-0 rounded bg-blue-50 px-1.5 py-0.5 text-[0.5625rem] font-bold uppercase tracking-wide text-blue-700 dark:bg-blue-950/60 dark:text-blue-300">
+                <span className="shrink-0 rounded-sm bg-blue-50 px-1.5 py-0.5 text-[0.5625rem] font-bold uppercase tracking-wide text-blue-700 dark:bg-blue-950/60 dark:text-blue-300">
                   {selectedMetric.shortLabel}
                 </span>
               </div>

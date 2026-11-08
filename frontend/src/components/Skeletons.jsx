@@ -7,7 +7,7 @@
 export function Shimmer({ className = "" }) {
   return (
     <div
-      className={`animate-pulse rounded bg-gray-200/80 dark:bg-[#120b0e]/80 ${className}`}
+      className={`animate-pulse rounded-sm bg-gray-200/80 dark:bg-[#120b0e]/80 ${className}`}
       aria-hidden="true"
     />
   )

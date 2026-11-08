@@ -4,6 +4,7 @@ import AssistantWidget from "./components/AssistantWidget"
 import CommandPalette from "./components/CommandPalette"
 import HistoricalReplayPanel from "./components/HistoricalReplayPanel"
 import TopBar from "./components/TopBar"
+import SetPassword from "./pages/SetPassword"
 import { PageSkeleton } from "./components/Skeleton"
 import { AuthProvider, useAuth } from "./context/AuthContext"
 import { executeAssistantAction } from "./utils/executeActions"
@@ -349,6 +350,26 @@ function AppShell() {
     visitedPages.current.add(currentPage)
   }
 
+  // Subtle page transition: when the active page changes, briefly apply an
+  // entrance class to the main region so the new page fades+rises in one shot.
+  // Purely additive — pages keep their own DOM; this does not remount or destroy
+  // page state, and it is fully disabled under prefers-reduced-motion.
+  const mainRef = useRef(null)
+  const prevPageRef = useRef(currentPage)
+  useEffect(() => {
+    const prev = prevPageRef.current
+    prevPageRef.current = currentPage
+    if (prev === currentPage) return
+    const el = mainRef.current
+    if (!el) return
+    el.classList.add("page-entering")
+    const t = setTimeout(() => el.classList.remove("page-entering"), 240)
+    return () => {
+      clearTimeout(t)
+      el?.classList.remove("page-entering")
+    }
+  }, [currentPage])
+
   const renderPage = () => {
     // Auth pages render standalone (no sidebar nav entry, still inside shell)
     if (currentPage === "Sign in") return <LoginView onSwitch={() => setCurrentPage("Sign up")} />
@@ -385,8 +406,8 @@ function AppShell() {
         {pages.map(({ key, el }) => (
           <div
             key={key}
-            className="rise-refresh"
-            style={{ display: key === currentPage ? "block" : "none" }}
+            className="page-enter rise-refresh"
+            style={{ display: key === currentPage && visitedPages.current.has(key) ? "block" : "none" }}
           >
             {visitedPages.current.has(key) ? el : null}
           </div>
@@ -423,6 +444,18 @@ function AppShell() {
       </Suspense>
     )
 }
+
+  // A reset/provisioned credential is temporary: lock the workspace until
+  // the owner sets their own password.
+  if (user?.must_change_password) {
+    return (
+      <div className={darkMode ? "dark" : ""}>
+        <div className="min-h-[100dvh] bg-[#faf7f6] text-[#292326] dark:bg-[#000000] dark:text-[#f5eff1]">
+          <SetPassword />
+        </div>
+      </div>
+    )
+  }
 
 return (
     <div
@@ -465,6 +498,7 @@ return (
       />
 
       <main
+        ref={mainRef}
         className={`h-full overflow-x-auto overflow-y-auto pt-[64px] lg:pt-[72px] transition-[margin] duration-300 ease-in-out ${getMainMargin()}`}
       >
         {currentPage === "State Intelligence" && (
@@ -490,9 +524,20 @@ return (
       <CommandPalette
         key={commandOpen ? "palette-open" : "palette-closed"}
         open={commandOpen}
-        onOpenChange={setCommandOpen}
+        onOpenChange={(value) => {
+          setCommandOpen(value)
+          // The palette is the focused surface: never leave the floating
+          // assistant open on top of it.
+          if (value) setAssistantOpen(false)
+        }}
         currentPage={currentPage}
         house={selectedHouse}
+        fy={selectedFY}
+        darkMode={darkMode}
+        onToggleTheme={() => setDarkMode((previous) => !previous)}
+        onHouseChange={setSelectedHouse}
+        onFYChange={setSelectedFY}
+        contextProjectId={assistantProjectId}
         onNavigate={handleNavigate}
         onDrillDown={handleDrillDown}
         onOpenProject={openProjectFromWorkspace}

@@ -75,6 +75,11 @@ class ResetRequest(BaseModel):
     new_password: str = Field(min_length=8, max_length=128)
 
 
+class ChangePasswordRequest(BaseModel):
+    current_password: str = Field(min_length=1, max_length=128)
+    new_password: str = Field(min_length=8, max_length=128)
+
+
 class UserOut(BaseModel):
     id: int
     name: str
@@ -84,6 +89,7 @@ class UserOut(BaseModel):
     created_at: str
     assigned_district: Optional[str] = None
     assigned_state: Optional[str] = None
+    must_change_password: bool = False
 
     class Config:
         from_attributes = True
@@ -101,6 +107,7 @@ class MeOut(BaseModel):
     created_at: str
     assigned_district: Optional[str] = None
     assigned_state: Optional[str] = None
+    must_change_password: bool = False
     capabilities: list[str] = []
 
     class Config:
@@ -330,13 +337,37 @@ def reset_password(payload: ResetRequest, db: Session = Depends(get_db)):
     if not user:
         raise HTTPException(status_code=400, detail="Account no longer exists")
     user.password_hash = auth.hash_password(payload.new_password)
+    # A reset credential is temporary: the owner must replace it on first use.
+    user.must_change_password = True
     row.used = True
     db.commit()
-    return {"message": "Password updated. You can now sign in with the new password."}
+    return {"message": "Password updated. Sign in and choose a new password when prompted."}
+
+
+@router.post("/change-password")
+def change_password(
+    payload: ChangePasswordRequest,
+    current: models.User = Depends(auth.require_role("public", allow_pending_password_change=True)),
+    db: Session = Depends(get_db),
+):
+    """Replace the signed-in account's password and clear the forced-change flag."""
+    if not auth.verify_password(payload.current_password, current.password_hash):
+        raise HTTPException(status_code=400, detail="Current password is incorrect")
+    if payload.current_password == payload.new_password:
+        raise HTTPException(status_code=400, detail="Choose a password different from the current one")
+    current.password_hash = auth.hash_password(payload.new_password)
+    current.must_change_password = False
+    db.commit()
+    db.refresh(current)
+    return {
+        "message": "Password updated.",
+        "user": UserOut.model_validate(current).model_dump()
+        | {"capabilities": sorted(auth.user_capabilities(current))},
+    }
 
 
 @router.get("/me", response_model=MeOut)
-def me(current: models.User = Depends(auth.require_role("public"))):
+def me(current: models.User = Depends(auth.require_role("public", allow_pending_password_change=True))):
     """Profile of the signed-in user incl. effective capabilities."""
     out = MeOut.model_validate(current).model_dump()
     out["capabilities"] = sorted(auth.user_capabilities(current))

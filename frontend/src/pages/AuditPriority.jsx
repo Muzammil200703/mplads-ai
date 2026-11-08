@@ -224,7 +224,7 @@ const AuditPriority = memo(function AuditPriority({ fy, drillDownParams, onClear
                 }`}
               >
                 <div className="flex items-center justify-between">
-                  <span className={`rounded px-1.5 py-0.5 text-[0.625rem] font-bold ${style.chip}`}>{code}</span>
+                  <span className={`rounded-sm px-1.5 py-0.5 text-[0.625rem] font-bold ${style.chip}`}>{code}</span>
                   <span className="text-[0.625rem] font-bold uppercase tracking-wider text-gray-400">{summary.tier_labels?.[code] || ""}</span>
                 </div>
                 <p className={`value-nowrap mt-1.5 font-mono text-3xl font-bold tabular-nums ${style.text}`}>{(tier.count || 0).toLocaleString("en-IN")}</p>
@@ -342,10 +342,10 @@ const AuditPriority = memo(function AuditPriority({ fy, drillDownParams, onClear
               <div className="hidden lg:block divide-y divide-gray-100 dark:divide-gray-700/60">
                 {Array.from({ length: 6 }).map((_, i) => (
                   <div key={i} className="flex items-center gap-4 px-5 py-4">
-                    <div className="animate-pulse rounded bg-gray-200/80 dark:bg-[#120b0e]/80 h-8 w-8 shrink-0" />
+                    <div className="animate-pulse rounded-sm bg-gray-200/80 dark:bg-[#120b0e]/80 h-8 w-8 shrink-0" />
                     <div className="flex-1 space-y-2">
-                      <div className="animate-pulse rounded bg-gray-200/80 dark:bg-[#120b0e]/80 h-4 w-2/3" />
-                      <div className="animate-pulse rounded bg-gray-200/80 dark:bg-[#120b0e]/80 h-3 w-1/3" />
+                      <div className="animate-pulse rounded-sm bg-gray-200/80 dark:bg-[#120b0e]/80 h-4 w-2/3" />
+                      <div className="animate-pulse rounded-sm bg-gray-200/80 dark:bg-[#120b0e]/80 h-3 w-1/3" />
                     </div>
                     <div className="animate-pulse rounded-full bg-gray-200/80 dark:bg-[#120b0e]/80 h-6 w-16" />
                   </div>
@@ -389,18 +389,18 @@ const AuditPriority = memo(function AuditPriority({ fy, drillDownParams, onClear
                           <div className="min-w-0 flex-1">
                             {/* Title Row */}
                             <div className="flex items-center gap-2 flex-wrap">
-                              <span className={`rounded px-2 py-0.5 text-[0.625rem] font-bold ${style.chip}`} title={(p.explanation || []).join(" ")}>
+                              <span className={`rounded-sm px-2 py-0.5 text-[0.625rem] font-bold ${style.chip}`} title={(p.explanation || []).join(" ")}>
                                 {p.tier} — {p.tier_label}
                               </span>
                               <span className="font-mono text-[0.625rem] font-bold text-gray-400">#{p.project_id}</span>
-                              <span className={`rounded px-2 py-0.5 text-[0.625rem] font-bold ${
+                              <span className={`rounded-sm px-2 py-0.5 text-[0.625rem] font-bold ${
                                 p.risk_level === "High" ? "bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300"
                                 : p.risk_level === "Medium" ? "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300"
                                 : "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300"
                               }`}>{p.risk_level}</span>
                               {p.ml_anomaly && <span className="rounded-full bg-purple-100 px-1.5 py-0.5 text-[0.5625rem] font-bold text-purple-700 dark:bg-purple-950 dark:text-purple-300">ML</span>}
                               {p.data_quality_flag === "POSSIBLY_STALE" && (
-                                <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[0.5625rem] font-bold text-amber-700 dark:bg-amber-950 dark:text-amber-300" title={p.data_quality_reason}>
+                                <span className="rounded-sm bg-amber-100 px-1.5 py-0.5 text-[0.5625rem] font-bold text-amber-700 dark:bg-amber-950 dark:text-amber-300" title={p.data_quality_reason}>
                                   ⚠ Data update required
                                 </span>
                               )}
@@ -514,13 +514,13 @@ const AuditPriority = memo(function AuditPriority({ fy, drillDownParams, onClear
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-1.5 flex-wrap">
-                            <span className={`rounded px-1.5 py-0.5 text-[0.625rem] font-bold ${tierStyle(p.tier).chip}`}>
+                            <span className={`rounded-sm px-1.5 py-0.5 text-[0.625rem] font-bold ${tierStyle(p.tier).chip}`}>
                               {p.tier} — {p.tier_label}
                             </span>
-                            <span className={`rounded px-1.5 py-0.5 text-[0.625rem] font-bold ${isCritical ? "bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300" : "bg-gray-100 text-gray-600 dark:bg-gray-700"}`}>
+                            <span className={`rounded-sm px-1.5 py-0.5 text-[0.625rem] font-bold ${isCritical ? "bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300" : "bg-gray-100 text-gray-600 dark:bg-gray-700"}`}>
                               #{p.priority_rank}
                             </span>
-                            <span className={`rounded px-1.5 py-0.5 text-[0.625rem] font-bold ${
+                            <span className={`rounded-sm px-1.5 py-0.5 text-[0.625rem] font-bold ${
                               p.risk_level === "High" ? "bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300"
                               : p.risk_level === "Medium" ? "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300"
                               : "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300"
@@ -528,7 +528,7 @@ const AuditPriority = memo(function AuditPriority({ fy, drillDownParams, onClear
                             {p.ml_anomaly && <span className="rounded-full bg-purple-100 px-1.5 py-0.5 text-[0.5625rem] font-bold text-purple-700 dark:bg-purple-950 dark:text-purple-300">ML</span>}
                           </div>
                           <p className="mt-1 truncate font-semibold text-sm text-gray-900 dark:text-white" title={p.project_name}>{p.project_name || "Unnamed"}</p>
-                          <p className="text-[0.6875rem] text-gray-500">{p.state || "N/A"}{p.constituency ? `, ${p.constituency}` : ""}</p>
+                          <p className="mt-0.5 break-words text-[0.6875rem] leading-snug text-gray-500">{p.state || "N/A"}{p.constituency ? `, ${p.constituency}` : ""}</p>
                         </div>
                         <div className="text-right shrink-0">
                           <div className="flex items-baseline gap-1">
@@ -542,14 +542,21 @@ const AuditPriority = memo(function AuditPriority({ fy, drillDownParams, onClear
                         <div className="mt-2 flex flex-wrap gap-1">
                           {visibleReasons.map((r, i) => {
                             const chip = getReasonChip(r)
-                            return <span key={i} className={`rounded px-1.5 py-0.5 text-[0.5625rem] font-bold ${chip.color}`}>{chip.label}</span>
+                            return <span key={i} className={`rounded-sm px-1.5 py-0.5 text-[0.5625rem] font-bold ${chip.color}`}>{chip.label}</span>
                           })}
                         </div>
                       )}
-                      <div className="mt-2 grid grid-cols-3 gap-x-3 gap-y-1 text-xs">
-                        <div className="flex justify-between"><span className="text-gray-500">Sanctioned</span><span className="font-mono font-semibold">{formatMoney(sanctioned)}</span></div>
-                        <div className="flex justify-between"><span className="text-gray-500">Spent</span><span className="font-mono font-semibold">{formatMoney(expenditure)}</span></div>
-                        <div className="flex justify-between"><span className="text-gray-500">Progress</span><span className="font-mono font-semibold">{p.completion_percentage}%</span></div>
+                      <div className="metric-grid-3 mt-2.5">
+                        {[
+                          ["Sanctioned", formatMoney(sanctioned)],
+                          ["Spent", formatMoney(expenditure)],
+                          ["Progress", `${p.completion_percentage ?? 0}%`],
+                        ].map(([label, value]) => (
+                          <div key={label} className="metric-cell">
+                            <span className="metric-label">{label}</span>
+                            <span className="metric-value">{value}</span>
+                          </div>
+                        ))}
                       </div>
                       <div className="mt-2 rounded-lg bg-gray-50 px-2.5 py-1.5 dark:bg-[#120b0e]">
                         <p className="text-[0.5625rem] font-bold uppercase tracking-wider text-gray-400">Main anomaly · action</p>
@@ -599,16 +606,16 @@ const AuditPriority = memo(function AuditPriority({ fy, drillDownParams, onClear
             <div className="flex items-start justify-between border-b border-gray-200 p-5 dark:border-gray-700">
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className={`rounded px-2 py-0.5 text-xs font-bold ${tierStyle(p.tier).chip}`}>
+                  <span className={`rounded-sm px-2 py-0.5 text-xs font-bold ${tierStyle(p.tier).chip}`}>
                     {p.tier} — {p.tier_label}
                   </span>
-                  <span className={`rounded px-2 py-0.5 text-xs font-bold ${
+                  <span className={`rounded-sm px-2 py-0.5 text-xs font-bold ${
                     p.risk_level === "High" ? "bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300"
                     : p.risk_level === "Medium" ? "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300"
                     : "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300"
                   }`}>Priority #{p.priority_rank}</span>
                   <span className="font-mono text-xs font-bold text-gray-400">#{p.project_id}</span>
-                  <span className={`rounded px-2 py-0.5 text-xs font-bold ${
+                  <span className={`rounded-sm px-2 py-0.5 text-xs font-bold ${
                     p.risk_level === "High" ? "bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300"
                     : p.risk_level === "Medium" ? "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300"
                     : "bg-gray-100 text-gray-600 dark:bg-gray-700"
@@ -618,7 +625,7 @@ const AuditPriority = memo(function AuditPriority({ fy, drillDownParams, onClear
                 <h3 className="mt-2 text-lg font-bold text-gray-900 dark:text-white leading-tight">{p.project_name}</h3>
                 <p className="text-xs text-gray-500 mt-0.5">📍 {p.state || "N/A"} — {p.constituency || "N/A"}</p>
               </div>
-              <button onClick={() => { setSelectedProject(null); window.dispatchEvent(new CustomEvent("assistant-project-context", { detail: { projectId: null } })) }} className="ml-3 flex-shrink-0 rounded p-1 text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700">✕</button>
+              <button onClick={() => { setSelectedProject(null); window.dispatchEvent(new CustomEvent("assistant-project-context", { detail: { projectId: null } })) }} className="ml-3 flex-shrink-0 rounded-sm p-1 text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700">✕</button>
             </div>
 
             <div className="flex-1 overflow-y-auto p-5 space-y-4">
@@ -684,7 +691,7 @@ const AuditPriority = memo(function AuditPriority({ fy, drillDownParams, onClear
                           return (
                             <div key={i} className="rounded-lg border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-[#0d090b]">
                               <div className="flex items-center gap-2 mb-1">
-                                <span className={`rounded px-1.5 py-0.5 text-[0.5625rem] font-bold ${chip.color}`}>{chip.label}</span>
+                                <span className={`rounded-sm px-1.5 py-0.5 text-[0.5625rem] font-bold ${chip.color}`}>{chip.label}</span>
                                 <span className="text-xs font-bold text-gray-800 dark:text-gray-200">{reason}</span>
                               </div>
                               <p className="text-[0.6875rem] text-gray-600 dark:text-gray-400 leading-relaxed pl-1">

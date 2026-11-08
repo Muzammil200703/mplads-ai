@@ -138,7 +138,7 @@ export default function AuditResearchAgentPanel({ projectId }) {
   if (loading) {
     return (
       <Card>
-        <div className="h-4 w-1/2 animate-pulse rounded bg-gray-200 dark:bg-gray-700" />
+        <div className="h-4 w-1/2 animate-pulse rounded-sm bg-gray-200 dark:bg-gray-700" />
         <div className="mt-2 h-20 animate-pulse rounded-lg bg-gray-100 dark:bg-gray-800" />
       </Card>
     )
@@ -258,7 +258,7 @@ export default function AuditResearchAgentPanel({ projectId }) {
               <p className="mt-1 text-[0.84rem] leading-relaxed text-gray-700 dark:text-gray-300">{f.explanation}</p>
 
               {f.suggested_verification && (
-                <p className="mt-1.5 rounded bg-blue-50 p-2 text-[0.78rem] leading-snug text-blue-800 dark:bg-blue-950/20 dark:text-blue-200">
+                <p className="mt-1.5 rounded-sm bg-blue-50 p-2 text-[0.78rem] leading-snug text-blue-800 dark:bg-blue-950/20 dark:text-blue-200">
                   <span className="font-bold">Verify:</span> {f.suggested_verification}
                 </p>
               )}

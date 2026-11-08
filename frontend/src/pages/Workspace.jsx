@@ -169,9 +169,9 @@ function SavedProjectsInner({ onOpenProject }) {
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="font-mono text-xs font-bold text-[#71666a] dark:text-[#b9aeb2]">#{p.project_id}</span>
-                    {p.risk_level && <span className={`rounded px-2 py-0.5 text-xs font-bold ${RISK_BADGE[p.risk_level] || "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300"}`}>{p.risk_level} risk</span>}
-                    {p.ml_anomaly && <span className="rounded bg-purple-100 px-2 py-0.5 text-xs font-bold text-purple-700 dark:bg-purple-950 dark:text-purple-300">ML outlier</span>}
-                    <span className="rounded bg-gray-100 px-2 py-0.5 text-xs font-semibold text-gray-600 dark:bg-gray-700 dark:text-gray-300">{p.status || "Unknown status"}</span>
+                    {p.risk_level && <span className={`rounded-sm px-2 py-0.5 text-xs font-bold ${RISK_BADGE[p.risk_level] || "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300"}`}>{p.risk_level} risk</span>}
+                    {p.ml_anomaly && <span className="rounded-sm bg-purple-100 px-2 py-0.5 text-xs font-bold text-purple-700 dark:bg-purple-950 dark:text-purple-300">ML outlier</span>}
+                    <span className="rounded-sm bg-gray-100 px-2 py-0.5 text-xs font-semibold text-gray-600 dark:bg-gray-700 dark:text-gray-300">{p.status || "Unknown status"}</span>
                   </div>
                   <p className="mt-1.5 truncate text-[0.9375rem] font-semibold text-[#292326] dark:text-[#f5eff1]">{p.project_name || "Unnamed project"}</p>
                   <p className="mt-0.5 text-[0.8125rem] text-[#71666a] dark:text-[#b9aeb2]">
@@ -257,13 +257,13 @@ function MyInvestigationsInner({ onOpenProject }) {
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="font-mono text-xs font-bold text-[#71666a] dark:text-[#b9aeb2]">#{inv.project_id}</span>
-                    <span className="rounded bg-gray-100 px-2 py-0.5 text-xs font-semibold text-gray-600 dark:bg-gray-700 dark:text-gray-300">{inv.investigation_status}</span>
+                    <span className="rounded-sm bg-gray-100 px-2 py-0.5 text-xs font-semibold text-gray-600 dark:bg-gray-700 dark:text-gray-300">{inv.investigation_status}</span>
                     {inv.priority_tier && (
-                      <span className={`rounded px-2 py-0.5 text-xs font-bold ${TIER_BADGE[inv.priority_tier] || TIER_BADGE.P4}`}>
+                      <span className={`rounded-sm px-2 py-0.5 text-xs font-bold ${TIER_BADGE[inv.priority_tier] || TIER_BADGE.P4}`}>
                         {inv.priority_tier} — {inv.priority_label}
                       </span>
                     )}
-                    <span className={`rounded px-2 py-0.5 text-xs font-bold ${RISK_BADGE[inv.risk_score_at_start >= 67 ? "High" : inv.risk_score_at_start >= 34 ? "Medium" : "Low"] || ""}`}>
+                    <span className={`rounded-sm px-2 py-0.5 text-xs font-bold ${RISK_BADGE[inv.risk_score_at_start >= 67 ? "High" : inv.risk_score_at_start >= 34 ? "Medium" : "Low"] || ""}`}>
                       Risk {inv.risk_score_at_start ?? "—"}/100
                     </span>
                   </div>
@@ -351,14 +351,14 @@ function MyAuditCasesInner({ onOpenProject }) {
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="rounded bg-[#f8f1f1] px-2 py-0.5 font-mono text-xs font-bold text-[#292326] dark:bg-[#0d090b] dark:text-[#f5eff1]">{c.case_id}</span>
+                    <span className="rounded-sm bg-[#f8f1f1] px-2 py-0.5 font-mono text-xs font-bold text-[#292326] dark:bg-[#0d090b] dark:text-[#f5eff1]">{c.case_id}</span>
                     {c.priority_tier && (
-                      <span className={`rounded px-2 py-0.5 text-xs font-bold ${TIER_BADGE[c.priority_tier] || TIER_BADGE.P4}`}>
+                      <span className={`rounded-sm px-2 py-0.5 text-xs font-bold ${TIER_BADGE[c.priority_tier] || TIER_BADGE.P4}`}>
                         {c.priority_tier} — {c.priority_label}
                       </span>
                     )}
-                    {c.risk_level && <span className={`rounded px-2 py-0.5 text-xs font-bold ${RISK_BADGE[c.risk_level] || "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300"}`}>{c.risk_level} risk · {c.risk_score}/100</span>}
-                    <span className="rounded bg-gray-100 px-2 py-0.5 text-xs font-semibold text-gray-600 dark:bg-gray-700 dark:text-gray-300">{c.case_status}</span>
+                    {c.risk_level && <span className={`rounded-sm px-2 py-0.5 text-xs font-bold ${RISK_BADGE[c.risk_level] || "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300"}`}>{c.risk_level} risk · {c.risk_score}/100</span>}
+                    <span className="rounded-sm bg-gray-100 px-2 py-0.5 text-xs font-semibold text-gray-600 dark:bg-gray-700 dark:text-gray-300">{c.case_status}</span>
                     {c.investigation_status && <span className="text-xs text-[#71666a]/70 dark:text-[#b9aeb2]/70">investigation: {c.investigation_status}</span>}
                   </div>
                   <p className="mt-1.5 truncate text-[0.9375rem] font-semibold text-[#292326] dark:text-[#f5eff1]">{c.project_name || "Unnamed project"}</p>
@@ -516,7 +516,7 @@ function AdminInner() {
             {users.map((u) => (
               <div key={u.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[#e8dadc] px-3 py-2.5 dark:border-[#351923]">
                 <div className="min-w-0">
-                  <p className="truncate text-[0.9375rem] font-semibold text-[#292326] dark:text-[#f5eff1]">{u.name} {!u.is_active && <span className="ml-1 rounded bg-red-100 px-1.5 py-0.5 text-xs font-bold text-red-700 dark:bg-red-950 dark:text-red-300">disabled</span>}</p>
+                  <p className="truncate text-[0.9375rem] font-semibold text-[#292326] dark:text-[#f5eff1]">{u.name} {!u.is_active && <span className="ml-1 rounded-sm bg-red-100 px-1.5 py-0.5 text-xs font-bold text-red-700 dark:bg-red-950 dark:text-red-300">disabled</span>}</p>
                   <p className="truncate text-[0.8125rem] text-[#71666a] dark:text-[#b9aeb2]">
                     {u.email} · {ROLE_LABEL[u.role] || u.role}
                     {(u.assigned_district || u.assigned_state) ? ` · 📍 ${u.assigned_district || u.assigned_state}` : ""}

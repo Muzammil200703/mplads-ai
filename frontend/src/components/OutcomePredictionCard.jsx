@@ -131,7 +131,7 @@ export default function OutcomePredictionCard({ data }) {
         )}
 
         {(metrics.holdout_auc != null || validation.note) && (
-          <p className="rounded bg-[#faf7f6] px-2 py-1 text-[0.625rem] leading-snug text-[#71666a] dark:bg-[#120b0e] dark:text-[#b9aeb2]">
+          <p className="rounded-sm bg-[#faf7f6] px-2 py-1 text-[0.625rem] leading-snug text-[#71666a] dark:bg-[#120b0e] dark:text-[#b9aeb2]">
             {metrics.holdout_auc != null
               ? <>Time-aware hold-out: AUC {metrics.holdout_auc}, Brier {metrics.holdout_brier ?? "—"}, validated on {metrics.holdout_projects ?? "—"} later-vintage projects it never saw.</>
               : validation.note}
@@ -139,7 +139,7 @@ export default function OutcomePredictionCard({ data }) {
         )}
 
         {limitations.length > 0 && (
-          <div className="rounded bg-amber-50 p-2 dark:bg-amber-950/20">
+          <div className="rounded-sm bg-amber-50 p-2 dark:bg-amber-950/20">
             <p className="text-[0.5938rem] font-bold uppercase tracking-wide text-amber-700 dark:text-amber-300">Limitations</p>
             <ul className="mt-0.5 list-disc space-y-0.5 pl-3.5 text-[0.625rem] leading-snug text-amber-800 dark:text-amber-200">
               {limitations.map((l, i) => <li key={i}>{l}</li>)}

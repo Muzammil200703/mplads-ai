@@ -666,12 +666,12 @@ const StateIntelligence = memo(function StateIntelligence({
                     <td className="p-3 text-right font-mono text-xs">{s.average_completion_percentage}%</td>
                     <td className="p-3 text-right">
                       {s.high_risk_projects > 0 ? (
-                        <span className="rounded bg-red-100 px-1.5 py-0.5 font-mono text-xs font-bold text-red-700 dark:bg-red-950 dark:text-red-300">{s.high_risk_projects}</span>
+                        <span className="rounded-sm bg-red-100 px-1.5 py-0.5 font-mono text-xs font-bold text-red-700 dark:bg-red-950 dark:text-red-300">{s.high_risk_projects}</span>
                       ) : <span className="text-gray-300">0</span>}
                     </td>
                     <td className="p-3 text-right">
                       {s.ml_anomaly_projects > 0 ? (
-                        <span className="rounded bg-purple-100 px-1.5 py-0.5 font-mono text-xs font-bold text-purple-700 dark:bg-purple-950 dark:text-purple-300">{s.ml_anomaly_projects}</span>
+                        <span className="rounded-sm bg-purple-100 px-1.5 py-0.5 font-mono text-xs font-bold text-purple-700 dark:bg-purple-950 dark:text-purple-300">{s.ml_anomaly_projects}</span>
                       ) : <span className="text-gray-300">0</span>}
                     </td>
                   </tr>
@@ -688,23 +688,44 @@ const StateIntelligence = memo(function StateIntelligence({
                 className="p-4 cursor-pointer transition hover:bg-blue-50/40 dark:hover:bg-[#120b0e]"
                 onClick={() => onNavigateToProjects && onNavigateToProjects(s.drill_state || s.state)}
               >
-                <div className="flex items-start justify-between">
-                  <p className="font-semibold text-sm">{s.display_name || s.state}</p>
-                  <div className="flex items-center gap-1.5">
-                    {s.high_risk_projects > 0 && <span className="rounded bg-red-100 px-1.5 py-0.5 text-[0.625rem] font-bold text-red-700 dark:bg-red-950 dark:text-red-300">{s.high_risk_projects} High</span>}
-                    {s.ml_anomaly_projects > 0 && <span className="rounded bg-purple-100 px-1.5 py-0.5 text-[0.625rem] font-bold text-purple-700 dark:bg-purple-950 dark:text-purple-300">{s.ml_anomaly_projects} ML</span>}
+                <div className="flex items-start justify-between gap-2">
+                  <p className="min-w-0 font-semibold text-sm leading-snug">{s.display_name || s.state}</p>
+                  <div className="flex shrink-0 flex-wrap items-center justify-end gap-1">
+                    {s.high_risk_projects > 0 && <span className="whitespace-nowrap rounded-sm bg-red-100 px-1.5 py-0.5 text-[0.625rem] font-bold text-red-700 dark:bg-red-950 dark:text-red-300">{s.high_risk_projects} High</span>}
+                    {s.ml_anomaly_projects > 0 && <span className="whitespace-nowrap rounded-sm bg-purple-100 px-1.5 py-0.5 text-[0.625rem] font-bold text-purple-700 dark:bg-purple-950 dark:text-purple-300">{s.ml_anomaly_projects} ML</span>}
                   </div>
                 </div>
-                <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
-                  <div className="flex justify-between"><span className="text-gray-500">Works</span><span className="font-mono font-bold">{s.total_projects.toLocaleString("en-IN")}</span></div>
-                  <div className="flex justify-between"><span className="text-gray-500">Completed</span><span className="font-mono font-bold text-green-600 dark:text-green-400">{s.completed_projects.toLocaleString("en-IN")}</span></div>
-                  <div className="flex justify-between"><span className="text-gray-500">Sanctioned</span><span className="font-mono font-semibold">{formatMoney(s.total_sanctioned_amount)}</span></div>
-                  <div className="flex justify-between"><span className="text-gray-500">Expenditure</span><span className="font-mono font-semibold">{formatMoney(s.total_expenditure)}</span></div>
-                  <div className="flex justify-between"><span className="text-gray-500">Utilization</span><span className="font-mono font-bold">{s.utilization_percentage}%</span></div>
-                  <div className="flex justify-between"><span className="text-gray-500">Avg Progress</span><span className="font-mono">{s.average_completion_percentage}%</span></div>
+                {/* Three aligned pairs: works/completed, sanctioned/expenditure,
+                    utilization/average progress. Each label sits above its own
+                    value, so amounts and their Cr/L unit never wrap or collide. */}
+                <div className="metric-grid mt-3">
+                  <div className="metric-cell">
+                    <span className="metric-label">Works</span>
+                    <span className="metric-value">{s.total_projects.toLocaleString("en-IN")}</span>
+                  </div>
+                  <div className="metric-cell">
+                    <span className="metric-label">Completed</span>
+                    <span className="metric-value text-green-600 dark:text-green-400">{s.completed_projects.toLocaleString("en-IN")}</span>
+                  </div>
+                  <div className="metric-cell">
+                    <span className="metric-label">Sanctioned</span>
+                    <span className="metric-value">{formatMoney(s.total_sanctioned_amount)}</span>
+                  </div>
+                  <div className="metric-cell">
+                    <span className="metric-label">Expenditure</span>
+                    <span className="metric-value">{formatMoney(s.total_expenditure)}</span>
+                  </div>
+                  <div className="metric-cell">
+                    <span className="metric-label">Utilization</span>
+                    <span className="metric-value font-bold">{s.utilization_percentage}%</span>
+                  </div>
+                  <div className="metric-cell">
+                    <span className="metric-label">Avg Progress</span>
+                    <span className="metric-value">{s.average_completion_percentage}%</span>
+                  </div>
                 </div>
                 {typeof s.work_verified_expenditure === "number" && s.work_verified_expenditure > 0 && (
-                  <p className="mt-1.5 text-[0.625rem] leading-snug text-gray-400">
+                  <p className="mt-2 break-words text-[0.6875rem] leading-relaxed text-gray-400">
                     ₹{formatMoney(s.work_verified_expenditure).replace(/^[^\d]*/, "")} of this is verifiably matched to catalog works ({s.linked_work_keys ?? 0} keys), of which ₹{formatMoney(s.project_linked_expenditure ?? 0).replace(/^[^\d]*/, "")} is uniquely attributable; the rest cannot be matched to catalog records.
                   </p>
                 )}

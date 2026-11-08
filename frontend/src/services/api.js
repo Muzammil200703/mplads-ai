@@ -1020,6 +1020,13 @@ export async function resetPassword(token, newPassword) {
   return request("/auth/reset-password", { method: "POST", body: JSON.stringify({ token, new_password: newPassword }) })
 }
 
+export async function changePassword(currentPassword, newPassword) {
+  return request("/auth/change-password", {
+    method: "POST",
+    body: JSON.stringify({ current_password: currentPassword, new_password: newPassword }),
+  })
+}
+
 export async function listUsers() {
   return request("/auth/users")
 }

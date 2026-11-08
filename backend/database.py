@@ -93,6 +93,7 @@ def run_lightweight_migrations():
         "users": [
             ("assigned_district", "TEXT"),
             ("assigned_state", "TEXT"),
+            ("must_change_password", "BOOLEAN NOT NULL DEFAULT 0"),
         ],
         "verification_reports": [
             ("user_id", "INTEGER"),

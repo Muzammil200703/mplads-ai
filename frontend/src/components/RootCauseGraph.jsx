@@ -34,9 +34,9 @@ function EvidenceList({ evidence }) {
   return (
     <div className="mt-2 space-y-1">
       {evidence.map((e, i) => (
-        <div key={`${e.table}-${i}`} className="rounded border border-gray-200 bg-white/70 px-2 py-1 dark:border-gray-700 dark:bg-black/40">
+        <div key={`${e.table}-${i}`} className="rounded-sm border border-gray-200 bg-white/70 px-2 py-1 dark:border-gray-700 dark:bg-black/40">
           <div className="flex flex-wrap items-center gap-1.5">
-            <span className="rounded bg-gray-200 px-1.5 py-0.5 text-[0.65rem] font-bold uppercase text-gray-500 dark:bg-gray-700 dark:text-gray-300">
+            <span className="rounded-sm bg-gray-200 px-1.5 py-0.5 text-[0.65rem] font-bold uppercase text-gray-500 dark:bg-gray-700 dark:text-gray-300">
               {e.table}
             </span>
             <code className="text-[0.72rem] font-semibold text-blue-700 dark:text-blue-300">{e.reference}</code>
@@ -101,14 +101,14 @@ export default function RootCauseGraph({ projectId }) {
             </p>
           </div>
           <div className="flex flex-wrap gap-1.5">
-            <span className={`rounded px-2 py-0.5 text-[0.72rem] font-bold ${outcome?.flagged ? "bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300" : "bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-300"}`}>
+            <span className={`rounded-sm px-2 py-0.5 text-[0.72rem] font-bold ${outcome?.flagged ? "bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300" : "bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-300"}`}>
               {outcome?.risk_level || "Unscored"}{outcome?.risk_score != null ? ` · ${Number(outcome.risk_score).toFixed(1)}` : ""}
             </span>
-            <span className="rounded bg-blue-100 px-2 py-0.5 text-[0.72rem] font-bold text-blue-700 dark:bg-blue-950 dark:text-blue-300">
+            <span className="rounded-sm bg-blue-100 px-2 py-0.5 text-[0.72rem] font-bold text-blue-700 dark:bg-blue-950 dark:text-blue-300">
               confidence: {data.confidence}
             </span>
             {outcome?.ml_anomaly && (
-              <span className="rounded bg-purple-100 px-2 py-0.5 text-[0.72rem] font-bold text-purple-700 dark:bg-purple-950 dark:text-purple-300">ML anomaly</span>
+              <span className="rounded-sm bg-purple-100 px-2 py-0.5 text-[0.72rem] font-bold text-purple-700 dark:bg-purple-950 dark:text-purple-300">ML anomaly</span>
             )}
           </div>
         </div>
@@ -144,7 +144,7 @@ export default function RootCauseGraph({ projectId }) {
                     <p className="text-[0.875rem] font-bold text-gray-900 dark:text-white">{node.label}</p>
                     <div className="flex flex-wrap gap-1">
                       {rels.map((e, i) => (
-                        <span key={i} className={`rounded px-1.5 py-0.5 text-[0.65rem] font-bold ${RELATION_TONE[e.relation] || RELATION_TONE.context}`}>
+                        <span key={i} className={`rounded-sm px-1.5 py-0.5 text-[0.65rem] font-bold ${RELATION_TONE[e.relation] || RELATION_TONE.context}`}>
                           {e.relation}{e.strength != null ? ` · ${Math.round(e.strength * 100)}%` : ""}
                         </span>
                       ))}

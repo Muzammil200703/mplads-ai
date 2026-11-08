@@ -182,7 +182,7 @@ def has_role_rank(user, minimum_role: str) -> bool:
     return ROLE_RANK.get(user.role, 0) >= ROLE_RANK.get(minimum_role, 99)
 
 
-def require_role(minimum_role: str):
+def require_role(minimum_role: str, allow_pending_password_change: bool = False):
     """
     Dependency factory: 401 when not authenticated, 403 when the account's
     role ranks below `minimum_role`. Admin passes every check.
@@ -213,12 +213,20 @@ def require_role(minimum_role: str):
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail=f"This action requires the '{minimum_role}' role",
             )
+        # A reset/provisioned credential is temporary: every role-gated action
+        # stays closed until the owner replaces it (/auth/me and
+        # /auth/change-password opt in to allow_pending_password_change).
+        if getattr(user, "must_change_password", False) and not allow_pending_password_change:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Password change required before using this account",
+            )
         return user
 
     return dependency
 
 
-def require_capability(capability: str):
+def require_capability(capability: str, allow_pending_password_change: bool = False):
     """
     Dependency factory: 401 when unauthenticated, 403 when the account's
     role does not hold `capability`. This is the enforcement point for the
@@ -250,6 +258,11 @@ def require_capability(capability: str):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail=f"This action requires the '{capability}' permission",
+            )
+        if getattr(user, "must_change_password", False) and not allow_pending_password_change:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Password change required before using this account",
             )
         return user
 

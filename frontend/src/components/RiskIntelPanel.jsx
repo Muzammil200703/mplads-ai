@@ -106,7 +106,7 @@ function EmergingRisk({ state, house }) {
                 <div className="flex flex-wrap items-center justify-between gap-1">
                   <p className="text-[0.85rem] font-bold text-gray-900 dark:text-white">{p.label || labelize(p.key || "")}</p>
                   {p.projects != null && (
-                    <span className="rounded bg-blue-100 px-1.5 py-0.5 text-[0.68rem] font-bold text-blue-700 dark:bg-blue-950 dark:text-blue-300">
+                    <span className="rounded-sm bg-blue-100 px-1.5 py-0.5 text-[0.68rem] font-bold text-blue-700 dark:bg-blue-950 dark:text-blue-300">
                       {formatNumber(p.projects)} projects
                     </span>
                   )}
@@ -202,7 +202,7 @@ function PatternEvolution({ state, house }) {
                 <td className="px-2 py-1.5 text-right font-mono">{row.anomalies != null ? formatNumber(row.anomalies) : "not recorded"}</td>
                 <td className="px-2 py-1.5 text-right font-mono">{row.expenditure != null ? formatMoney(row.expenditure) : "—"}</td>
                 <td className="px-2 py-1.5">
-                  <span className={`rounded px-1.5 py-0.5 text-[0.65rem] font-bold ${row.mode === "recorded" ? "bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-300" : "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300"}`}>
+                  <span className={`rounded-sm px-1.5 py-0.5 text-[0.65rem] font-bold ${row.mode === "recorded" ? "bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-300" : "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300"}`}>
                     {row.mode}
                   </span>
                 </td>
@@ -261,7 +261,7 @@ function BehaviourClusters({ state, house, category, onSelectProject }) {
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center gap-2 text-[0.75rem] text-gray-500 dark:text-gray-400">
-        <span className={`rounded px-1.5 py-0.5 font-bold ${QUALITY_TONE[data.quality] || QUALITY_TONE.moderate}`}>
+        <span className={`rounded-sm px-1.5 py-0.5 font-bold ${QUALITY_TONE[data.quality] || QUALITY_TONE.moderate}`}>
           silhouette {data.silhouette} · {data.quality}
         </span>
         <span>{data.k} clusters over {formatNumber(data.projects_considered)} works</span>
@@ -296,12 +296,12 @@ function BehaviourClusters({ state, house, category, onSelectProject }) {
             <p className="mt-1 text-[0.8rem] leading-snug text-gray-600 dark:text-gray-300">{c.description}</p>
             <div className="mt-1.5 flex flex-wrap gap-1">
               {(c.top_states || []).map((s) => (
-                <span key={s.state} className="rounded bg-gray-100 px-1.5 py-0.5 text-[0.68rem] font-semibold text-gray-600 dark:bg-gray-800 dark:text-gray-300">
+                <span key={s.state} className="rounded-sm bg-gray-100 px-1.5 py-0.5 text-[0.68rem] font-semibold text-gray-600 dark:bg-gray-800 dark:text-gray-300">
                   {s.state} · {s.projects}
                 </span>
               ))}
               {(c.top_categories || []).map((s) => (
-                <span key={s.category} className="rounded bg-blue-50 px-1.5 py-0.5 text-[0.68rem] font-semibold text-blue-700 dark:bg-blue-950/40 dark:text-blue-300">
+                <span key={s.category} className="rounded-sm bg-blue-50 px-1.5 py-0.5 text-[0.68rem] font-semibold text-blue-700 dark:bg-blue-950/40 dark:text-blue-300">
                   {s.category} · {s.projects}
                 </span>
               ))}

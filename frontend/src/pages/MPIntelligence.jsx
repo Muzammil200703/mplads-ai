@@ -130,8 +130,8 @@ export default function MPIntelligence({ darkMode, drillDownParams, onClearDrill
               : loading
                 ? Array.from({ length: 8 }).map((_, i) => (
                     <div key={`sk-${i}`} className={`animate-pulse rounded-xl border p-3 shadow-sm ${cardBg}`}>
-                      <div className="h-2 w-2/3 rounded bg-gray-200 dark:bg-gray-700" />
-                      <div className="mt-2.5 h-4 w-1/2 rounded bg-gray-200 dark:bg-gray-700" />
+                      <div className="h-2 w-2/3 rounded-sm bg-gray-200 dark:bg-gray-700" />
+                      <div className="mt-2.5 h-4 w-1/2 rounded-sm bg-gray-200 dark:bg-gray-700" />
                     </div>
                   ))
                 : (

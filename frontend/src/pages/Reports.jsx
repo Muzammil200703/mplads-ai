@@ -347,18 +347,18 @@ function Reports() {
                     using your selected filters and generates the CSV/JSON file server-side.
                     This ensures you receive <strong>all matching records</strong>, not just the preview subset.
                   </p>
-                  <div className="mt-4 grid grid-cols-3 gap-4 text-center">
-                    <div>
+                  <div className="mt-4 grid grid-cols-1 gap-3 text-center min-[380px]:grid-cols-3">
+                    <div className="min-w-0">
                       <p className="text-[0.625rem] font-bold uppercase text-gray-400">Report Type</p>
-                      <p className="mt-1 text-xs font-semibold">{reportType}</p>
+                      <p className="mt-1 break-words text-xs font-semibold">{reportType}</p>
                     </div>
-                    <div>
+                    <div className="min-w-0">
                       <p className="text-[0.625rem] font-bold uppercase text-gray-400">Scope</p>
-                      <p className="mt-1 text-xs font-semibold">{selectedState || "Nationwide"}</p>
+                      <p className="mt-1 break-words text-xs font-semibold">{selectedState || "Nationwide"}</p>
                     </div>
-                    <div>
+                    <div className="min-w-0">
                       <p className="text-[0.625rem] font-bold uppercase text-gray-400">Format</p>
-                      <p className="mt-1 text-xs font-semibold">{format}</p>
+                      <p className="mt-1 break-words text-xs font-semibold">{format}</p>
                     </div>
                   </div>
                 </div>

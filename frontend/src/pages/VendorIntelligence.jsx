@@ -197,7 +197,7 @@ const VendorIntelligence = memo(function VendorIntelligence({ drillDownParams, o
           </div>
           <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-[#e8dadc] pt-3 text-xs text-gray-500 dark:border-[#351923]">
             <span>Showing {totalVendors === 0 ? 0 : page * pageSize + 1}–{Math.min((page + 1) * pageSize, totalVendors)} of {formatNumber(totalVendors)} vendors</span>
-            <div className="flex items-center gap-2"><button disabled={page === 0} onClick={() => setPage((value) => Math.max(0, value - 1))} className="rounded border border-gray-300 px-2 py-1 disabled:cursor-not-allowed disabled:opacity-40 dark:border-gray-600">Previous</button><span>Page {page + 1} of {totalPages}</span><button disabled={page + 1 >= totalPages} onClick={() => setPage((value) => Math.min(totalPages - 1, value + 1))} className="rounded border border-gray-300 px-2 py-1 disabled:cursor-not-allowed disabled:opacity-40 dark:border-gray-600">Next</button></div>
+            <div className="flex items-center gap-2"><button disabled={page === 0} onClick={() => setPage((value) => Math.max(0, value - 1))} className="rounded-sm border border-gray-300 px-2 py-1 disabled:cursor-not-allowed disabled:opacity-40 dark:border-gray-600">Previous</button><span>Page {page + 1} of {totalPages}</span><button disabled={page + 1 >= totalPages} onClick={() => setPage((value) => Math.min(totalPages - 1, value + 1))} className="rounded-sm border border-gray-300 px-2 py-1 disabled:cursor-not-allowed disabled:opacity-40 dark:border-gray-600">Next</button></div>
           </div>
         </div>
 

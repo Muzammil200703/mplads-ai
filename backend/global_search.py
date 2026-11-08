@@ -53,7 +53,10 @@ DESTINATIONS = {
     "Evidence Queue", "Administration", "Data Management",
 }
 
-SEARCH_TYPES = ("projects", "mps", "vendors", "constituencies", "states", "investigations")
+SEARCH_TYPES = (
+    "projects", "mps", "vendors", "constituencies", "states", "investigations",
+    "expenditures", "completed_works", "findings", "batches", "changes",
+)
 
 PROJECT_COLUMNS = "id, project_name, state, constituency, house, status, completion_percentage"
 
@@ -539,6 +542,203 @@ def _search_investigations(
     return results[:limit]
 
 
+# ── Payments (expenditure ledger) ───────────────────────────────────────
+
+def _search_expenditures(db: Session, q: str, limit: int, user) -> List[dict]:
+    """Ledger payments by work description, vendor or MP.
+
+    A payment is not a project: it links to a work through description +
+    constituency + state, never a guaranteed project id. The row therefore
+    opens Vendor Intelligence when a vendor is recorded, otherwise the
+    Projects list scoped to its state/constituency.
+    """
+    # Individual payments are not part of the public catalogue: signed-in
+    # users only, matching the analyst-facing vendor surfaces.
+    if not user:
+        return []
+    try:
+        rows = db.execute(text("""
+            SELECT id, mp_name, constituency, state, house, work_description,
+                   vendor, expenditure_amount, expenditure_date
+            FROM expenditures
+            WHERE work_description LIKE :sub ESCAPE '\\'
+               OR vendor LIKE :sub ESCAPE '\\'
+               OR mp_name LIKE :sub ESCAPE '\\'
+            ORDER BY expenditure_date DESC
+            LIMIT :lim
+        """), {"sub": _like(q), "lim": limit}).all()
+    except Exception:
+        return []
+
+    out: List[dict] = []
+    for row in rows:
+        m = row._mapping
+        vendor = (m["vendor"] or "").strip()
+        dest = (
+            _destination("Vendor Intelligence", vendor=vendor)
+            if vendor else _destination("Projects", state=m["state"], constituency=m["constituency"])
+        )
+        if not dest:
+            continue
+        out.append({
+            "type": "expenditure",
+            "id": f"expenditure:{m['id']}",
+            "record_id": m["id"],
+            "title": m["work_description"] or (f"Payment to {vendor}" if vendor else f"Payment #{m['id']}"),
+            "subtitle": " · ".join(
+                [b for b in [vendor or "Vendor not recorded", m["state"], m["expenditure_date"]] if b]
+            ),
+            "meta": _money(m["expenditure_amount"]),
+            "destination": dest,
+        })
+    return out
+
+
+# ── Completed works (completions ledger) ────────────────────────────────
+
+def _search_completed_works(db: Session, q: str, limit: int, house: Optional[str]) -> List[dict]:
+    house_sql = " AND house = :house" if house else ""
+    params: Dict[str, Any] = {"sub": _like(q), "lim": limit}
+    if house:
+        params["house"] = house
+    try:
+        rows = db.execute(text(f"""
+            SELECT id, work_id, work_description, category, state, constituency,
+                   house, final_amount, completed_date
+            FROM completed_works
+            WHERE work_description LIKE :sub ESCAPE '\\' {house_sql}
+            ORDER BY completed_date DESC
+            LIMIT :lim
+        """), params).all()
+    except Exception:
+        return []
+
+    out: List[dict] = []
+    for row in rows:
+        m = row._mapping
+        dest = (
+            _destination("Projects", projectId=m["work_id"])
+            if m["work_id"] else _destination("Projects", state=m["state"], constituency=m["constituency"])
+        )
+        if not dest:
+            continue
+        out.append({
+            "type": "completed_work",
+            "id": f"completed:{m['id']}",
+            "record_id": m["id"],
+            "title": m["work_description"] or f"Completed work {m['id']}",
+            "subtitle": " · ".join(
+                [b for b in ["Completed", m["state"], m["completed_date"]] if b]
+            ),
+            "meta": _money(m["final_amount"]),
+            "destination": dest,
+        })
+    return out
+
+
+# ── Audit findings (analyst / auditor only) ─────────────────────────────
+
+def _search_findings(db: Session, q: str, limit: int, user) -> List[dict]:
+    if not user:
+        return []
+    is_analyst = auth.has_role_rank(user, "analyst")
+    is_auditor = auth.has_role_rank(user, "auditor")
+    if not (is_analyst or is_auditor):
+        return []
+    try:
+        rows = db.execute(text("""
+            SELECT af.id, af.project_id, af.title, af.confidence, af.status,
+                   p.project_name, p.state
+            FROM agent_findings af
+            JOIN projects p ON p.id = af.project_id
+            WHERE af.title LIKE :sub ESCAPE '\\'
+            ORDER BY af.id DESC
+            LIMIT :lim
+        """), {"sub": _like(q), "lim": limit}).all()
+    except Exception:
+        return []
+
+    page = "My Audit Cases" if is_auditor else "My Investigations"
+    out: List[dict] = []
+    for row in rows:
+        m = row._mapping
+        out.append({
+            "type": "finding",
+            "id": f"finding:{m['id']}",
+            "record_id": m["id"],
+            "title": m["title"],
+            "subtitle": " · ".join(
+                [b for b in [m["project_name"], m["confidence"], m["status"]] if b]
+            ),
+            "meta": f"#{m['project_id']}",
+            "destination": _destination(page, projectId=m["project_id"]),
+        })
+    return out
+
+
+# ── Import batches (admin only) ─────────────────────────────────────────
+
+def _search_batches(db: Session, q: str, limit: int, user) -> List[dict]:
+    if not user or not auth.has_role_rank(user, "admin"):
+        return []
+    try:
+        rows = db.execute(text("""
+            SELECT id, filename, dataset_type, status, uploaded_at, total_rows
+            FROM import_batches
+            WHERE filename LIKE :sub ESCAPE '\\'
+            ORDER BY id DESC
+            LIMIT :lim
+        """), {"sub": _like(q), "lim": limit}).all()
+    except Exception:
+        return []
+    return [{
+        "type": "batch",
+        "id": f"batch:{row._mapping['id']}",
+        "record_id": row._mapping["id"],
+        "title": row._mapping["filename"],
+        "subtitle": " · ".join(
+            [b for b in [row._mapping["dataset_type"], row._mapping["status"], row._mapping["uploaded_at"]] if b]
+        ),
+        "meta": f"{int(row._mapping['total_rows'] or 0):,} rows",
+        "destination": _destination("Data Management"),
+    } for row in rows]
+
+
+# ── Recorded change events (analyst+) ───────────────────────────────────
+
+def _search_changes(db: Session, q: str, limit: int, user) -> List[dict]:
+    if not user or not auth.has_role_rank(user, "analyst"):
+        return []
+    try:
+        rows = db.execute(text("""
+            SELECT ce.id, ce.project_id, ce.change_type, ce.field, ce.changed_at,
+                   p.project_name, p.state
+            FROM project_change_events ce
+            JOIN projects p ON p.id = ce.project_id
+            WHERE p.project_name LIKE :sub ESCAPE '\\'
+               OR CAST(ce.project_id AS TEXT) = :raw
+            ORDER BY ce.id DESC
+            LIMIT :lim
+        """), {"sub": _like(q), "raw": q, "lim": limit}).all()
+    except Exception:
+        return []
+    out: List[dict] = []
+    for row in rows:
+        m = row._mapping
+        out.append({
+            "type": "change",
+            "id": f"change:{m['id']}",
+            "record_id": m["id"],
+            "title": m["project_name"] or f"Project {m['project_id']}",
+            "subtitle": " · ".join(
+                [b for b in [m["change_type"], m["field"], m["changed_at"]] if b]
+            ),
+            "meta": f"#{m['project_id']}",
+            "destination": _destination("Projects", projectId=m["project_id"]),
+        })
+    return out
+
+
 # ── Endpoint ─────────────────────────────────────────────────────────────
 
 @router.get("/global-search")
@@ -589,6 +789,11 @@ def global_search(
         ("constituencies", lambda: _search_constituencies(db, query, per_type)),
         ("states", lambda: _search_states(db, query, per_type)),
         ("investigations", lambda: _search_investigations(db, query, per_type, user, house_scope)),
+        ("expenditures", lambda: _search_expenditures(db, query, per_type, user)),
+        ("completed_works", lambda: _search_completed_works(db, query, per_type, house_scope)),
+        ("findings", lambda: _search_findings(db, query, per_type, user)),
+        ("batches", lambda: _search_batches(db, query, per_type, user)),
+        ("changes", lambda: _search_changes(db, query, per_type, user)),
     ]
 
     for name, run in searchers:

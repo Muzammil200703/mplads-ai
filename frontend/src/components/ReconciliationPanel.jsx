@@ -107,7 +107,7 @@ export default function ReconciliationPanel() {
         {data?.counts && (
           <div className="mt-2 flex flex-wrap gap-1.5">
             {Object.entries(data.counts).map(([k, v]) => (
-              <span key={k} className="rounded bg-gray-100 px-2 py-0.5 text-[0.68rem] font-semibold text-gray-600 dark:bg-gray-800 dark:text-gray-300">
+              <span key={k} className="rounded-sm bg-gray-100 px-2 py-0.5 text-[0.68rem] font-semibold text-gray-600 dark:bg-gray-800 dark:text-gray-300">
                 {k.replace(/_/g, " ")}: {v}
               </span>
             ))}
@@ -135,10 +135,10 @@ export default function ReconciliationPanel() {
               <p className="text-[0.7rem] text-gray-400">{c.check.replace(/_/g, " ")}</p>
             </div>
             <div className="flex flex-wrap gap-1">
-              <span className={`rounded px-1.5 py-0.5 text-[0.65rem] font-bold ${CONFIDENCE_TONE[c.confidence] || CONFIDENCE_TONE.uncertain}`}>
+              <span className={`rounded-sm px-1.5 py-0.5 text-[0.65rem] font-bold ${CONFIDENCE_TONE[c.confidence] || CONFIDENCE_TONE.uncertain}`}>
                 {c.confidence} match
               </span>
-              <span className="rounded bg-gray-100 px-1.5 py-0.5 text-[0.65rem] font-bold text-gray-600 dark:bg-gray-800 dark:text-gray-300">
+              <span className="rounded-sm bg-gray-100 px-1.5 py-0.5 text-[0.65rem] font-bold text-gray-600 dark:bg-gray-800 dark:text-gray-300">
                 {c.severity}
               </span>
             </div>
@@ -148,9 +148,9 @@ export default function ReconciliationPanel() {
 
           <div className="mt-2 space-y-1">
             {(c.records || []).map((r, i) => (
-              <div key={`${r.dataset}-${i}`} className="rounded border border-gray-200 bg-gray-50 px-2 py-1.5 dark:border-gray-700 dark:bg-gray-900/40">
+              <div key={`${r.dataset}-${i}`} className="rounded-sm border border-gray-200 bg-gray-50 px-2 py-1.5 dark:border-gray-700 dark:bg-gray-900/40">
                 <div className="flex flex-wrap items-center gap-1.5">
-                  <span className="rounded bg-gray-200 px-1.5 py-0.5 text-[0.62rem] font-bold uppercase text-gray-500 dark:bg-gray-700 dark:text-gray-300">{r.dataset}</span>
+                  <span className="rounded-sm bg-gray-200 px-1.5 py-0.5 text-[0.62rem] font-bold uppercase text-gray-500 dark:bg-gray-700 dark:text-gray-300">{r.dataset}</span>
                   <code className="break-all text-[0.72rem] font-semibold text-blue-700 dark:text-blue-300">{r.reference}</code>
                 </div>
                 <div className="mt-0.5 flex flex-wrap gap-x-2.5 gap-y-0.5">
@@ -165,7 +165,7 @@ export default function ReconciliationPanel() {
           </div>
 
           {c.review ? (
-            <p className="mt-2 rounded bg-blue-50 px-2 py-1 text-[0.75rem] text-blue-700 dark:bg-blue-950/30 dark:text-blue-300">
+            <p className="mt-2 rounded-sm bg-blue-50 px-2 py-1 text-[0.75rem] text-blue-700 dark:bg-blue-950/30 dark:text-blue-300">
               {c.review.decision} by {c.review.reviewer || "auditor"}
               {c.review.reviewed_at ? ` · ${String(c.review.reviewed_at).replace("T", " ").slice(0, 16)}` : ""}
               {c.review.note ? ` — ${c.review.note}` : ""}

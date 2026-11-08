@@ -39,7 +39,7 @@ function Banner({ text, tone = "blue" }) {
 function Bar({ value, max, tone = "bg-blue-500" }) {
   const pct = max > 0 && value != null ? Math.max(0, Math.min(100, (Number(value) / max) * 100)) : 0
   return (
-    <div className="h-1.5 w-full overflow-hidden rounded bg-gray-200 dark:bg-gray-700">
+    <div className="h-1.5 w-full overflow-hidden rounded-sm bg-gray-200 dark:bg-gray-700">
       <div className={`h-full ${tone}`} style={{ width: `${pct}%` }} />
     </div>
   )
@@ -69,8 +69,8 @@ function AreaTable({ rows, unit, showIndex }) {
               <td className="max-w-[16rem] px-2 py-1.5">
                 <div className="flex items-center gap-1.5">
                   <span className="truncate font-semibold text-gray-800 dark:text-gray-200" title={r.area}>{r.area}</span>
-                  {r.low_coverage && <span className="shrink-0 rounded bg-amber-100 px-1 py-0.5 text-[0.6rem] font-bold text-amber-700 dark:bg-amber-950 dark:text-amber-300">low</span>}
-                  {r.small_sample && <span className="shrink-0 rounded bg-gray-100 px-1 py-0.5 text-[0.6rem] font-bold text-gray-500 dark:bg-gray-800 dark:text-gray-300">small n</span>}
+                  {r.low_coverage && <span className="shrink-0 rounded-sm bg-amber-100 px-1 py-0.5 text-[0.6rem] font-bold text-amber-700 dark:bg-amber-950 dark:text-amber-300">low</span>}
+                  {r.small_sample && <span className="shrink-0 rounded-sm bg-gray-100 px-1 py-0.5 text-[0.6rem] font-bold text-gray-500 dark:bg-gray-800 dark:text-gray-300">small n</span>}
                 </div>
                 <Bar value={r.projects} max={maxProjects} tone="bg-gray-400 dark:bg-gray-500" />
               </td>
@@ -137,7 +137,7 @@ function Coverage({ data }) {
           <p className="text-[0.68rem] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">Areas below the 25th percentile of recorded projects</p>
           <p className="mt-1 flex flex-wrap gap-1">
             {data.low_coverage_areas.map((a) => (
-              <span key={a.area} className="rounded bg-white px-1.5 py-0.5 text-[0.72rem] font-semibold text-gray-700 dark:bg-black/30 dark:text-gray-200">
+              <span key={a.area} className="rounded-sm bg-white px-1.5 py-0.5 text-[0.72rem] font-semibold text-gray-700 dark:bg-black/30 dark:text-gray-200">
                 {a.area} · {a.projects}
               </span>
             ))}
@@ -165,10 +165,10 @@ function Areas({ data }) {
         </div>
       </div>
       <div className="flex flex-wrap gap-1.5">
-        <span className="rounded bg-gray-100 px-2 py-0.5 text-[0.7rem] font-semibold text-gray-600 dark:bg-gray-800 dark:text-gray-300">
+        <span className="rounded-sm bg-gray-100 px-2 py-0.5 text-[0.7rem] font-semibold text-gray-600 dark:bg-gray-800 dark:text-gray-300">
           Median completion: {data.state_medians?.completion != null ? `${Number(data.state_medians.completion).toFixed(1)}%` : "—"}
         </span>
-        <span className="rounded bg-gray-100 px-2 py-0.5 text-[0.7rem] font-semibold text-gray-600 dark:bg-gray-800 dark:text-gray-300">
+        <span className="rounded-sm bg-gray-100 px-2 py-0.5 text-[0.7rem] font-semibold text-gray-600 dark:bg-gray-800 dark:text-gray-300">
           Median utilization: {data.state_medians?.utilization != null ? `${Number(data.state_medians.utilization).toFixed(1)}%` : "—"}
         </span>
       </div>
@@ -200,7 +200,7 @@ function Spatial({ data }) {
               <div key={i} className="rounded-lg border border-gray-200 bg-white p-2 dark:border-gray-700 dark:bg-[#0d090b]">
                 <div className="flex flex-wrap items-center justify-between gap-1">
                   <p className="truncate text-[0.82rem] font-bold text-gray-900 dark:text-white">{g.name || g.work_key}</p>
-                  <span className="rounded bg-gray-100 px-1.5 py-0.5 text-[0.64rem] font-bold text-gray-600 dark:bg-gray-800 dark:text-gray-300">
+                  <span className="rounded-sm bg-gray-100 px-1.5 py-0.5 text-[0.64rem] font-bold text-gray-600 dark:bg-gray-800 dark:text-gray-300">
                     {g.kind} · {g.project_count}
                   </span>
                 </div>
@@ -215,7 +215,7 @@ function Spatial({ data }) {
         <p className="mb-1 text-[0.68rem] font-bold uppercase tracking-wider text-gray-400">Recorded concentration</p>
         <div className="flex flex-wrap gap-1.5">
           {(data.concentration || []).map((a) => (
-            <span key={a.area} className="rounded bg-gray-100 px-2 py-0.5 text-[0.72rem] font-semibold text-gray-600 dark:bg-gray-800 dark:text-gray-300">
+            <span key={a.area} className="rounded-sm bg-gray-100 px-2 py-0.5 text-[0.72rem] font-semibold text-gray-600 dark:bg-gray-800 dark:text-gray-300">
               {a.area} · {a.projects}
             </span>
           ))}
@@ -242,7 +242,7 @@ function Outliers({ data }) {
             <div key={`${o.area}-${o.metric}-${i}`} className="rounded-lg border border-gray-200 bg-white p-2 dark:border-gray-700 dark:bg-[#0d090b]">
               <div className="flex flex-wrap items-center justify-between gap-1">
                 <p className="text-[0.82rem] font-bold text-gray-900 dark:text-white">{o.area}</p>
-                <span className={`rounded px-1.5 py-0.5 text-[0.64rem] font-bold ${o.direction === "above" ? "bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300" : "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300"}`}>
+                <span className={`rounded-sm px-1.5 py-0.5 text-[0.64rem] font-bold ${o.direction === "above" ? "bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300" : "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300"}`}>
                   {o.label} · z {o.robust_z}
                 </span>
               </div>
@@ -347,22 +347,30 @@ export default function GeoIntelPanel({ house = "", initialState = "" }) {
             Recorded-project coverage and execution geography. Findings describe the MPLADS dataset, not proven infrastructure deficits.
           </p>
         </div>
-        <select value={state} onChange={(e) => setState(e.target.value)} className={selectCls} aria-label="Select state for geospatial analysis">
+        <select value={state} onChange={(e) => setState(e.target.value)} className={`${selectCls} w-full sm:w-56`} aria-label="Select state for geospatial analysis">
           <option value="">All states</option>
           {states.map((s) => <option key={s} value={s}>{s}</option>)}
         </select>
       </div>
 
-      <div className="mt-3 flex gap-1 overflow-x-auto border-b border-gray-200 pb-1 dark:border-gray-700">
+      {/* Horizontally scrollable on phones: each tab keeps its own box and
+          spacing instead of compressing into merged text. */}
+      <div
+        className="geo-tab-scroll -mx-1 mt-3 flex gap-1.5 overflow-x-auto border-b border-gray-200 px-1 pb-1 dark:border-gray-700"
+        role="tablist"
+        aria-label="Geospatial intelligence views"
+      >
         {TABS.map(([key, label]) => (
           <button
             key={key}
             type="button"
+            role="tab"
+            aria-selected={tab === key}
             onClick={() => setTab(key)}
-            className={`whitespace-nowrap rounded-t-lg px-2.5 py-1.5 text-[0.78rem] font-bold transition ${
+            className={`shrink-0 whitespace-nowrap rounded-t-lg border-b-2 px-3 py-2 text-[0.8rem] font-bold transition ${
               tab === key
-                ? "bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300"
-                : "text-gray-500 hover:bg-gray-50 dark:text-gray-400 dark:hover:bg-gray-800"
+                ? "border-blue-500 bg-blue-50 text-blue-700 dark:border-blue-500 dark:bg-blue-950/40 dark:text-blue-300"
+                : "border-transparent text-gray-500 hover:bg-gray-50 dark:text-gray-400 dark:hover:bg-gray-800"
             }`}
           >
             {label}

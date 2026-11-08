@@ -101,7 +101,7 @@ function ErrorNote({ message, onRetry }) {
         <button
           type="button"
           onClick={onRetry}
-          className="mt-2 rounded border border-red-300 bg-white px-2 py-1 font-semibold text-red-700 hover:bg-red-100 dark:border-red-800 dark:bg-transparent dark:text-red-300"
+          className="mt-2 rounded-sm border border-red-300 bg-white px-2 py-1 font-semibold text-red-700 hover:bg-red-100 dark:border-red-800 dark:bg-transparent dark:text-red-300"
         >
           Retry
         </button>
@@ -1005,7 +1005,7 @@ export default function VendorIntelPanel({
               <button
                 type="button"
                 onClick={onCompare}
-                className="rounded border border-[#c8102e] px-2 py-1 font-semibold text-[#c8102e] hover:bg-blue-50 dark:hover:bg-blue-950/30"
+                className="rounded-sm border border-[#c8102e] px-2 py-1 font-semibold text-[#c8102e] hover:bg-blue-50 dark:hover:bg-blue-950/30"
               >
                 {inCompare ? "Remove from comparison" : "Add to comparison"}
               </button>
@@ -1014,7 +1014,7 @@ export default function VendorIntelPanel({
               <button
                 type="button"
                 onClick={() => onOpenProject(vendorKey)}
-                className="rounded border border-[#e8dadc] px-2 py-1 font-semibold text-[#292326] hover:border-[#c8102e] dark:border-[#351923] dark:text-gray-200"
+                className="rounded-sm border border-[#e8dadc] px-2 py-1 font-semibold text-[#292326] hover:border-[#c8102e] dark:border-[#351923] dark:text-gray-200"
               >
                 Open vendor directory
               </button>

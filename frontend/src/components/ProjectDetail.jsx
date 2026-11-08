@@ -58,7 +58,7 @@ function TimelineSection({ timeline }) {
       <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-[#000000]">
         <div className="mb-3 flex items-center justify-between">
           <h4 className="text-[0.625rem] font-bold uppercase tracking-wider text-gray-400">Project Lifecycle</h4>
-          <span className="rounded bg-gray-100 px-1.5 py-0.5 text-[0.5625rem] font-bold text-gray-500 dark:bg-gray-800">{meta?.data_period?.from ? `Data period: ${meta.data_period.from} → ${meta.data_period.to}` : ""}</span>
+          <span className="rounded-sm bg-gray-100 px-1.5 py-0.5 text-[0.5625rem] font-bold text-gray-500 dark:bg-gray-800">{meta?.data_period?.from ? `Data period: ${meta.data_period.from} → ${meta.data_period.to}` : ""}</span>
         </div>
         <div className="relative pl-5">
           <div className="absolute bottom-2 left-[5px] top-2 w-px bg-gray-200 dark:bg-gray-700" />
@@ -86,7 +86,7 @@ function TimelineSection({ timeline }) {
         <div className="rounded-xl border border-gray-200 bg-gray-50/50 p-4 dark:border-gray-700 dark:bg-[#000000]">
           <div className="mb-3 flex items-center justify-between">
             <h4 className="text-[0.625rem] font-bold uppercase tracking-wider text-gray-400">Delay Intelligence</h4>
-            <span className={`rounded px-2 py-0.5 text-[0.625rem] font-bold ${statusColor}`}>{di.status}</span>
+            <span className={`rounded-sm px-2 py-0.5 text-[0.625rem] font-bold ${statusColor}`}>{di.status}</span>
           </div>
 
           {/* Timeline metrics */}
@@ -429,9 +429,9 @@ function ProjectDetail({ projectId, onClose, initialTab }) {
         {/* Header */}
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-2">
-            <span className="rounded bg-blue-100 px-2.5 py-1 font-mono text-xs font-bold text-blue-800 dark:bg-blue-900/60 dark:text-blue-200">#{proj.id}</span>
+            <span className="rounded-sm bg-blue-100 px-2.5 py-1 font-mono text-xs font-bold text-blue-800 dark:bg-blue-900/60 dark:text-blue-200">#{proj.id}</span>
             {proj.status && (
-              <span className={`rounded px-2 py-0.5 text-xs font-bold ${
+              <span className={`rounded-sm px-2 py-0.5 text-xs font-bold ${
                 proj.status === "Completed" ? "bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-300"
                 : proj.status === "Ongoing" ? "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300"
                 : "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300"
@@ -484,7 +484,7 @@ function ProjectDetail({ projectId, onClose, initialTab }) {
         {badges.length > 0 && (
           <div className="mt-3 flex flex-wrap gap-1.5">
             {badges.map((b, i) => (
-              <span key={i} title={b.detail} className={`rounded px-2 py-0.5 text-[0.625rem] font-bold cursor-help ${
+              <span key={i} title={b.detail} className={`rounded-sm px-2 py-0.5 text-[0.625rem] font-bold cursor-help ${
                 b.color === "red" ? "bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300"
                 : b.color === "amber" ? "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300"
                 : b.color === "orange" ? "bg-orange-100 text-orange-700 dark:bg-orange-950 dark:text-orange-300"
@@ -734,7 +734,7 @@ function ProjectDetail({ projectId, onClose, initialTab }) {
                       <p className="text-[0.625rem] font-bold uppercase text-gray-400">Contributing Factors:</p>
                       {riskExplanation.contributing_factors.map((f, i) => (
                         <div key={i} className="flex items-start gap-2 text-xs">
-                          <span className={`mt-0.5 flex-shrink-0 rounded px-1 py-0.5 text-[0.5625rem] font-bold ${
+                          <span className={`mt-0.5 flex-shrink-0 rounded-sm px-1 py-0.5 text-[0.5625rem] font-bold ${
                             f.source === "ml" ? "bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300"
                             : f.source === "rule" ? "bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300"
                             : "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300"
@@ -771,13 +771,13 @@ function ProjectDetail({ projectId, onClose, initialTab }) {
                   {anomalyExplanation.detected_anomalies.map((anomaly, i) => (
                     <div key={i} className="mb-3 last:mb-0">
                       <div className="flex items-center gap-2 mb-1">
-                        <span className={`rounded px-1.5 py-0.5 text-[0.625rem] font-bold ${
+                        <span className={`rounded-sm px-1.5 py-0.5 text-[0.625rem] font-bold ${
                           anomaly.severity === "High" ? "bg-red-100 text-red-700"
                           : anomaly.severity === "Medium" ? "bg-amber-100 text-amber-700"
                           : "bg-gray-100 text-gray-600"
                         }`}>{anomaly.severity}</span>
                         <span className="text-xs font-bold">{anomaly.type}</span>
-                        <span className="text-[0.5625rem] px-1 py-0.5 rounded bg-gray-100 text-gray-500">{anomaly.source}</span>
+                        <span className="text-[0.5625rem] px-1 py-0.5 rounded-sm bg-gray-100 text-gray-500">{anomaly.source}</span>
                       </div>
                       <p className="text-xs text-gray-600 dark:text-gray-300">{anomaly.what}</p>
                       {anomaly.factors?.length > 0 && (
@@ -879,7 +879,7 @@ function ProjectDetail({ projectId, onClose, initialTab }) {
                           <p className="text-xs font-semibold">{sp.project_name}</p>
                           <p className="text-[0.625rem] text-gray-500">{sp.constituency || "N/A"}</p>
                         </div>
-                        <span className={`rounded px-1.5 py-0.5 text-[0.625rem] font-bold ${
+                        <span className={`rounded-sm px-1.5 py-0.5 text-[0.625rem] font-bold ${
                           sp.risk_level === "High" ? "bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300"
                           : sp.risk_level === "Medium" ? "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300"
                           : "bg-gray-100 text-gray-600 dark:bg-gray-700"
@@ -987,7 +987,7 @@ function LazyFetch({ store, loader, render, loadingLabel }) {
     return (
       <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 text-center">
         <p className="text-xs text-gray-500">Could not load data.</p>
-        <button onClick={() => setStatus("idle")} className="mt-2 rounded bg-[#c8102e] px-3 py-1 text-[0.625rem] font-bold text-white dark:bg-blue-600">Retry</button>
+        <button onClick={() => setStatus("idle")} className="mt-2 rounded-sm bg-[#c8102e] px-3 py-1 text-[0.625rem] font-bold text-white dark:bg-blue-600">Retry</button>
       </div>
     )
   }
@@ -1036,7 +1036,7 @@ function ActivitySection({ activity }) {
     <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-[#000000]">
       <div className="mb-3 flex items-center justify-between">
         <h4 className="text-[0.625rem] font-bold uppercase tracking-wider text-gray-400">Expenditure Activity</h4>
-        <span className={`rounded px-2 py-0.5 text-[0.625rem] font-bold ${statusChip}`}>{statusLabel}</span>
+        <span className={`rounded-sm px-2 py-0.5 text-[0.625rem] font-bold ${statusChip}`}>{statusLabel}</span>
       </div>
 
       {/* Summary card */}
@@ -1062,7 +1062,7 @@ function ActivitySection({ activity }) {
                   style={{ height: `${Math.max(4, (m.amount / maxAmt) * 70)}px` }}
                 />
                 <span className="mt-0.5 text-[0.5rem] text-gray-400">{fmtMonth(m.month)}</span>
-                <div className="pointer-events-none absolute bottom-full z-10 mb-1 hidden whitespace-nowrap rounded bg-gray-900 px-2 py-1 text-[0.5625rem] text-white shadow-soft group-hover:block dark:bg-gray-700">
+                <div className="pointer-events-none absolute bottom-full z-10 mb-1 hidden whitespace-nowrap rounded-sm bg-gray-900 px-2 py-1 text-[0.5625rem] text-white shadow-soft group-hover:block dark:bg-gray-700">
                   <div className="font-bold">{fmtMonth(m.month)}</div>
                   <div>{formatMoney(m.amount)}</div>
                   <div>{m.transaction_count} record{m.transaction_count > 1 ? "s" : ""}</div>
@@ -1124,7 +1124,7 @@ function ActivityTransactions({ transactions }) {
   return (
     <>
       {txs.map((t, i) => (
-        <div key={i} className="flex items-center justify-between rounded bg-gray-50 px-2 py-1 dark:bg-gray-800/60">
+        <div key={i} className="flex items-center justify-between rounded-sm bg-gray-50 px-2 py-1 dark:bg-gray-800/60">
           <span className="text-[0.625rem] text-gray-500">{fmtDay(t.date)}</span>
           <span className="font-mono text-[0.625rem] font-bold">{formatMoney(t.amount)}</span>
           {t.payment_status && <span className="text-[0.5625rem] text-gray-400">{t.payment_status}</span>}

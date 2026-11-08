@@ -11,12 +11,15 @@
        rounded-xl    → 24px     (major cards, panels, table cards)
        rounded-2xl   → 28px     (floating panels: dropdowns, assistant, modals)
        rounded-3xl   → 32px     (hero surfaces) */
-  --radius-sm: 0.625rem;   /* 10px */
-  --radius-md: 0.875rem;   /* 14px */
-  --radius-lg: 1.25rem;    /* 20px */
-  --radius-xl: 1.5rem;     /* 24px */
-  --radius-2xl: 1.75rem;   /* 28px */
-  --radius-3xl: 2rem;      /* 32px */
+  /* Pixel values, not rem: the app's root font-size steps (125% desktop →
+     106.25% phone) must scale type, never corner shape, so a chip stays
+     10px round at every breakpoint and in both themes. */
+  --radius-sm: 10px;       /* badges, chips, bars, compact icon buttons */
+  --radius-md: 14px;       /* inputs, dropdowns, compact form buttons */
+  --radius-lg: 20px;       /* cards, standard buttons, inputs */
+  --radius-xl: 24px;       /* dashboard sections, table cards */
+  --radius-2xl: 28px;      /* modals, popovers, assistant panel */
+  --radius-3xl: 32px;      /* hero surfaces */
 
   /* Soft diffuse shadows for floating elements — large blur, low opacity,
      slight vertical offset (iOS浮层 feel) instead of sharp dark shadows. */
@@ -236,8 +239,20 @@
 /* Button press feedback: gentle transform-only dip on :active.
    Hover transitions come from each element's own Tailwind classes. */
 @media (prefers-reduced-motion: no-preference) {
-  button:active {
+    /* Button press feedback — one compositor-only frame, instant release. */
+  button:active,
+  [role="button"]:active,
+  a[href]:active {
     transform: scale(0.97);
+  }
+  /* Settled tabs/navs: tiny press settle so an activated row feels chosen rather
+     than instantly snapped. Only applies while the element is NOT transitioning
+     (avoids fighting the CSS door-open on tab labels). */
+  button:focus-visible,
+  [role="button"]:focus-visible,
+  a[href]:focus-visible {
+    outline: 2px solid var(--color-blue-400);
+    outline-offset: 2px;
   }
   /* Smooth focus feedback on form controls (elements without their own
      Tailwind transition class inherit this gentle ease-in-out). */
@@ -415,6 +430,43 @@
 @utility shadow-soft-sm {
   box-shadow: var(--shadow-soft-sm);
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Subtle motion system — MPLADS-AI
+   A single CSS-only motion layer on top of the existing iOS-inspired surfaces.
+   Only opacity + transform are ever animated (compositor-cheap, no layout), all
+   motion is fully disabled under prefers-reduced-motion, and nothing here
+   redesigns a component or adds a library, gradient, bounce, spinner or glow.
+
+   Durations (ms): fast 120–160 · standard 180–220 · panels/overlays 220–280
+   Easing:        entrances ease-out (var(--anim-out)), state changes ease-in-out
+                  (var(--anim-inout)); tiny interactive surfaces use a slightly
+                  snappier inout so they never feel laggy.
+
+   How to read this file:
+     • @keyframes define reusable motions.
+     • .anim-* classes play one-shot entrance/exit animations once per mount.
+     • .rise-* are the React entrant toolkit — they react to the element entering
+       the DOM (newly-added or display:none→block) and never rely on React state.
+     • .page-* / .modal-* / .assistant-* are contextual helpers used by the shell.
+     • [data-mplads-*] hooks let a parent coordinate motion without adding classes.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── System-wide guard: never animate under reduced motion ─────────────────
+   Reduced motion is treated as a hard off switch for CSS animations, transitions
+   and keyframes. Every motion primitive below re-requests the same guard so a
+   future editor does not accidentally re-enable anything. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Standard set
+   ═══════════════════════════════════════════════════════════════════════════ */
 
 /* Apply Inter globally */
 body {
@@ -646,13 +698,36 @@ textarea.assistant-input::-webkit-scrollbar {
   }
 }
 
-/* ── Page-switch + results-change entrance ─────────────────────────
+/* ── Page transitions ─────────────────────────────────────────────────────
+   The shell keeps pages mounted and toggles display, so a page becomes visible
+   through a display:none → block change. .page-enter opts every root page into
+   a quick fade + tiny settle on that change; it is intentionally brief (120ms)
+   so navigation never feels delayed. Pages that swap in content (Projects search,
+   etc.) also re-enter via .rise-refresh / .rise-in on the content itself, so the
+   page frame and the content keep their own motion. */
+@media (prefers-reduced-motion: no-preference) {
+  .page-enter {
+    @starting-style {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+    transition:
+      opacity 0.12s var(--anim-out),
+      transform 0.12s var(--anim-out);
+  }
+}
+
+/* ── Results-change entrance ───────────────────────────────────────────────
    Elements with .rise-refresh play the soft 180ms fade/rise each time they
    enter the render tree: App's page wrappers re-enter on navigation (the
    pages are kept mounted with display toggling — a display:none → block
    change starts @starting-style transitions), and the Projects results
    tbody is keyed by the active filter set so a new search remounts it.
-   Pure CSS, zero JS per frame, no layout thrash. */
+   Pure CSS, zero JS per frame, no layout thrash.
+
+   Companion: .rise-stable keeps an element that updates in place (a KPI value,
+   a results row count, a chart) from being jumpy by cross-fading the value on
+   change through a tiny fade, not a reflow. */
 @media (prefers-reduced-motion: no-preference) {
   .rise-refresh {
     @starting-style {
@@ -662,6 +737,36 @@ textarea.assistant-input::-webkit-scrollbar {
     transition:
       opacity 0.18s var(--anim-out),
       transform 0.18s var(--anim-out);
+  }
+  .page-entering > :where(.page-enter) {
+    animation: page-entering-fade 0.22s var(--anim-out);
+  }
+  @keyframes page-entering-fade {
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
+
+/* ── Stable value transitions ────────────────────────────────────────────
+   KPI/metric values, counts and small status chips update in place. A thin
+   opacity pulse on change makes the update feel live without any counter or
+   bouncing number animation. */
+@media (prefers-reduced-motion: no-preference) {
+  .value-update {
+    transition: opacity 0.14s var(--anim-out);
+  }
+  .value-update.flash {
+    opacity: 0.25;
+    transform: scale(0.98);
+    transition:
+      opacity 0.12s var(--anim-out),
+      transform 0.12s var(--anim-out);
   }
 }
 
@@ -676,9 +781,32 @@ textarea.assistant-input::-webkit-scrollbar {
     }
     transition: width 0.45s var(--anim-out) 0.1s, opacity 0.3s var(--anim-inout);
   }
+  /* Skeleton shimmer variant used on loading cards and inline placeholders.
+     Gentle slide, low opacity contrast, fully off under reduced motion. */
+  .skeleton {
+    background: linear-gradient(
+      100deg,
+      rgba(160, 140, 145, 0.04),
+      rgba(160, 140, 145, 0.10) 35%,
+      rgba(160, 140, 145, 0.04) 65%,
+      rgba(160, 140, 145, 0.00)
+    );
+    background-size: 200% 100%;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .skeleton {
+      animation: shimmer-slide 1.6s linear infinite;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .skeleton {
+      background: rgba(160, 140, 145, 0.04);
+      animation: none;
+    }
+  }
+
   /* Variant for bars that already manage their own transition classes:
-     supplies only the starting value; the existing transition animates it. */
-  .bar-start {
+     supplies only the starting value; the existing transition animates it. */  .bar-start {
     @starting-style {
       width: 0;
     }
@@ -693,6 +821,57 @@ textarea.assistant-input::-webkit-scrollbar {
     }
     transition: opacity 0.2s var(--anim-out);
   }
+  .pop-in-down {
+    @starting-style {
+      opacity: 0;
+      transform: translateY(-4px) scale(0.985);
+    }
+    transition:
+      opacity 0.18s var(--anim-out),
+      transform 0.18s var(--anim-out);
+  }
+  .pop-in-up {
+    @starting-style {
+      opacity: 0;
+      transform: translateY(8px) scale(0.985);
+    }
+    transition:
+      opacity 0.2s var(--anim-out),
+      transform 0.2s var(--anim-out);
+  }
+  .pop-exit {
+    opacity: 0;
+    transform: scale(0.98);
+    transition:
+      opacity 0.14s ease-in,
+      transform 0.14s ease-in;
+  }
+  .liftable {
+    transition:
+      transform 0.2s var(--anim-inout),
+      box-shadow 0.2s var(--anim-inout);
+  }
+  .liftable:hover {
+    transform: translateY(-1px);
+  }
+  .liftable:active {
+    transform: translateY(0);
+  }
+  .liftable:focus-visible {
+    outline: 2px solid var(--color-blue-400);
+    outline-offset: 2px;
+  }
+  .anim-card-in {
+    animation: card-pop-in 0.22s cubic-bezier(0.2, 0.8, 0.3, 1);
+  }
+  .anim-panel-in {
+    animation: panel-fade-in 0.18s ease-out;
+  }
+  .anim-overlay-in {
+    animation: overlay-fade-in 0.2s ease-out;
+  }
+}
+
 
   /* Popovers/dropdowns: fade + slight vertical movement toward rest.
      -down = menu hanging below its trigger; -up = panel above it. */
@@ -714,7 +893,47 @@ textarea.assistant-input::-webkit-scrollbar {
       opacity 0.2s var(--anim-out),
       transform 0.2s var(--anim-out);
   }
-}
+
+  .pop-exit {
+    opacity: 0;
+    transform: scale(0.98);
+    transition:
+      opacity 0.14s ease-in,
+      transform 0.14s ease-in;
+  }
+
+  /* Hover/focus lift on elevation surfaces (cards, panels). Only the transform
+     moves on hover; the shadow follows through the existing tailwind-shadow class
+     so the surface never competes with layout. */
+  .liftable {
+    transition:
+      transform 0.2s var(--anim-inout),
+      box-shadow 0.2s var(--anim-inout);
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .liftable:hover {
+      transform: translateY(-1px);
+    }
+    .liftable:active {
+      transform: translateY(0);
+    }
+    .liftable:focus-visible {
+      outline: 2px solid var(--color-blue-400);
+      outline-offset: 2px;
+    }
+  }
+
+  /* Card entrance — outermost card surfaces only. Inner panels keep their own
+     naming so a card and its children never all animate at once. */
+  .anim-card-in {
+    animation: card-pop-in 0.22s cubic-bezier(0.2, 0.8, 0.3, 1);
+  }
+  .anim-panel-in {
+    animation: panel-fade-in 0.18s ease-out;
+  }
+  .anim-overlay-in {
+    animation: overlay-fade-in 0.2s ease-out;
+  }
 
 /* ── Project-selection interface: subtle motion primitives ────────────
    Short (150–250ms) opacity/transform transitions only. Everything is
@@ -785,6 +1004,53 @@ textarea.assistant-input::-webkit-scrollbar {
   }
 }
 
+/* ── Expandable panels ─────────────────────────────────────────────────────
+   Accordions / expandable sections expand with a smooth height transition.
+   The height transition itself is avoided (layout cost); instead the panel
+   grows via a fixed max-height capped to a generous value so the content
+   area transitions smoothly and the collapse feels natural. */
+@media (prefers-reduced-motion: no-preference) {
+  .expandable-panel {
+    max-height: 0;
+    overflow: hidden;
+    transition:
+      max-height 0.22s var(--anim-inout),
+      padding 0.2s var(--anim-inout),
+      opacity 0.18s var(--anim-inout);
+  }
+  .expandable-panel.open {
+    max-height: 640px;
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .expandable-panel {
+    max-height: none;
+    transition: none;
+  }
+  .expandable-panel.open {
+    max-height: none;
+  }
+}
+
+/* ── Modal + overlay entrance/exit ─────────────────────────────────────────
+   Overlays and modals share one exit motion so a close always reads as a unified
+   pair rather than the content vanishing before the backdrop. Exit is driven by
+   the caller adding .is-closing to the overlay and its panel; the panel uses the
+   same fade+dip as the overlay so bodies never clip halfway. */
+@media (prefers-reduced-motion: no-preference) {
+  .is-closing {
+    opacity: 0;
+    transition:
+      opacity 0.15s ease-in;
+  }
+  .is-closing > * {
+    opacity: 0;
+    transition:
+      opacity 0.15s ease-in;
+  }
+}
+
 /* Project Details ↔ AI Assistant side-by-side: while the assistant panel is
    open (≥lg), the modal overlay reserves room on the right for it
    (380px panel + 20px right offset + 16px gap = 416px) and the card centers
@@ -799,3 +1065,141 @@ textarea.assistant-input::-webkit-scrollbar {
     padding-right: 416px !important;
   }
 }
+
+/* ── Assistant panel appearance ───────────────────────────────────────────
+   The panel itself fades/scales in from bottom-right via .pop-in-up (already
+   defined). Messages appear with .rise-in; the welcome block uses .anim-panel-in
+   so it does not feel identical to chat text. The composer stays put; only the
+   text content enters. */
+@media (prefers-reduced-motion: no-preference) {
+  .assistant-panel {
+    transition:
+      opacity 0.2s var(--anim-out),
+      transform 0.2s var(--anim-out);
+    transform-origin: bottom right;
+  }
+  .assistant-panel.closing {
+    opacity: 0;
+    transform: scale(0.97);
+    transition:
+      opacity 0.14s ease-in,
+      transform 0.14s ease-in;
+  }
+  /* Typing indicator dots: subtle scale pulse per dot so the indicator reads as
+     a stream rather than a static trio. Two pulses per second, low amplitude. */
+  .typing-dot {
+    animation: typing-breathe 1s ease-in-out infinite;
+  }
+  .typing-dot:nth-child(2) { animation-delay: 0.14s; }
+  .typing-dot:nth-child(3) { animation-delay: 0.28s; }
+  @keyframes typing-breathe {
+    0%, 100% { opacity: 0.35; transform: scale(0.85); }
+    50%      { opacity: 1;    transform: scale(1);   }
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .assistant-panel.closing {
+    transition: none;
+  }
+  .typing-dot,
+  .typing-dot:nth-child(2),
+  .typing-dot:nth-child(3) {
+    animation: none;
+  }
+}
+
+/* ── Assistant message entrance ─────────────────────────────────────────────
+   Assistant messages already use .rise-in on user + assistant text. This block
+   keeps that behavior and adds a small, consistent settle on the assistant's
+   card so structured blocks (tables, findings) do not compete with the message
+   entrance. */
+@media (prefers-reduced-motion: no-preference) {
+  .assistant-message {
+    animation: panel-fade-in 0.18s ease-out;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .assistant-message {
+    animation: none;
+  }
+}
+
+/* ══ Corner-radius language ═══════════════════════════════════════════
+   The @theme block above is the single source of truth for every corner in
+   the app: sm 10px (badges, chips, bars, compact icon buttons), md 14px
+   (inputs, selects, textareas, standard buttons), lg 20px (cards, panels),
+   xl 24px (dashboard sections, table cards), 2xl 28px (modals, popovers,
+   assistant), 3xl 32px (hero surfaces). Nested surfaces step one token down
+   from their parent (card 24 → inner 20 → chip 10), so corners stay
+   concentric instead of competing. Both themes share these tokens — only
+   colours and shadows change under `.dark`.
+
+   Form controls written with the compact utility get the control token so
+   inputs, dropdowns and textareas never sit at the small-chip radius. */
+input.rounded-sm,
+select.rounded-sm,
+textarea.rounded-sm {
+  border-radius: var(--radius-md);
+}
+
+/* ══ Mobile metric system ═════════════════════════════════════════════
+   One rule for every card that pairs a metric label with a value: the
+   label sits above the value, so wide currency strings ("₹811.79 Cr") can
+   never slide into the neighbouring column. Values stay on one line with
+   tabular numerals; labels wrap at word boundaries only. Desktop tables
+   and charts are untouched — these classes are used by responsive cards. */
+.metric-grid,
+.metric-grid-3 {
+  display: grid;
+  column-gap: 0.75rem;
+  row-gap: 0.625rem;
+}
+.metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.metric-grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+.metric-cell { min-width: 0; }
+.metric-label {
+  display: block;
+  font-size: 0.6875rem;
+  line-height: 1.25;
+  color: var(--color-gray-500);
+  overflow-wrap: break-word;
+}
+.metric-value {
+  display: block;
+  margin-top: 0.0625rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.3;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* Below 360px the three-up financial strip becomes two-up instead of
+   squeezing both amount and unit into an unreadable column. */
+@media (max-width: 359px) {
+  .metric-grid-3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* Flex/grid children are allowed to shrink: long project names, values and
+   badges stay inside their column rather than overlapping a neighbour. */
+.flex > *,
+.grid > * { min-width: 0; }
+
+/* Floating assistant: reserve room at the end of the scroll container so it
+   never covers the last card, and keep the button clear of the phone's home
+   indicator and rounded corners. */
+@media (max-width: 1023px) {
+  main { padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px)); }
+}
+main { scroll-padding-bottom: 6rem; }
+.assistant-fab {
+  right: calc(1.25rem + env(safe-area-inset-right, 0px));
+  bottom: calc(1.25rem + env(safe-area-inset-bottom, 0px));
+}
+
+/* Geospatial tab strip: horizontal scroll on phones, no merged labels. */
+.geo-tab-scroll {
+  scrollbar-width: thin;  -webkit-overflow-scrolling: touch;
+}
+

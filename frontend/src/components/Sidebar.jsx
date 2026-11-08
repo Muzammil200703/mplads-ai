@@ -44,7 +44,7 @@ function NavRow({ icon, label, href, active, onNavigate, collapsed, badge, onCli
       onClick={onClick || (() => href && onNavigate(href))}
       title={collapsed ? label : ""}
       className={`
-        group relative flex h-11 min-h-11 w-full flex-none items-center gap-3 rounded px-3
+        group relative flex h-11 min-h-11 w-full flex-none items-center gap-3 rounded-sm px-3
         transition-colors duration-200
         ${collapsed ? "justify-center" : "justify-start"}
         ${active

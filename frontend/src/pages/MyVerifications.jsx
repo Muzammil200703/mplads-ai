@@ -83,15 +83,15 @@ function MyVerificationsInner({ onOpenProject }) {
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[0.6875rem] font-bold uppercase tracking-wide text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">Citizen Evidence</span>
-                      <span className={`rounded px-2 py-0.5 text-xs font-bold ${STATUS_BADGE[r.status] || "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300"}`}>{r.status}</span>
-                      <span className={`rounded px-2 py-0.5 text-xs font-bold uppercase ${REVIEW_BADGE[r.review_status] || ""}`}>
+                      <span className={`rounded-sm px-2 py-0.5 text-xs font-bold ${STATUS_BADGE[r.status] || "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300"}`}>{r.status}</span>
+                      <span className={`rounded-sm px-2 py-0.5 text-xs font-bold uppercase ${REVIEW_BADGE[r.review_status] || ""}`}>
                         {r.review_status === "pending" ? "awaiting review" : r.review_status}
                       </span>
-                      <span className="rounded bg-gray-100 px-2 py-0.5 text-xs font-semibold text-gray-600 dark:bg-gray-700 dark:text-gray-300">
+                      <span className="rounded-sm bg-gray-100 px-2 py-0.5 text-xs font-semibold text-gray-600 dark:bg-gray-700 dark:text-gray-300">
                         GPS: {r.lat != null ? `${r.lat.toFixed(4)}, ${r.lon?.toFixed(4)} (${r.gps_source})` : "not captured"}
                       </span>
-                      {r.photo_hash_id && <span className="rounded bg-[#f8f1f1] px-2 py-0.5 text-xs font-semibold text-[#292326] dark:bg-[#0d090b] dark:text-[#f5eff1]">📷 photo stored</span>}
-                      {r.inquiry_id && <span className="rounded bg-violet-100 px-2 py-0.5 text-xs font-semibold text-violet-700 dark:bg-violet-950 dark:text-violet-300">responds to inquiry #{r.inquiry_id}</span>}
+                      {r.photo_hash_id && <span className="rounded-sm bg-[#f8f1f1] px-2 py-0.5 text-xs font-semibold text-[#292326] dark:bg-[#0d090b] dark:text-[#f5eff1]">📷 photo stored</span>}
+                      {r.inquiry_id && <span className="rounded-sm bg-violet-100 px-2 py-0.5 text-xs font-semibold text-violet-700 dark:bg-violet-950 dark:text-violet-300">responds to inquiry #{r.inquiry_id}</span>}
                     </div>
                     <p className="mt-1.5 truncate text-[0.9375rem] font-semibold text-[#292326] dark:text-[#f5eff1]">
                       #{r.project_id} {r.project_name || "Project"}

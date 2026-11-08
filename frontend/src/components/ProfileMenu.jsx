@@ -31,7 +31,7 @@ export default function ProfileMenu({ onNavigate }) {
     return (
       <button
         onClick={() => onNavigate && onNavigate("Sign in")}
-        className="flex h-10 shrink-0 items-center gap-2 rounded-lg bg-[#c8102e] px-3 text-sm font-bold text-white transition hover:bg-[#a50f29] dark:bg-blue-600 dark:hover:bg-blue-500"
+        className="flex h-10 w-10 shrink-0 items-center justify-center gap-2 rounded-full bg-[#c8102e] p-0 text-sm font-bold text-white transition hover:bg-[#a50f29] sm:w-auto sm:justify-start sm:rounded-lg sm:px-3 dark:bg-blue-600 dark:hover:bg-blue-500"
         aria-label="Sign in"
       >
         <span>👤</span>
@@ -46,7 +46,7 @@ export default function ProfileMenu({ onNavigate }) {
     <div className="relative shrink-0" ref={ref}>
       <button
         onClick={() => setOpen((o) => !o)}
-        className="flex h-10 items-center gap-2 rounded-lg px-2 transition hover:bg-[#f8f1f1] dark:hover:bg-[#0d090b]"
+        className="flex h-10 w-10 shrink-0 items-center justify-center gap-2 rounded-full px-0 transition hover:bg-[#f8f1f1] sm:w-auto sm:justify-start sm:rounded-lg sm:px-2 dark:hover:bg-[#0d090b]"
         aria-label="Profile menu"
         aria-expanded={open}
       >
@@ -56,7 +56,7 @@ export default function ProfileMenu({ onNavigate }) {
         <span className="hidden max-w-[140px] truncate text-sm font-semibold text-[#292326] dark:text-[#f5eff1] lg:inline">
           {user.name}
         </span>
-        <span className="text-[0.625rem] text-[#71666a] dark:text-[#b9aeb2]">▾</span>
+        <span className="hidden text-[0.625rem] text-[#71666a] sm:inline dark:text-[#b9aeb2]">▾</span>
       </button>
 
       {open && (
@@ -67,7 +67,7 @@ export default function ProfileMenu({ onNavigate }) {
           <div className="border-b border-[#e8dadc] px-5 pb-4 pt-5 dark:border-[#351923]">
             <p className="truncate text-sm font-bold text-[#292326] dark:text-[#f5eff1]">{user.name}</p>
             <p className="mt-0.5 truncate text-xs text-[#71666a] dark:text-[#b9aeb2]">{user.email}</p>
-            <span className={`mt-2 inline-block rounded px-2 py-0.5 text-[0.6875rem] font-bold ${ROLE_BADGE[user.role] || ROLE_BADGE.public}`}>
+            <span className={`mt-2 inline-block rounded-sm px-2 py-0.5 text-[0.6875rem] font-bold ${ROLE_BADGE[user.role] || ROLE_BADGE.public}`}>
               {ROLE_LABELS[user.role] || user.role}
               {(user.assigned_district || user.assigned_state) && (
                 <span className="ml-1 font-semibold opacity-80">· 📍 {user.assigned_district || user.assigned_state}</span>

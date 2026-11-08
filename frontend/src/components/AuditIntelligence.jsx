@@ -68,7 +68,7 @@ function SectionTitle({ children, right }) {
 }
 
 function Chip({ children, className = "" }) {
-  return <span className={`rounded px-2 py-0.5 text-[0.8125rem] font-bold ${className}`}>{children}</span>
+  return <span className={`rounded-sm px-2 py-0.5 text-[0.8125rem] font-bold ${className}`}>{children}</span>
 }
 
 function Spinner({ label }) {
@@ -116,7 +116,7 @@ export function DigitalAuditCard({ detail, onStartInvestigation, investigation }
             <span className={`font-mono text-3xl font-bold ${scoreColor}`}>{risk.risk_score}</span>
             <span className="font-mono text-sm text-gray-400">/ 100</span>
           </div>
-          <span className={`mt-1 inline-block rounded px-2 py-0.5 text-[0.8125rem] font-bold ${
+          <span className={`mt-1 inline-block rounded-sm px-2 py-0.5 text-[0.8125rem] font-bold ${
             risk.risk_level === "High" ? "bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300"
             : risk.risk_level === "Medium" ? "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300"
             : "bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-300"
@@ -126,7 +126,7 @@ export function DigitalAuditCard({ detail, onStartInvestigation, investigation }
           <p className="text-[0.8125rem] font-bold uppercase tracking-wider text-gray-400">How urgent?</p>
           {priority ? (
             <>
-              <span className={`mt-0.5 inline-block rounded px-2 py-1 text-[0.8125rem] font-bold ${TIER_STYLE[priority.tier] || TIER_STYLE.P4}`} title={(priority.explanation || []).join(" ")}>
+              <span className={`mt-0.5 inline-block rounded-sm px-2 py-1 text-[0.8125rem] font-bold ${TIER_STYLE[priority.tier] || TIER_STYLE.P4}`} title={(priority.explanation || []).join(" ")}>
                 {priority.tier} — {priority.tier_label}
               </span>
               <p className="mt-1 font-mono text-[0.8125rem] text-gray-400">
@@ -391,9 +391,9 @@ function EvidenceRecords({ records = [] }) {
   return (
     <div className="space-y-1.5">
       {records.map((record, index) => (
-        <div key={`${record.reference || "record"}-${index}`} className="rounded border border-gray-200 bg-gray-50 px-2.5 py-2 dark:border-gray-700 dark:bg-gray-900/40">
+        <div key={`${record.reference || "record"}-${index}`} className="rounded-sm border border-gray-200 bg-gray-50 px-2.5 py-2 dark:border-gray-700 dark:bg-gray-900/40">
           <div className="flex flex-wrap items-center gap-1.5">
-            <span className="rounded bg-gray-200 px-1.5 py-0.5 text-[0.7rem] font-bold uppercase text-gray-500 dark:bg-gray-700 dark:text-gray-300">{record.type || "record"}</span>
+            <span className="rounded-sm bg-gray-200 px-1.5 py-0.5 text-[0.7rem] font-bold uppercase text-gray-500 dark:bg-gray-700 dark:text-gray-300">{record.type || "record"}</span>
             <code className="text-[0.8rem] font-semibold text-blue-700 dark:text-blue-300">{record.reference || "reference unavailable"}</code>
           </div>
           <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5">
@@ -667,15 +667,18 @@ export function InvestigationWorkspace({ projectId, onWorkspaceChange }) {
         </div>
       </Card>
 
-      <div className="flex gap-1 overflow-x-auto border-b border-gray-200 pb-1 dark:border-gray-700">
+      {/* Scrollable tab strip: each tab keeps its own box so the eight
+          workspace views never compress into merged text on phones. */}
+      <div className="geo-tab-scroll -mx-1 flex gap-1.5 overflow-x-auto border-b border-gray-200 px-1 pb-1 dark:border-gray-700">
         {WORKSPACE_TABS.map(([key, label]) => (
           <button
             key={key}
             onClick={() => setTab(key)}
-            className={`whitespace-nowrap rounded-t-lg px-2.5 py-2 text-[0.8125rem] font-bold transition ${
+            aria-selected={tab === key}
+            className={`shrink-0 whitespace-nowrap rounded-t-lg border-b-2 px-2.5 py-2 text-[0.8125rem] font-bold transition ${
               tab === key
-                ? "bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300"
-                : "text-gray-500 hover:bg-gray-50 dark:text-gray-400 dark:hover:bg-gray-800"
+                ? "border-blue-500 bg-blue-50 text-blue-700 dark:border-blue-500 dark:bg-blue-950/40 dark:text-blue-300"
+                : "border-transparent text-gray-500 hover:bg-gray-50 dark:text-gray-400 dark:hover:bg-gray-800"
             }`}
           >
             {label}
@@ -786,7 +789,7 @@ export function InvestigationWorkspace({ projectId, onWorkspaceChange }) {
               <DossierField label="Utilization" value={financial.utilization_pct != null ? `${financial.utilization_pct}%` : null} />
               <DossierField label="Transaction sum shown" value={financial.transaction_total_display} />
             </div>
-            {financial.reconciliation_note && <p className="mt-2 rounded bg-amber-50 p-2 text-[0.8rem] text-amber-700 dark:bg-amber-950/20 dark:text-amber-300">{financial.reconciliation_note}</p>}
+            {financial.reconciliation_note && <p className="mt-2 rounded-sm bg-amber-50 p-2 text-[0.8rem] text-amber-700 dark:bg-amber-950/20 dark:text-amber-300">{financial.reconciliation_note}</p>}
             <p className="mt-2 text-[0.8rem] text-gray-500 dark:text-gray-400">
               Work-key linkage: {financial.work_key_rows || 1} catalogue row(s) · {financial.has_expenditure ? "payment ledger linked" : "no linked payment ledger"}.
               {" "}Payment states: {Object.entries(financial.payment_status_summary || {}).map(([key, value]) => `${key} (${value})`).join(", ") || "not recorded"}.
@@ -892,13 +895,13 @@ export function InvestigationWorkspace({ projectId, onWorkspaceChange }) {
                   {Object.keys(finding.dates || {}).length > 0 && <p><span className="font-bold">Dates:</span> {Object.entries(finding.dates).map(([k, v]) => `${k}: ${v || "—"}`).join(" · ")}</p>}
                 </div>
                 {finding.limitations?.length > 0 && <p className="mt-1 text-[0.8rem] leading-relaxed text-amber-700 dark:text-amber-300">Limitations: {finding.limitations.join(" ")}</p>}
-                <details className="mt-2 rounded border border-gray-200 bg-gray-50 p-2 dark:border-gray-700 dark:bg-gray-900/40">
+                <details className="mt-2 rounded-sm border border-gray-200 bg-gray-50 p-2 dark:border-gray-700 dark:bg-gray-900/40">
                   <summary className="cursor-pointer text-[0.8rem] font-bold text-gray-600 dark:text-gray-300">Supporting records ({finding.evidence?.records?.length || 0})</summary>
                   <div className="mt-2"><EvidenceRecords records={finding.evidence?.records || []} /></div>
                 </details>
                 {finding.review?.reviewer_name && <p className="mt-1 text-[0.75rem] text-gray-400">Last reviewed by {finding.review.reviewer_name} · {dateShort(finding.review.updated_at)}</p>}
                 {(finding.review?.comment || finding.review?.evidence_reference || finding.review?.document_name || finding.review?.resolution) && (
-                  <div className="mt-1 rounded border border-gray-100 bg-gray-50 p-2 text-[0.8rem] text-gray-600 dark:border-gray-800 dark:bg-gray-900/40 dark:text-gray-300">
+                  <div className="mt-1 rounded-sm border border-gray-100 bg-gray-50 p-2 text-[0.8rem] text-gray-600 dark:border-gray-800 dark:bg-gray-900/40 dark:text-gray-300">
                     {finding.review?.comment && <p><span className="font-bold">Review comment:</span> {finding.review.comment}</p>}
                     {finding.review?.evidence_reference && <p><span className="font-bold">Evidence reference:</span> {finding.review.evidence_reference}</p>}
                     {finding.review?.document_name && <p><span className="font-bold">Document:</span> {finding.review.document_name}{safeUrl(finding.review.document_url) ? <> · <a href={safeUrl(finding.review.document_url)} target="_blank" rel="noreferrer" className="text-blue-700 underline dark:text-blue-300">open</a></> : null}</p>}
@@ -909,36 +912,36 @@ export function InvestigationWorkspace({ projectId, onWorkspaceChange }) {
                   <div className="mt-2 rounded-lg border border-blue-200 bg-blue-50/40 p-2 dark:border-blue-900/40 dark:bg-blue-950/10">
                     <div className="grid gap-2 sm:grid-cols-2">
                       <label className="text-[0.75rem] font-bold uppercase tracking-wider text-gray-400">Review status
-                        <select value={drafts[finding.key]?.status || "Open"} onChange={(e) => setDraft(finding.key, "status", e.target.value)} className="mt-1 w-full rounded border border-gray-300 bg-white px-2 py-1.5 text-[0.8125rem] font-normal normal-case text-gray-800 dark:border-gray-600 dark:bg-[#000000] dark:text-gray-200">
+                        <select value={drafts[finding.key]?.status || "Open"} onChange={(e) => setDraft(finding.key, "status", e.target.value)} className="mt-1 w-full rounded-sm border border-gray-300 bg-white px-2 py-1.5 text-[0.8125rem] font-normal normal-case text-gray-800 dark:border-gray-600 dark:bg-[#000000] dark:text-gray-200">
                           {(ws.finding_status_options || []).map((status) => <option key={status} value={status}>{status}</option>)}
                         </select>
                       </label>
                       <label className="text-[0.75rem] font-bold uppercase tracking-wider text-gray-400">Evidence reference
-                        <input value={drafts[finding.key]?.evidence_reference || ""} onChange={(e) => setDraft(finding.key, "evidence_reference", e.target.value)} placeholder="e.g. verification_reports.id=..." className="mt-1 w-full rounded border border-gray-300 bg-white px-2 py-1.5 text-[0.8125rem] font-normal normal-case text-gray-800 dark:border-gray-600 dark:bg-[#000000] dark:text-gray-200" />
+                        <input value={drafts[finding.key]?.evidence_reference || ""} onChange={(e) => setDraft(finding.key, "evidence_reference", e.target.value)} placeholder="e.g. verification_reports.id=..." className="mt-1 w-full rounded-sm border border-gray-300 bg-white px-2 py-1.5 text-[0.8125rem] font-normal normal-case text-gray-800 dark:border-gray-600 dark:bg-[#000000] dark:text-gray-200" />
                       </label>
                     </div>
                     <label className="mt-2 block text-[0.75rem] font-bold uppercase tracking-wider text-gray-400">Review comment
-                      <textarea value={drafts[finding.key]?.comment || ""} onChange={(e) => setDraft(finding.key, "comment", e.target.value)} rows={2} className="mt-1 w-full rounded border border-gray-300 bg-white px-2 py-1.5 text-[0.8125rem] font-normal normal-case text-gray-800 dark:border-gray-600 dark:bg-[#000000] dark:text-gray-200" />
+                      <textarea value={drafts[finding.key]?.comment || ""} onChange={(e) => setDraft(finding.key, "comment", e.target.value)} rows={2} className="mt-1 w-full rounded-sm border border-gray-300 bg-white px-2 py-1.5 text-[0.8125rem] font-normal normal-case text-gray-800 dark:border-gray-600 dark:bg-[#000000] dark:text-gray-200" />
                     </label>
                     <div className="mt-2 grid gap-2 sm:grid-cols-2">
                       <label className="text-[0.75rem] font-bold uppercase tracking-wider text-gray-400">Supporting document name
-                        <input value={drafts[finding.key]?.document_name || ""} onChange={(e) => setDraft(finding.key, "document_name", e.target.value)} placeholder="Measurement book / clarification letter" className="mt-1 w-full rounded border border-gray-300 bg-white px-2 py-1.5 text-[0.8125rem] font-normal normal-case text-gray-800 dark:border-gray-600 dark:bg-[#000000] dark:text-gray-200" />
+                        <input value={drafts[finding.key]?.document_name || ""} onChange={(e) => setDraft(finding.key, "document_name", e.target.value)} placeholder="Measurement book / clarification letter" className="mt-1 w-full rounded-sm border border-gray-300 bg-white px-2 py-1.5 text-[0.8125rem] font-normal normal-case text-gray-800 dark:border-gray-600 dark:bg-[#000000] dark:text-gray-200" />
                       </label>
                       <label className="text-[0.75rem] font-bold uppercase tracking-wider text-gray-400">Document URL
-                        <input value={drafts[finding.key]?.document_url || ""} onChange={(e) => setDraft(finding.key, "document_url", e.target.value)} placeholder="https://..." className="mt-1 w-full rounded border border-gray-300 bg-white px-2 py-1.5 text-[0.8125rem] font-normal normal-case text-gray-800 dark:border-gray-600 dark:bg-[#000000] dark:text-gray-200" />
+                        <input value={drafts[finding.key]?.document_url || ""} onChange={(e) => setDraft(finding.key, "document_url", e.target.value)} placeholder="https://..." className="mt-1 w-full rounded-sm border border-gray-300 bg-white px-2 py-1.5 text-[0.8125rem] font-normal normal-case text-gray-800 dark:border-gray-600 dark:bg-[#000000] dark:text-gray-200" />
                       </label>
                     </div>
                     <label className="mt-2 block text-[0.75rem] font-bold uppercase tracking-wider text-gray-400">Resolution explanation (required for Verified / Not substantiated / Resolved)
-                      <textarea value={drafts[finding.key]?.resolution || ""} onChange={(e) => setDraft(finding.key, "resolution", e.target.value)} rows={2} className="mt-1 w-full rounded border border-gray-300 bg-white px-2 py-1.5 text-[0.8125rem] font-normal normal-case text-gray-800 dark:border-gray-600 dark:bg-[#000000] dark:text-gray-200" />
+                      <textarea value={drafts[finding.key]?.resolution || ""} onChange={(e) => setDraft(finding.key, "resolution", e.target.value)} rows={2} className="mt-1 w-full rounded-sm border border-gray-300 bg-white px-2 py-1.5 text-[0.8125rem] font-normal normal-case text-gray-800 dark:border-gray-600 dark:bg-[#000000] dark:text-gray-200" />
                     </label>
                     <div className="mt-2 flex gap-1.5">
-                      <button onClick={() => saveReview(finding.key)} disabled={busy} className="rounded bg-blue-600 px-3 py-1.5 text-[0.75rem] font-bold text-white disabled:opacity-50">{busy ? "Saving..." : "Save review"}</button>
-                      <button onClick={() => setEditingKey(null)} disabled={busy} className="rounded border border-gray-300 px-3 py-1.5 text-[0.75rem] font-bold text-gray-600 dark:border-gray-600 dark:text-gray-300">Cancel</button>
+                      <button onClick={() => saveReview(finding.key)} disabled={busy} className="rounded-sm bg-blue-600 px-3 py-1.5 text-[0.75rem] font-bold text-white disabled:opacity-50">{busy ? "Saving..." : "Save review"}</button>
+                      <button onClick={() => setEditingKey(null)} disabled={busy} className="rounded-sm border border-gray-300 px-3 py-1.5 text-[0.75rem] font-bold text-gray-600 dark:border-gray-600 dark:text-gray-300">Cancel</button>
                     </div>
                   </div>
                 )}
                 {!finding.recommendations?.length && (
-                  <button onClick={() => addAction(finding.key)} disabled={busy || (ws.recommendations || []).find((r) => r.finding_key === finding.key)?.added} className="mt-2 rounded border border-gray-300 px-2.5 py-1 text-[0.75rem] font-bold text-gray-600 transition hover:bg-gray-50 disabled:opacity-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800">
+                  <button onClick={() => addAction(finding.key)} disabled={busy || (ws.recommendations || []).find((r) => r.finding_key === finding.key)?.added} className="mt-2 rounded-sm border border-gray-300 px-2.5 py-1 text-[0.75rem] font-bold text-gray-600 transition hover:bg-gray-50 disabled:opacity-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800">
                     {(ws.recommendations || []).find((r) => r.finding_key === finding.key)?.added ? "Added as action item" : "Add suggested action"}
                   </button>
                 )}
@@ -967,7 +970,7 @@ export function InvestigationWorkspace({ projectId, onWorkspaceChange }) {
                   </div>
                   <div className="mt-2 flex flex-wrap gap-1">
                     {ITEM_STATUSES.map((status) => (
-                      <button key={status} onClick={() => handleItem(item.item_key, status)} disabled={busy} className={`rounded border px-2 py-1 text-[0.75rem] font-bold transition disabled:opacity-60 ${item.status === status ? ITEM_STATUS_STYLE[status] : "border-gray-200 text-gray-400 hover:border-gray-300 dark:border-gray-700 dark:text-gray-500"}`}>
+                      <button key={status} onClick={() => handleItem(item.item_key, status)} disabled={busy} className={`rounded-sm border px-2 py-1 text-[0.75rem] font-bold transition disabled:opacity-60 ${item.status === status ? ITEM_STATUS_STYLE[status] : "border-gray-200 text-gray-400 hover:border-gray-300 dark:border-gray-700 dark:text-gray-500"}`}>
                         {ITEM_STATUS_SHORT[status]}
                       </button>
                     ))}
@@ -987,7 +990,7 @@ export function InvestigationWorkspace({ projectId, onWorkspaceChange }) {
             {evidence.verification_reports?.length > 0 ? (
               <div className="mt-3 space-y-2">
                 {evidence.verification_reports.map((report) => (
-                  <div key={report.id} className="rounded border border-gray-200 p-2 text-[0.8125rem] dark:border-gray-700">
+                  <div key={report.id} className="rounded-sm border border-gray-200 p-2 text-[0.8125rem] dark:border-gray-700">
                     <p className="font-bold text-gray-700 dark:text-gray-200">{report.reference} · {dateShort(report.date)} · {report.status || report.review_status || "recorded"}</p>
                     <p className="text-gray-600 dark:text-gray-300">{report.note || "No note recorded."}</p>
                     <p className="text-gray-400">Reporter: {report.reporter_name || "not recorded"} · photo: {report.photo_hash_id || "none"}</p>
@@ -1016,7 +1019,7 @@ export function InvestigationWorkspace({ projectId, onWorkspaceChange }) {
                     <p className="text-[0.9375rem] font-bold text-gray-800 dark:text-gray-200">{recommendation.title}</p>
                     <p className="mt-0.5 text-[0.8rem] text-gray-400">From: {recommendation.finding_title} · {recommendation.severity} priority</p>
                   </div>
-                  <button onClick={() => addAction(recommendation.finding_key)} disabled={busy || recommendation.added} className="rounded border border-gray-300 px-2.5 py-1 text-[0.75rem] font-bold text-gray-600 transition hover:bg-gray-50 disabled:opacity-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800">
+                  <button onClick={() => addAction(recommendation.finding_key)} disabled={busy || recommendation.added} className="rounded-sm border border-gray-300 px-2.5 py-1 text-[0.75rem] font-bold text-gray-600 transition hover:bg-gray-50 disabled:opacity-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800">
                     {recommendation.added ? "Action item added" : "Add as action item"}
                   </button>
                 </div>
@@ -1122,7 +1125,7 @@ export function PredictiveInsightsPanel({ detail }) {
               <div className="flex items-center gap-2">
                 <span className="text-sm">{p.icon}</span>
                 <p className="text-xs font-bold">{p.label}</p>
-                <span className={`ml-auto rounded px-1.5 py-0.5 text-[0.5625rem] font-bold ${levelCls(p.level)}`}>{p.level}</span>
+                <span className={`ml-auto rounded-sm px-1.5 py-0.5 text-[0.5625rem] font-bold ${levelCls(p.level)}`}>{p.level}</span>
               </div>
               <p className="mt-1 pl-6 text-[0.6875rem] leading-snug text-gray-500 dark:text-gray-400">{p.text}</p>
             </div>
@@ -1549,7 +1552,7 @@ export function PeerBenchmarkPanel({ projectId, onOpenProject }) {
                         <p className="truncate text-[1rem] font-semibold text-gray-800 dark:text-gray-200">{p.project_name || "Unnamed"}</p>
                         <p className="text-[0.8125rem] text-gray-500">{p.state} — {p.constituency || "N/A"}</p>
                       </div>
-                      <span className={`flex-shrink-0 rounded px-2 py-0.5 text-[0.8125rem] font-bold ${
+                      <span className={`flex-shrink-0 rounded-sm px-2 py-0.5 text-[0.8125rem] font-bold ${
                         p.risk_level === "High" ? "bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300"
                         : p.risk_level === "Medium" ? "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300"
                         : "bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-300"

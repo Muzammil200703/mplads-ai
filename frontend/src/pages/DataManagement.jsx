@@ -83,7 +83,7 @@ function Card({ children, className = "" }) {
 
 function Badge({ status }) {
   return (
-    <span className={`rounded px-2 py-0.5 text-xs font-bold ${STATUS_STYLE[status] || "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300"}`}>
+    <span className={`rounded-sm px-2 py-0.5 text-xs font-bold ${STATUS_STYLE[status] || "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300"}`}>
       {STATUS_LABEL[status] || status}
     </span>
   )
@@ -508,7 +508,7 @@ function HistoryPanel({ onOpen }) {
                   <td className="px-2 py-2 text-right tabular-nums">{formatNumber(b.unchanged_rows)}</td>
                   <td className="px-2 py-2 text-right tabular-nums text-red-700 dark:text-red-400">{formatNumber(b.rejected_rows)}</td>
                   <td className="px-2 py-2 text-right">
-                    <button onClick={() => onOpen(b.id)} className="rounded border border-[#e8dadc] px-2 py-1 text-xs font-bold hover:bg-[#f8f1f1] dark:border-[#351923] dark:hover:bg-[#0d090b]">Details</button>
+                    <button onClick={() => onOpen(b.id)} className="rounded-sm border border-[#e8dadc] px-2 py-1 text-xs font-bold hover:bg-[#f8f1f1] dark:border-[#351923] dark:hover:bg-[#0d090b]">Details</button>
                   </td>
                 </tr>
               ))}
@@ -556,7 +556,7 @@ function OverviewPanel({ data }) {
             <div key={t.dataset_type} className="rounded-lg border border-[#e8dadc] px-3 py-2 dark:border-[#351923]">
               <p className="text-[0.8125rem] font-semibold text-[#292326] dark:text-[#f5eff1]">
                 {t.label}
-                <span className="ml-2 rounded bg-[#f8f1f1] px-1.5 py-0.5 text-[0.6875rem] font-bold text-[#292326] dark:bg-[#0d090b] dark:text-gray-200">
+                <span className="ml-2 rounded-sm bg-[#f8f1f1] px-1.5 py-0.5 text-[0.6875rem] font-bold text-[#292326] dark:bg-[#0d090b] dark:text-gray-200">
                   {t.mode === "fingerprint" ? "content-keyed ledger" : t.mode === "projects" ? "id / composite key" : "source-keyed"}
                 </span>
               </p>
