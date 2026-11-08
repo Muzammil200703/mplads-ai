@@ -17,6 +17,11 @@ import { formatMoney } from "../utils/format"
 import { parseReasons } from "../utils/reasons"
 import { useAuth } from "../context/AuthContext"
 import { saveAuditCase, createMyInvestigation } from "../services/api"
+import AuditResearchAgentPanel from "./AuditResearchAgentPanel"
+import RootCauseGraph from "./RootCauseGraph"
+import MultiAgentPanel from "./MultiAgentPanel"
+import ReconciliationPanel from "./ReconciliationPanel"
+import InvestigationMemoryPanel from "./InvestigationMemoryPanel"
 
 /* ═══════════════════════════════════════════════════════════
    MPLADS Audit Intelligence components
@@ -356,6 +361,11 @@ const FINDING_CLASS_STYLE = {
 
 const WORKSPACE_TABS = [
   ["overview", "Overview / final review"],
+  ["rootcause", "Anomaly root cause"],
+  ["agent", "AI research agent"],
+  ["multiagent", "Multi-agent audit"],
+  ["reconciliation", "Data reconciliation"],
+  ["memory", "Investigation memory"],
   ["dossier", "Project dossier"],
   ["findings", "Findings"],
   ["evidence", "Evidence"],
@@ -672,6 +682,15 @@ export function InvestigationWorkspace({ projectId, onWorkspaceChange }) {
           </button>
         ))}
       </div>
+
+      {tab === "agent" && (
+        <AuditResearchAgentPanel key={projectId} projectId={projectId} />
+      )}
+
+      {tab === "rootcause" && <RootCauseGraph key={`rc-${projectId}`} projectId={projectId} />}
+      {tab === "multiagent" && <MultiAgentPanel key={`ma-${projectId}`} projectId={projectId} />}
+      {tab === "reconciliation" && <ReconciliationPanel />}
+      {tab === "memory" && <InvestigationMemoryPanel key={`mem-${projectId}`} projectId={projectId} />}
 
       {tab === "overview" && (
         <div className="space-y-3">

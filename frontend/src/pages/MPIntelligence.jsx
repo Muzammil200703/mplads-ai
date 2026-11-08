@@ -104,7 +104,7 @@ export default function MPIntelligence({ darkMode, drillDownParams, onClearDrill
         <>
           {/* SUMMARY CARDS — skeleton while loading, error notice on failure,
               never permanent "—/…" placeholder cards */}
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+            <div className="grid grid-cols-1 min-[400px]:grid-cols-2 gap-3 md:grid-cols-4">
             {data?.summary
               ? [
                   { label: "Total MPs", value: formatNumber(data.summary.total_mps) },
@@ -119,7 +119,7 @@ export default function MPIntelligence({ darkMode, drillDownParams, onClearDrill
                 ].map((c) => (
                   <div key={c.label} className={`rounded-xl border p-3 shadow-sm ${cardBg}`}>
                     <p className="text-[0.625rem] font-bold uppercase tracking-wider text-gray-400">{c.label}</p>
-                    <p className="mt-1 font-mono text-base font-bold">{c.value}</p>
+                    <p className="value-nowrap mt-1 font-mono text-sm font-bold xl:text-base">{c.value}</p>
                     {c.label === "Total Sanctioned (MP entitlements)" && (
                       <p className="mt-1 text-[0.5625rem] leading-snug text-gray-400">
                         MP entitlements = each MP's allocated amount (sums higher than the work-catalog "Total Project Amount" on Overview, which counts works only). Expenditure reflects the recorded MP payment ledger.
@@ -291,7 +291,7 @@ function MPDetail({ mpId, darkMode, onBack }) {
       </div>
 
       {/* FINANCIAL SUMMARY */}
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+      <div className="grid grid-cols-1 min-[400px]:grid-cols-2 gap-3 md:grid-cols-4">
         {[
           { label: "Sanctioned Amount", value: `₹${formatCrore(mp.allocated_amount)} Cr` },
           { label: "Expenditure", value: `₹${formatCrore(mp.total_expenditure)} Cr` },
@@ -305,7 +305,7 @@ function MPDetail({ mpId, darkMode, onBack }) {
         ].map((c) => (
           <div key={c.label} className={`rounded-xl border p-3 shadow-sm ${cardBg}`}>
             <p className="text-[0.625rem] font-bold uppercase tracking-wider text-gray-400">{c.label}</p>
-            <p className="mt-1 font-mono text-base font-bold">{c.value}</p>
+            <p className="value-nowrap mt-1 font-mono text-sm font-bold xl:text-base">{c.value}</p>
           </div>
         ))}
       </div>

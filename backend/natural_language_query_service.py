@@ -63,11 +63,13 @@ _LOCK = threading.Lock()
 
 _PROJECT_FAMILIES = {
     "top_projects", "overspend", "high_spend_low_completion",
-    "constituency_completion", "project_detail",
+    "constituency_completion", "project_detail", "spend_no_progress",
+    "multi_indicator_screening",
 }
 _BUILDABLE = _PROJECT_FAMILIES | {
     "state_utilisation", "house_comparison", "vendor_ranking", "latest_import",
-    "snapshot_totals",
+    "snapshot_totals", "district_risk_ranking", "state_exp_low_completion",
+    "state_pair_completion",
 }
 _PUBLIC_FAMILIES = {"snapshot_totals"}
 _IMPORT_FAMILIES = {"latest_import"}
@@ -76,7 +78,8 @@ _MONEY_COLS = {"Recorded expenditure", "Sanctioned", "Allocated", "Expenditure",
 _PERCENT_COLS = {"Utilisation %", "Completion %"}
 _INT_COLS = {
     "Payments", "Projects", "Works", "Works completed", "Works pending", "Rows",
-    "Added", "Updated", "Batch", "ID", "Risk score",
+    "Added", "Updated", "Batch", "ID", "Risk score", "High-risk projects",
+    "Indicators", "Other accounts", "Recommended", "Completed",
 }
 
 _ORDINALS = {
@@ -164,6 +167,24 @@ def _find_value(question: str, values: Sequence[str]) -> Optional[str]:
 def _state(question: str) -> Optional[str]:
     values = [name for name, _ in schema.value_dictionary().get("states", [])]
     return _find_value(question, values)
+
+
+def _state_names(question: str) -> list:
+    """Every state name that appears in the question — used for two-state
+    completion comparisons. Longest names are matched first so compound
+    names ('Madhya Pradesh') win and each state is reported once."""
+    values = [name for name, _ in schema.value_dictionary().get("states", [])]
+    found: List[str] = []
+    for name in sorted(values, key=lambda n: -len(str(n or ""))):
+        n = str(name or "")
+        if len(n) < 4:
+            continue
+        if re.search(rf"(?<![A-Za-z]){re.escape(n)}(?![A-Za-z])", question or "", re.I) \
+                and n.lower() not in [f.lower() for f in found]:
+            found.append(n)
+        if len(found) >= 2:
+            return found
+    return found
 
 
 def _constituency(question: str) -> Optional[str]:
@@ -321,6 +342,30 @@ def _order(family: str, order: Optional[Dict[str, str]]) -> str:
             "expenditure": "SUM(expenditure_amount)", "payments": "COUNT(*)",
             "works": "COUNT(DISTINCT work_description)",
         },
+        "district_risk_ranking": {
+            "high_risk": '"High-risk projects"', "sanctioned": '"Sanctioned"',
+            "district": '"District"',
+        },
+        "multi_indicator_screening": {
+            "indicators": '"Indicators"', "risk": "COALESCE(rs.risk_score, 0)",
+            "expenditure": "COALESCE(rs.risk_score, 0)",
+        },
+        "spend_no_progress": {
+            "expenditure": "r.work_key_expenditure", "sanctioned": "p.sanctioned_amount",
+            "completion": "p.completion_percentage",
+        },
+        "state_exp_low_completion": {
+            "expenditure": '"Recorded expenditure"', "completion": '"Completion %"',
+            "sanctioned": '"Sanctioned"', "projects": '"Projects"',
+        },
+        "state_pair_completion": {
+            "expenditure": '"Recorded expenditure"', "completion": '"Completion %"',
+            "sanctioned": '"Sanctioned"', "projects": '"Projects"',
+        },
+        "high_risk_completion": {
+            "completion": "p.completion_percentage", "risk": "COALESCE(rs.risk_score, 0)",
+            "expenditure": "r.work_key_expenditure", "sanctioned": "p.sanctioned_amount",
+        },
     }.get(family, {})
     column = table.get(key, table.get("expenditure", "1"))
     return f"{column} {direction}"
@@ -333,6 +378,22 @@ def build(family: str, filters: Dict[str, Any], order: Optional[Dict[str, str]] 
     clauses, params = _where(filters)
     where = (" AND " + " AND ".join(clauses)) if clauses else ""
     direction = _order(family, order)
+
+    if family == "high_risk_completion":
+        threshold = float(filters.get("completion_below", 50.0))
+        sql = (
+            f"SELECT {_PROJECT_COLUMNS},\n"
+            '       COALESCE(rs.risk_level, \'None\') AS "Risk level",\n'
+            '       COALESCE(rs.risk_score, 0) AS "Risk score"\n'
+            "FROM projects p\n"
+            "JOIN risk_scores rs ON rs.project_id = p.id\n"
+            "LEFT JOIN project_rec_info r ON r.project_id = p.id\n"
+            "WHERE rs.risk_level = 'High'\n"
+            "  AND p.completion_percentage < ?"
+            f"{where}\n"
+            f"ORDER BY {direction}\nLIMIT ?"
+        )
+        return sql, [threshold] + params + [limit], {"chart": ("Project", "Completion %")}
 
     if family == "top_projects":
         sql = (
@@ -506,6 +567,134 @@ def build(family: str, filters: Dict[str, Any], order: Optional[Dict[str, str]] 
         )
         return sql, [limit], {"chart": None}
 
+    if family == "district_risk_ranking":
+        sql = (
+            'SELECT p.district AS "District", p.state AS "State",\n'
+            '       COUNT(*) AS "High-risk projects",\n'
+            '       ROUND(SUM(p.sanctioned_amount), 2) AS "Sanctioned"\n'
+            "FROM projects p\n"
+            "JOIN risk_scores rs ON rs.project_id = p.id\n"
+            "WHERE rs.risk_level = 'High'\n"
+            "  AND p.district IS NOT NULL AND TRIM(p.district) <> ''"
+            f"{where}\n"
+            "GROUP BY p.district, p.state\n"
+            f"ORDER BY {direction}\nLIMIT ?"
+        )
+        return sql, params + [limit], {"chart": ("District", "High-risk projects")}
+
+    if family == "multi_indicator_screening":
+        sql = (
+            'SELECT p.id AS "ID", p.project_name AS "Project", p.state AS "State",\n'
+            '       p.district AS "District", p.house AS "House",\n'
+            "       COALESCE(rs.risk_level, 'None') AS \"Risk level\",\n"
+            '       COALESCE(rs.risk_score, 0) AS "Risk score",\n'
+            "       (LENGTH(COALESCE(rs.reasons, ''))\n"
+            "        - LENGTH(REPLACE(COALESCE(rs.reasons, ''), ',', '')) + 1) AS \"Indicators\",\n"
+            "       COALESCE(rs.reasons, '') AS \"Risk reasons\"\n"
+            "FROM projects p\n"
+            "JOIN risk_scores rs ON rs.project_id = p.id\n"
+            "WHERE rs.reasons IS NOT NULL AND TRIM(rs.reasons) <> ''"
+            f"{where}\n"
+            f"ORDER BY {direction}\nLIMIT ?"
+        )
+        return sql, params + [limit], {"chart": None}
+
+    if family == "spend_no_progress":
+        sql = (
+            f"SELECT {_PROJECT_COLUMNS}\n"
+            "FROM projects p\n"
+            "JOIN project_rec_info r ON r.project_id = p.id\n"
+            "WHERE r.work_key_expenditure > 0\n"
+            "  AND r.work_key_rows = 1\n"
+            "  AND (p.completion_percentage IS NULL OR p.completion_percentage < 1)"
+            f"{where}\n"
+            f"ORDER BY {direction}\nLIMIT ?"
+        )
+        return sql, params + [limit], {"chart": ("Project", "Recorded expenditure")}
+
+    if family == "state_exp_low_completion":
+        sql = (
+            "WITH sanc AS (\n"
+            "  SELECT state AS st, COUNT(*) AS projects, SUM(sanctioned_amount) AS sanctioned\n"
+            "  FROM projects\n"
+            "  WHERE state IS NOT NULL AND TRIM(state) <> ''\n"
+            "  GROUP BY state\n),\n"
+            "paid AS (\n"
+            "  SELECT state AS st, SUM(expenditure_amount) AS spend\n"
+            "  FROM expenditures\n"
+            "  WHERE state IS NOT NULL AND TRIM(state) <> ''\n"
+            "  GROUP BY state\n),\n"
+            "rec AS (\n"
+            "  SELECT state AS st, COUNT(*) AS recommended\n"
+            "  FROM recommended_works\n"
+            "  WHERE state IS NOT NULL AND TRIM(state) <> ''\n"
+            "  GROUP BY state\n),\n"
+            "done AS (\n"
+            "  SELECT state AS st, COUNT(*) AS completed\n"
+            "  FROM completed_works\n"
+            "  WHERE state IS NOT NULL AND TRIM(state) <> ''\n"
+            "  GROUP BY state\n)\n"
+            'SELECT s.st AS "State", s.projects AS "Projects",\n'
+            '       ROUND(s.sanctioned, 2) AS "Sanctioned",\n'
+            '       ROUND(COALESCE(p2.spend, 0), 2) AS "Recorded expenditure",\n'
+            '       COALESCE(r.recommended, 0) AS "Recommended",\n'
+            '       COALESCE(d.completed, 0) AS "Completed",\n'
+            '       ROUND(100.0 * COALESCE(d.completed, 0) / NULLIF(r.recommended, 0), 2)\n'
+            '         AS "Completion %"\n'
+            "FROM sanc s\n"
+            "LEFT JOIN paid p2 ON LOWER(TRIM(p2.st)) = LOWER(TRIM(s.st))\n"
+            "LEFT JOIN rec r ON LOWER(TRIM(r.st)) = LOWER(TRIM(s.st))\n"
+            "LEFT JOIN done d ON LOWER(TRIM(d.st)) = LOWER(TRIM(s.st))\n"
+            f"ORDER BY {direction}\nLIMIT ?"
+        )
+        return sql, [limit], {"chart": ("State", "Recorded expenditure")}
+
+    if family == "state_pair_completion":
+        a = str(filters.get("state_a") or "")
+        b = str(filters.get("state_b") or "")
+        if not a or not b:
+            raise ValueError("state_pair_completion requires two states")
+        pair = sorted([a, b])
+        sql = (
+            "WITH picked AS (\n"
+            "  SELECT LOWER(?) AS s1, LOWER(?) AS s2\n),\n"
+            "sanc AS (\n"
+            "  SELECT LOWER(TRIM(state)) AS st, COUNT(*) AS projects,\n"
+            "         SUM(sanctioned_amount) AS sanctioned\n"
+            "  FROM projects\n"
+            "  WHERE state IS NOT NULL AND TRIM(state) <> ''\n"
+            "  GROUP BY LOWER(TRIM(state))\n),\n"
+            "paid AS (\n"
+            "  SELECT LOWER(TRIM(state)) AS st, SUM(expenditure_amount) AS spend\n"
+            "  FROM expenditures\n"
+            "  WHERE state IS NOT NULL AND TRIM(state) <> ''\n"
+            "  GROUP BY LOWER(TRIM(state))\n),\n"
+            "rec AS (\n"
+            "  SELECT LOWER(TRIM(state)) AS st, COUNT(*) AS recommended\n"
+            "  FROM recommended_works\n"
+            "  WHERE state IS NOT NULL AND TRIM(state) <> ''\n"
+            "  GROUP BY LOWER(TRIM(state))\n),\n"
+            "done AS (\n"
+            "  SELECT LOWER(TRIM(state)) AS st, COUNT(*) AS completed\n"
+            "  FROM completed_works\n"
+            "  WHERE state IS NOT NULL AND TRIM(state) <> ''\n"
+            "  GROUP BY LOWER(TRIM(state))\n)\n"
+            'SELECT s.st AS "State", s.projects AS "Projects",\n'
+            '       ROUND(s.sanctioned, 2) AS "Sanctioned",\n'
+            '       ROUND(COALESCE(p2.spend, 0), 2) AS "Recorded expenditure",\n'
+            '       COALESCE(r.recommended, 0) AS "Recommended",\n'
+            '       COALESCE(d.completed, 0) AS "Completed",\n'
+            '       ROUND(100.0 * COALESCE(d.completed, 0) / NULLIF(r.recommended, 0), 2)\n'
+            '         AS "Completion %"\n'
+            "FROM sanc s\n"
+            "LEFT JOIN paid p2 ON LOWER(TRIM(p2.st)) = LOWER(TRIM(s.st))\n"
+            "LEFT JOIN rec r ON LOWER(TRIM(r.st)) = LOWER(TRIM(s.st))\n"
+            "LEFT JOIN done d ON LOWER(TRIM(d.st)) = LOWER(TRIM(s.st))\n"
+            "JOIN picked pk ON s.st IN (pk.s1, pk.s2)\n"
+            f"ORDER BY {direction}\nLIMIT ?"
+        )
+        return sql, pair + [limit], {"chart": ("State", "Completion %")}
+
     raise ValueError(f"unknown query family: {family}")
 
 
@@ -516,6 +705,48 @@ def build(family: str, filters: Dict[str, Any], order: Optional[Dict[str, str]] 
 def _detect(question: str) -> Optional[str]:
     q = (question or "").lower()
 
+    # ── Copilot analytical families (cross-module) ────────────────────
+    # Two-state completion comparison first: "compare project completion
+    # trends between Telangana and Karnataka".
+    if re.search(r"\b(compare|comparison|compar(e|ing))\b.{0,60}\b(between|of|two)\b.{0,40}\b(states?)\b"
+                 r"|\bcompare\b.{0,50}\b(states?\b.{0,50})?\bcompletion\b|\btwo\s+states\b"
+                 r"|\bcompletion\b.{0,30}\b(between|across)\b.{0,30}\btwo\b|\bcompare\b.{0,40}\bcomplet\w*",
+                 q) and not re.search(r"\blok\s*sabha\b.{0,30}rajya", q):
+        if re.search(r"\bcompare\b.{0,40}\b(complet\w*|progress|outcome)\b|\bcomplet\w*\b.{0,40}\bcompare\b|\btwo\s+states\b", q):
+            return "state_pair_completion"
+
+    # Deteriorating progress / changed outcomes between imports.
+    if re.search(r"\b(deteriorat\w*|progress\b.{0,20}\b(decr\w*|declin\w*|dropp\w*|worse)|outcome)\b"
+                 r".{0,30}\b(chang\w*|declin\w*|dropp\w*|import\w*|histor\w*)?\b", q) and \
+            re.search(r"\bdeteriorat\w*", q):
+        return "completion_declines"
+    if re.search(r"\bexpenditure.{0,30}(increas|rose|grew|grow)|\b(money|funds?)\b.{0,20}\b(spent|paid)\b.{0,40}\bbut\b.{0,40}\b(no|didn|did\s+not|not)\b.{0,20}\b(impro|progress|complet)"
+                 r"|\bspent\b.{0,30}\bbut\b.{0,30}\b(no|zero|didn)\b.{0,25}\b(progress|improvement|completion)\b"
+                 r"|\b(increased|rose|grew)\b.{0,40}\bcompletion\b.{0,40}\b(no|not|didn)\b", q):
+        return "spend_no_progress"
+
+    if re.search(r"\bdistricts?\b.{0,50}\b(most|highest|top|max\w*)\b.{0,40}\b(high[\s-]*risk|risk|flagged|riskiest)\b"
+                 r"|\b(most|top|which)\b.{0,30}\bhigh[\s-]*risk\b.{0,30}\bdistricts?\b"
+                 r"|\b(districts?|district-wise)\b.{0,30}\bhigh[\s-]*risk\b", q):
+        return "district_risk_ranking"
+
+    if re.search(r"\b(projects?|works?)\b.{0,40}\b(need|requir\w*|merit|warrant|eligible)\b.{0,40}\binvestigat\w*"
+                 r"|\binvestigat\w*\b.{0,40}\b(multiple|several|indicators?|riskiest|most)\b"
+                 r"|\bwhich\b.{0,30}(projects?|works?)\b.{0,40}\b(multiple|indicator|investigat\w*)\b", q):
+        return "multi_indicator_screening"
+
+    # "Which states have the highest expenditure but lowest completion rates?"
+    if re.search(r"\b(which|what)\s+states?\b.{0,60}\b(highest|most|top|large(st|est)?)\b.{0,40}\b(expenditure|spending|spent)\b"
+                 r".{0,60}\blow\w*\b.{0,40}\bcompletion\b", q):
+        return "state_exp_low_completion"
+
+    # "How have project outcomes changed between historical imports?" — the
+    # stored official snapshot totals are the only historical aggregate.
+    if re.search(r"\b(outcomes?|totals?|figures?)\b.{0,40}\b(chang|compar|differ)\w*\b.{0,40}\b(import|snapshot|histor)", q) \
+            and re.search(r"\bsnapshot|snapshot totals\b", q):
+        return "snapshot_totals"
+
+    # ── Established families ──────────────────────────────────────────
     if re.search(r"\b(previous|earlier|last)\s+import\b|\bthis\s+project\b.{0,40}\bimport\b", q) and \
             re.search(r"\b(what was|expenditure|spend|value|changed|compare)\b", q):
         return "project_history" if re.search(r"\bproject\b", q) else "expenditure_changes"
@@ -550,6 +781,14 @@ def _detect(question: str) -> Optional[str]:
         return "high_spend_low_completion"
     if re.search(r"\b(high|large)\s+spend(?:ing)?\b.{0,25}\b(low|poor)\s+(completion|progress)\b", q):
         return "high_spend_low_completion"
+
+    # Multi-condition screening: risk flag + a completion threshold, in an
+    # optional state/house/constituency scope. Both conditions are applied to
+    # stored columns only — nothing is derived.
+    if re.search(r"\bhigh[- ]?risk\b", q) and \
+            re.search(r"\b(completion|progress)\b.{0,25}\b(below|under|less|lower)\b|"
+                      r"\b(below|under|less|lower)\b.{0,25}\b(completion|progress)\b", q):
+        return "high_risk_completion"
 
     if re.search(r"\b(which|what)\s+states?\b", q) and \
             re.search(r"\b(utilis|utiliz|fund)\b|\bexpenditure\b", q) and \
@@ -599,6 +838,43 @@ def _plan(question: str, *, user, house: Optional[str]) -> Optional[Dict[str, An
         }
     if family == "expenditure_changes":
         return _expenditure_changes_plan(user)
+    if family == "completion_declines":
+        return {
+            "kind": "limitation",
+            "family": family,
+            "answer": (
+                "Which works have deteriorating (regressing) progress can only be told by comparing "
+                "each project's values across imports — that history lives in the Project Change "
+                "Detection layer, which no import has filled yet.\n\nOnce an import updates existing "
+                "projects, every completion decrease appears there; nothing is reconstructed from "
+                "current values."),
+            "limitations": [
+                "No per-project historical values are stored yet (project_snapshots is empty).",
+                "Current records are never used as a stand-in for historical values.",
+            ],
+        }
+    if family == "state_pair_completion":
+        names = _state_names(question)
+        if len(names) >= 2:
+            return _sql_plan(
+                family, {"state_a": names[0], "state_b": names[1]},
+                question=question, title="Completion comparison between two states",
+                order={"column": "completion", "dir": "DESC"}, limit=2)
+        if len(names) == 1:
+            return {
+                "kind": "clarify",
+                "family": family,
+                "question": (
+                    f"I found {names[0]}. Name a second state and I'll compare completion "
+                    f"records between {names[0]} and that state."),
+                "limitations": ["Two named states are required for this comparison."],
+            }
+        return {
+            "kind": "clarify",
+            "family": family,
+            "question": "Which two states should I compare? Name both and I'll bring their recorded totals, expenditure and completion side by side.",
+            "limitations": ["Two named states are required for this comparison."],
+        }
     if family == "constituency_completion":
         filters = _filters(question, house, completion=True)
         if not filters.get("constituency"):
@@ -624,13 +900,15 @@ def _plan(question: str, *, user, house: Optional[str]) -> Optional[Dict[str, An
 
     filters = _filters(
         question, house,
-        completion=family == "high_spend_low_completion",
+        completion=family in ("high_spend_low_completion", "high_risk_completion"),
     )
     if family == "house_comparison":
         # The comparison spans both houses; a single-house filter would be wrong.
         filters.pop("house", None)
     if family == "constituency_completion" and not order:
         order = {"column": "completion", "dir": "ASC"}
+    if family == "high_risk_completion" and not order:
+        order = {"column": "risk", "dir": "DESC"}
     titles = {
         "top_projects": "Highest recorded expenditure projects",
         "overspend": "Projects whose recorded payments exceed the sanctioned amount",
@@ -640,7 +918,28 @@ def _plan(question: str, *, user, house: Optional[str]) -> Optional[Dict[str, An
         "vendor_ranking": "Vendors by recorded payments",
         "latest_import": "Latest import batch",
         "snapshot_totals": "Stored historical snapshot totals",
+        "district_risk_ranking": "Districts by high-risk project count",
+        "multi_indicator_screening": "Projects flagged on multiple indicators",
+        "spend_no_progress": "Payments recorded with no reported progress",
+        "state_exp_low_completion": "States by expenditure and completion",
+        "high_risk_completion": "High-risk projects below the completion threshold",
     }
+    if family == "district_risk_ranking":
+        filters.pop("completion_below", None)
+        return _sql_plan(family, filters, question=question, title=titles[family],
+                         order={"column": "high_risk", "dir": "DESC"})
+    if family == "multi_indicator_screening":
+        filters.pop("completion_below", None)
+        return _sql_plan(family, filters, question=question, title=titles[family],
+                         order={"column": "indicators", "dir": "DESC"})
+    if family == "spend_no_progress":
+        filters.pop("completion_below", None)
+        return _sql_plan(family, filters, question=question, title=titles[family],
+                         order={"column": "expenditure", "dir": "DESC"})
+    if family == "state_exp_low_completion":
+        filters.pop("completion_below", None)
+        return _sql_plan(family, filters, question=question, title=titles[family],
+                         order={"column": "expenditure", "dir": "DESC"})
     return _sql_plan(family, filters, question=question, title=titles.get(family, "Database query"),
                      order=order)
 
@@ -879,6 +1178,12 @@ def _explain(family: str, columns: Sequence[str], rows: Sequence[Sequence[Any]],
             "vendor_ranking": "No vendor-attributed payments are recorded in this scope.",
             "latest_import": "No import batch is recorded, so the number of projects added in the latest import cannot be determined.",
             "snapshot_totals": "No historical snapshot rows are stored.",
+            "district_risk_ranking": "No high-risk projects are recorded in this scope.",
+            "multi_indicator_screening": "No project carries multiple stored risk indicators in this scope — or the scope has no stored risk reasons at all.",
+            "spend_no_progress": "No project in this scope combines recorded payments with reported progress below 1%.",
+            "state_exp_low_completion": "No state-level rows are recorded for this scope.",
+            "state_pair_completion": "Neither named state has recorded rows.",
+            "high_risk_completion": "No stored High-risk project in this scope is below that completion threshold.",
             "project_detail": "That project id is not in the catalogue.",
             "llm_generated": "The query returned no rows.",
         }.get(family, "The query returned no rows.")
@@ -1013,6 +1318,84 @@ def _explain(family: str, columns: Sequence[str], rows: Sequence[Sequence[Any]],
                 "points in time."
             )
         notes.append("Values are read from the stored snapshot rows; they are not recomputed from current project data.")
+        return head, notes
+
+    if family == "district_risk_ranking":
+        top = rows[0]
+        head = (
+            f"**{_cell(columns, top, 'District')}** ({_cell(columns, top, 'State')}) has the most "
+            f"high-risk projects{scope}: **{_fmt('High-risk projects', _cell(columns, top, 'High-risk projects'))}** "
+            f"works carrying {_money(_cell(columns, top, 'Sanctioned'))} sanctioned in total."
+        )
+        if len(rows) > 1:
+            head += (
+                f" Next: {_cell(columns, rows[1], 'District')} with "
+                f"{_fmt('High-risk projects', _cell(columns, rows[1], 'High-risk projects'))}."
+            )
+        notes.append("Counts use the existing stored risk_levels table — the stored scoring formula is applied, not recomputed.")
+        return head, notes
+
+    if family == "high_risk_completion":
+        top = rows[0]
+        head = (
+            f"**{len(rows)}{'+' if truncated else ''}** project{'s' if len(rows) != 1 else ''}{scope} "
+            f"carry a stored High risk flag and recorded completion below "
+            f"{float(filters.get('completion_below', 50)):g}%. The top row is "
+            f"**{_cell(columns, top, 'Project')}** (#{_cell(columns, top, 'ID')}, "
+            f"{_cell(columns, top, 'State')}) with risk score {_cell(columns, top, 'Risk score')} "
+            f"at {_fmt('Completion %', _cell(columns, top, 'Completion %'))} completion."
+        )
+        notes.append(
+            "Both conditions filter stored values — the existing risk_level flag and the recorded "
+            "completion percentage. This is a screening list for review priority, not an audit finding.")
+        return head, notes
+
+    if family == "multi_indicator_screening":
+        top = rows[0]
+        head = (
+            f"**{_cell(columns, top, 'Project')}** (#{_cell(columns, top, 'ID')}, "
+            f"{_cell(columns, top, 'State')}) carries the most stored risk indicators: "
+            f"**{_fmt('Indicators', _cell(columns, top, 'Indicators'))}** reasons — "
+            f"{str(_cell(columns, top, 'Risk reasons') or '—')[:200]}."
+        )
+        notes.append("Indicator counts come from the stored risk reasons; they are screening signals, not audit conclusions.")
+        return head, notes
+
+    if family == "spend_no_progress":
+        top = rows[0]
+        head = (
+            f"**{len(rows)}{'+' if truncated else ''}** project{'s' if len(rows) != 1 else ''}"
+            f"{scope} have recorded payments with reported physical progress below 1%. The first row is "
+            f"**{_cell(columns, top, 'Project')}** (#{_cell(columns, top, 'ID')}): "
+            f"{_money(_cell(columns, top, 'Recorded expenditure'))} recorded against "
+            f"{_money(_cell(columns, top, 'Sanctioned'))} sanctioned."
+        )
+        notes.append("'No progress' means the recorded completion percentage is under 1% — the dataset stores one current value, not a trend; money-in-without-progress changes across imports belong to Project Change Detection.")
+        return head, notes
+
+    if family in ("state_exp_low_completion", "state_pair_completion"):
+        top = rows[0]
+        head = ""
+        if family == "state_pair_completion" and len(rows) >= 2:
+            a, b = rows[0], rows[1]
+            head = (
+                f"**{_cell(columns, a, 'State')}** vs **{_cell(columns, b, 'State')}**: "
+                f"{_fmt('Completion %', _cell(columns, a, 'Completion %'))} vs "
+                f"{_fmt('Completion %', _cell(columns, b, 'Completion %'))} completed works "
+                f"({_fmt('Completed', _cell(columns, a, 'Completed'))} vs "
+                f"{_fmt('Completed', _cell(columns, b, 'Completed'))} of "
+                f"{_fmt('Recommended', _cell(columns, a, 'Recommended'))} vs "
+                f"{_fmt('Recommended', _cell(columns, b, 'Recommended'))} recommended); recorded expenditure "
+                f"{_money(_cell(columns, a, 'Recorded expenditure'))} vs "
+                f"{_money(_cell(columns, b, 'Recorded expenditure'))}."
+            )
+        else:
+            head = (
+                f"**{_cell(columns, top, 'State')}** leads this table{scope} with "
+                f"{_money(_cell(columns, top, 'Recorded expenditure'))} recorded expenditure and "
+                f"{_fmt('Completion %', _cell(columns, top, 'Completion %'))} of its recommended works recorded complete."
+            )
+        notes.append("Completion % compares completed-work records with recommended-work records per state — a work-level ratio, not the catalogue's per-project completion field.")
         return head, notes
 
     if family == "project_detail":

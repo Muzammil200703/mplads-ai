@@ -6,6 +6,8 @@ import {
   getDataFreshness,
 } from "../services/api"
 import { formatMoney, formatNumber } from "../utils/format"
+import GeoIntelPanel from "../components/GeoIntelPanel"
+
 // Heavy map (d3-geo + GeoJSON) loads only when this page is opened.
 const GeographicDistribution = lazy(
   () => import("../components/GeographicDistribution")
@@ -396,6 +398,11 @@ const StateIntelligence = memo(function StateIntelligence({
           />
         </Suspense>
 
+        {/* GEOSPATIAL INTELLIGENCE — coverage gaps, sub-state execution
+            patterns, spatial relations, geographic outliers, progress map.
+            Aggregation unit is disclosed by the backend. */}
+        <GeoIntelPanel house={house === "All" ? "" : house} />
+
         {loading && (
           <div className="flex items-center gap-2 rounded-lg border border-blue-100 bg-blue-50/60 px-3 py-2 text-xs font-semibold text-blue-700 dark:border-blue-900/50 dark:bg-blue-950/20 dark:text-blue-300">
             <span className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-solid border-blue-600 border-r-transparent" />
@@ -485,11 +492,11 @@ const StateIntelligence = memo(function StateIntelligence({
                   <h4 className="mb-3 text-xs font-bold text-gray-700 dark:text-gray-300">{comp.label}</h4>
                   <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                     {comp.metrics.map((m, mi) => (
-                      <div key={mi} className="rounded-lg bg-white p-3 dark:bg-[#0d090b]">
+                      <div key={mi} className="min-w-0 rounded-lg bg-white p-3 dark:bg-[#0d090b]">
                         <p className="text-[0.625rem] font-bold uppercase text-gray-400">{m.metric}</p>
-                        <p className="font-mono text-lg font-bold">{m.selected}{m.unit}</p>
+                        <p className="value-nowrap font-mono text-lg font-bold tabular-nums" title={`${m.selected}${m.unit}`}>{m.selected}{m.unit}</p>
                         <p className="text-[0.625rem] text-gray-400">Benchmark: {m.benchmark}{m.unit}</p>
-                        <p className={`mt-1 text-xs font-bold ${m.better ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
+                        <p className={`value-nowrap mt-1 text-xs font-bold ${m.better ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
                           {m.difference > 0 ? "+" : ""}{m.difference}{m.unit} {m.better ? "↑" : "↓"}
                         </p>
                       </div>

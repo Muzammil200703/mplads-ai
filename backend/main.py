@@ -549,10 +549,16 @@ from workspace import router as workspace_router  # noqa: E402
 from global_search import router as global_search_router  # noqa: E402
 from change_api import router as change_router  # noqa: E402
 from history_api import router as history_router  # noqa: E402
+from prediction_api import router as prediction_router  # noqa: E402
+from investigation_agent import router as agent_router  # noqa: E402
+from intel_api import router as intel_router  # noqa: E402
 app.include_router(workspace_router)
 app.include_router(global_search_router)
 app.include_router(change_router)
 app.include_router(history_router)
+app.include_router(prediction_router)
+app.include_router(agent_router)
+app.include_router(intel_router)
 
 
 # Sortable columns map (avoids SQL injection)

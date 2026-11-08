@@ -91,16 +91,16 @@ function MyDistrictInner({ onOpenProject }) {
         {!loading && summary && (
           <>
             {/* Summary cards */}
-            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <div className="grid grid-cols-1 min-[400px]:grid-cols-2 gap-3 lg:grid-cols-4">
               {[
                 { label: "Projects", value: summary.projects, icon: "🏗" },
                 { label: "High-risk (≥75)", value: summary.high_risk, icon: "⚠" },
                 { label: "Open inquiries", value: summary.open_inquiries, icon: "✉️" },
                 { label: "Total sanctioned", value: formatMoney(summary.total_sanctioned), icon: "💰" },
               ].map((c) => (
-                <div key={c.label} className="rounded-xl border border-[#e8dadc] bg-white p-4 dark:border-[#351923] dark:bg-[#000000]">
+                <div key={c.label} className="min-w-0 rounded-xl border border-[#e8dadc] bg-white p-4 dark:border-[#351923] dark:bg-[#000000]">
                   <p className="text-xs font-bold uppercase tracking-wide text-[#71666a]/70 dark:text-[#b9aeb2]/70">{c.icon} {c.label}</p>
-                  <p className="mt-1 truncate text-xl font-extrabold text-[#292326] dark:text-[#f5eff1]" title={String(c.value)}>{c.value}</p>
+                  <p className="value-nowrap mt-1 text-xl font-extrabold tabular-nums text-[#292326] dark:text-[#f5eff1]" title={String(c.value)}>{c.value}</p>
                 </div>
               ))}
             </div>

@@ -236,18 +236,18 @@ export default function VerifyPortal() {
           <p className="mt-1 text-xs text-gray-500">
             #{project.id} · {project.district || "—"}, {project.state} · {project.project_type || "Works"}
           </p>
-          <div className="mt-3 grid grid-cols-3 gap-2 text-center">
-            <div className="rounded-lg bg-gray-50 p-2 dark:bg-gray-900/60">
+          <div className="mt-3 grid grid-cols-1 min-[400px]:grid-cols-3 gap-2 text-center">
+            <div className="min-w-0 rounded-lg bg-gray-50 p-2 dark:bg-gray-900/60">
               <p className="text-[0.6875rem] uppercase text-gray-400">Sanctioned</p>
-              <p className="text-sm font-bold text-gray-800 dark:text-gray-200">{formatMoney(project.sanctioned_amount)}</p>
+              <p className="value-nowrap text-sm font-bold tabular-nums text-gray-800 dark:text-gray-200">{formatMoney(project.sanctioned_amount)}</p>
             </div>
-            <div className="rounded-lg bg-gray-50 p-2 dark:bg-gray-900/60">
+            <div className="min-w-0 rounded-lg bg-gray-50 p-2 dark:bg-gray-900/60">
               <p className="text-[0.6875rem] uppercase text-gray-400">Recorded progress</p>
-              <p className="text-sm font-bold text-gray-800 dark:text-gray-200">{project.completion_percentage}%</p>
+              <p className="value-nowrap text-sm font-bold text-gray-800 dark:text-gray-200">{project.completion_percentage}%</p>
             </div>
-            <div className="rounded-lg bg-gray-50 p-2 dark:bg-gray-900/60">
+            <div className="min-w-0 rounded-lg bg-gray-50 p-2 dark:bg-gray-900/60">
               <p className="text-[0.6875rem] uppercase text-gray-400">Recorded status</p>
-              <p className="text-sm font-bold text-gray-800 dark:text-gray-200">{project.status || "—"}</p>
+              <p className="truncate text-sm font-bold text-gray-800 dark:text-gray-200" title={project.status || ""}>{project.status || "—"}</p>
             </div>
           </div>
           <p className="mt-2 text-[0.6875rem] text-gray-400">These are the officially recorded values — your report is how the ground truth gets checked against them.</p>

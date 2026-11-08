@@ -1,0 +1,40 @@
+INFO:     Started server process [4768]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     127.0.0.1:51130 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51130 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:51138 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51140 - "GET /agent/projects/1/latest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51141 - "GET /agent/projects/1/latest HTTP/1.1" 403 Forbidden
+INFO:     127.0.0.1:51142 - "POST /agent/projects/1/run HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51143 - "GET /agent/projects/1/report HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51144 - "POST /agent/projects/1/run HTTP/1.1" 403 Forbidden
+INFO:     127.0.0.1:51145 - "GET /predict/projects/1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51147 - "GET /predict/projects/1 HTTP/1.1" 403 Forbidden
+INFO:     127.0.0.1:51148 - "GET /predict/projects/99999999 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:51149 - "POST /assistant/ask HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51150 - "POST /assistant/ask HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51151 - "POST /assistant/ask HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51152 - "POST /assistant/ask HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51155 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51155 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:51176 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51176 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:51191 - "GET /agent/projects/1/latest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51192 - "GET /agent/projects/1/latest HTTP/1.1" 403 Forbidden
+INFO:     127.0.0.1:51193 - "POST /agent/projects/1/run HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51195 - "GET /agent/projects/1/report HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51196 - "POST /agent/projects/1/run HTTP/1.1" 403 Forbidden
+INFO:     127.0.0.1:51197 - "GET /predict/projects/1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51198 - "GET /predict/projects/1 HTTP/1.1" 403 Forbidden
+INFO:     127.0.0.1:51199 - "GET /predict/projects/99999999 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:51200 - "POST /assistant/ask HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51201 - "POST /assistant/ask HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51204 - "POST /assistant/ask HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51205 - "POST /assistant/ask HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51214 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51214 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:51218 - "GET /predict/projects/1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51233 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51233 - "GET /v1/models HTTP/1.1" 404 Not Found

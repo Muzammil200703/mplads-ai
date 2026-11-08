@@ -275,12 +275,12 @@ const Overview = memo(function Overview({
               Official eSAKSHI metric set, computed from the imported dataset snapshot.
             </p>
           </div>
-          <div className="flex items-center gap-1 rounded-lg border border-gray-200 p-1 dark:border-gray-700">
+          <div className="flex max-w-full items-center gap-1 self-start rounded-lg border border-gray-200 p-1 dark:border-gray-700">
             {["All", "Rajya Sabha", "Lok Sabha"].map((h) => (
               <button
                 key={h}
                 onClick={() => setHouse(h)}
-                className={`rounded-md px-3 py-1.5 text-xs font-bold transition ${
+                className={`ctrl-nowrap min-w-0 rounded-md px-3 py-1.5 text-xs font-bold transition ${
                   house === h
                     ? "bg-blue-600 text-white shadow-sm"
                     : "text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800"
@@ -293,21 +293,33 @@ const Overview = memo(function Overview({
         </div>
         {houseStats ? (
           <>
-            <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+            {/* Responsive metric grid: single column on very narrow phones so
+                values keep usable width, two columns from 400px, four ≥md. */}
+            <div className="grid grid-cols-1 min-[400px]:grid-cols-2 gap-3 md:grid-cols-4">
               {[
-                { label: "Total Allocated", value: `₹${formatCrore(houseStats.total_allocated)} Cr`, sub: "Total funds allocated to MPs" },
-                { label: "Total Expenditure", value: `₹${formatCrore(houseStats.total_expenditure)} Cr`, sub: houseStats.expenditure_transactions != null ? `Vendor payments · ${formatNumber(houseStats.expenditure_transactions)} transactions` : "Vendor payments recorded" },
-                { label: "Fund Utilization", value: `${houseStats.fund_utilization_percentage}%`, sub: "Share of allocation recommended by MPs" },
-                { label: "Expenditure Rate", value: `${houseStats.expenditure_rate_percentage}%`, sub: "Vendor expenditure as a share of allocation" },
-                { label: "Total MPs", value: formatNumber(houseStats.total_mps), sub: houseStats.data_snapshot?.reference ? "Official eSAKSHI roster" : " MPs in the system" },
-                { label: "Works Completed", value: `${formatNumber(houseStats.works_completed)} (₹${formatCrore(houseStats.completed_work_value)} Cr)`, sub: "Completed works and their value" },
-                { label: "Works Pending", value: formatNumber(houseStats.works_pending), sub: "Recommended works not yet in the completions ledger" },
-                { label: "Ongoing-Work Payments", value: `₹${formatCrore(houseStats.ongoing_work_payments)} Cr`, sub: "Vendor payments linked to works not yet marked complete" },
-                { label: "Total Project Amount", value: houseStats.total_project_amount != null ? `₹${formatCrore(houseStats.total_project_amount)} Cr` : "—", sub: "Sanctioned amounts across monitored works" },
+                { label: "Total Allocated", num: `₹${formatCrore(houseStats.total_allocated)}`, unit: "Cr", sub: "Total funds allocated to MPs" },
+                { label: "Total Expenditure", num: `₹${formatCrore(houseStats.total_expenditure)}`, unit: "Cr", sub: houseStats.expenditure_transactions != null ? `Vendor payments · ${formatNumber(houseStats.expenditure_transactions)} transactions` : "Vendor payments recorded" },
+                { label: "Fund Utilization", num: `${houseStats.fund_utilization_percentage}`, unit: "%", sub: "Share of allocation recommended by MPs" },
+                { label: "Expenditure Rate", num: `${houseStats.expenditure_rate_percentage}`, unit: "%", sub: "Vendor expenditure as a share of allocation" },
+                { label: "Total MPs", num: formatNumber(houseStats.total_mps), unit: "", sub: houseStats.data_snapshot?.reference ? "Official eSAKSHI roster" : " MPs in the system" },
+                { label: "Works Completed", num: formatNumber(houseStats.works_completed), unit: "", sub: houseStats.completed_work_value != null ? `Completed works · ₹${formatCrore(houseStats.completed_work_value)} Cr value` : "Completed works and their value" },
+                { label: "Works Pending", num: formatNumber(houseStats.works_pending), unit: "", sub: "Recommended works not yet in the completions ledger" },
+                { label: "Ongoing-Work Payments", num: `₹${formatCrore(houseStats.ongoing_work_payments)}`, unit: "Cr", sub: "Vendor payments linked to works not yet marked complete" },
+                { label: "Total Project Amount", num: houseStats.total_project_amount != null ? `₹${formatCrore(houseStats.total_project_amount)}` : "—", unit: houseStats.total_project_amount != null ? "Cr" : "", sub: "Sanctioned amounts across monitored works" },
               ].map((m) => (
-                <div key={m.label} className="rounded-lg border border-gray-100 bg-white/60 p-3 dark:border-gray-700/60 dark:bg-white/5">
+                <div key={m.label} className="flex min-w-0 flex-col rounded-lg border border-gray-100 bg-white/60 p-3 dark:border-gray-700/60 dark:bg-white/5">
                   <p className="text-[0.625rem] font-bold uppercase tracking-wider text-gray-400">{m.label}</p>
-                  <p className="mt-1 font-mono text-base font-bold text-gray-900 dark:text-white">{m.value}</p>
+                  {/* Value line: currency/percentage figures stay on one line
+                      (monospaced, tabular numerals); the scale unit renders as
+                      a small suffix instead of a wrapped fragment. */}
+                  <p className="value-nowrap mt-1 font-mono text-sm font-bold text-gray-900 xl:text-base dark:text-white">
+                    {m.num}
+                    {m.unit && (
+                      <span className="ml-1 font-sans text-[0.625rem] font-semibold text-gray-400">
+                        {m.unit}
+                      </span>
+                    )}
+                  </p>
                   <p className="mt-0.5 text-[0.625rem] leading-snug text-gray-400">{m.sub}</p>
                 </div>
               ))}
@@ -380,23 +392,32 @@ const Overview = memo(function Overview({
             </div>
             <button
               onClick={() => setEwExpanded((v) => !v)}
-              className="self-start rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold transition hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-800"
+              className="self-start whitespace-nowrap rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold transition hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-800"
             >
               {ewExpanded ? "Hide details ↑" : "Show details ↓"}
             </button>
           </div>
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+          {/* Balanced responsive band grid: 1 column on very narrow phones,
+              2 columns from 400px, 4 columns ≥md; every card follows the same
+              internal layout (label row → count → description) and stretches
+              to an identical height within its row. */}
+          <div className="grid grid-cols-1 min-[400px]:grid-cols-2 gap-3 md:grid-cols-4">
             {[
               { key: "normal", label: "Normal", icon: "🟢", count: earlyWarning.bands?.normal, color: "text-green-600 dark:text-green-400", ring: "border-green-200 dark:border-green-900/60", desc: "No active risk indicators" },
               { key: "watch", label: "Watch", icon: "🟡", count: earlyWarning.bands?.watch, color: "text-amber-600 dark:text-amber-400", ring: "border-amber-200 dark:border-amber-900/60", desc: "Leading indicators — spend with no progress, stalled starts" },
               { key: "early", label: "Early Warning", icon: "🟠", count: earlyWarning.bands?.early_warning, color: "text-orange-600 dark:text-orange-400", ring: "border-orange-200 dark:border-orange-900/60", desc: "Medium risk score from the AI engine" },
               { key: "critical", label: "Critical", icon: "🔴", count: earlyWarning.bands?.critical, color: "text-red-600 dark:text-red-400", ring: "border-red-200 dark:border-red-900/60", desc: "High risk score — review soon" },
             ].map((b) => (
-              <div key={b.key} className={`rounded-xl border-2 ${b.ring} p-3.5 transition-all duration-200 hover:shadow-md`}>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold uppercase tracking-wide">{b.icon} {b.label}</span>
-                </div>
-                <p className={`mt-2 font-mono text-2xl font-bold ${b.color}`}>{(b.count || 0).toLocaleString("en-IN")}</p>
+              <div key={b.key} className={`flex h-full min-w-0 flex-col rounded-xl border-2 ${b.ring} p-3.5 transition-all duration-200 hover:shadow-md`}>
+                {/* Header: dot + label on one aligned row; the label wraps at
+                    word boundaries only, never splitting the dot alignment. */}
+                <p className="flex min-w-0 items-center gap-1.5 text-xs font-bold uppercase tracking-wide">
+                  <span className="shrink-0 text-[0.625rem] leading-none">{b.icon}</span>
+                  <span className="min-w-0">{b.label}</span>
+                </p>
+                <p className={`value-nowrap mt-2 font-mono text-xl font-bold tabular-nums md:text-2xl ${b.color}`}>
+                  {(b.count || 0).toLocaleString("en-IN")}
+                </p>
                 <p className={`mt-1 text-[0.625rem] leading-snug ${mutedText}`}>{b.desc}</p>
               </div>
             ))}

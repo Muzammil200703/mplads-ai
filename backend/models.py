@@ -717,3 +717,136 @@ class ProjectChangeEvent(Base):
         Index("idx_change_type_field", "change_type", "field"),
         Index("idx_change_state_house", "state", "house"),
     )
+
+
+# ──────────────────────────────────────────────────────────────────────
+# Autonomous audit research agent (Feature 1)
+# ──────────────────────────────────────────────────────────────────────
+
+
+class AgentRun(Base):
+    """One autonomous research-agent run for one project's investigation.
+
+    Stores ONLY agent workflow state: the executed step log and which
+    connections the agent followed. All evidence values are re-read from
+    their source tables at render time, exactly like the existing dossier
+    engine, so stored rows can never drift from the data.
+    """
+
+    __tablename__ = "agent_runs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    project_id = Column(Integer, index=True, nullable=False)
+    investigation_id = Column(Integer, index=True, nullable=False)
+    # 'complete' | 'failed' — findings/approval state lives on AgentFinding
+    # and the existing investigation workflow; the agent itself never closes
+    # an investigation or finalises findings.
+    status = Column(String(20), nullable=False, default="complete")
+    steps_json = Column(Text)          # ordered step log [{key,title,detail,records}]
+    questions_json = Column(Text)      # investigation questions generated this run
+    fields_followed = Column(Text)     # connection keys the agent explored
+    run_by_user_id = Column(Integer, index=True)
+    run_by_name = Column(String(160))
+    created_at = Column(String, nullable=False)
+
+    __table_args__ = (
+        Index("idx_agent_run_project", "project_id", "investigation_id"),
+    )
+
+
+class AgentFinding(Base):
+    """A connection-level finding produced by an agent run (NOT the dossier
+    findings, which stay regenerated from live data).
+
+    Review workflow: 'New' → accepted / dismissed / flagged for further
+    verification, with optional investigation notes. Final conclusion about a
+    finding always stays with the auditor — accepting a finding never closes
+    an investigation and never modifies the existing risk scoring.
+    """
+
+    __tablename__ = "agent_findings"
+
+    id = Column(Integer, primary_key=True, index=True)
+    project_id = Column(Integer, index=True, nullable=False)
+    investigation_id = Column(Integer, index=True, nullable=False)
+    run_id = Column(Integer, index=True, nullable=False)
+    finding_key = Column(String(80), index=True, nullable=False)
+    title = Column(String(240), nullable=False)
+    explanation = Column(Text, nullable=False)
+    evidence_json = Column(Text)       # {records, source, dates, amounts}
+    confidence = Column(String(20), index=True)   # 'high' | 'medium' | 'low'
+    suggested_verification = Column(Text)
+    limitations_json = Column(Text)
+    # 'New' | 'Accepted' | 'Dismissed' | 'Flagged for Verification'
+    status = Column(String(40), index=True, nullable=False, default="New")
+    reviewer_note = Column(Text)
+    reviewer_user_id = Column(Integer, index=True)
+    reviewer_name = Column(String(160))
+    created_at = Column(String, nullable=False)
+    reviewed_at = Column(String)
+
+    __table_args__ = (
+        Index("idx_agent_finding_project", "project_id", "investigation_id"),
+        Index("idx_agent_finding_run", "run_id"),
+    )
+
+
+# ──────────────────────────────────────────────────────────────────────
+# Advanced intelligence layer (Phase 1/2) — additive tables only
+# ──────────────────────────────────────────────────────────────────────
+
+
+class ReconciliationReview(Base):
+    """Human review of one cross-dataset reconciliation case.
+
+    Stores ONLY the review decision. The underlying records are never
+    modified, merged or deleted — the case is recomputed from source data
+    every time and the decision is attached by case key.
+    """
+
+    __tablename__ = "reconciliation_reviews"
+
+    id = Column(Integer, primary_key=True, index=True)
+    case_key = Column(String(64), index=True, nullable=False)
+    # 'confirmed' | 'dismissed' | 'needs_review'
+    decision = Column(String(32), nullable=False)
+    note = Column(Text)
+    reviewer_user_id = Column(Integer, index=True)
+    reviewer_name = Column(String(160))
+    created_at = Column(String, nullable=False)
+    reviewed_at = Column(String)
+
+    __table_args__ = (Index("idx_recon_case", "case_key"),)
+
+
+class InvestigationMemory(Base):
+    """Persistent, structured investigation context.
+
+    `origin` separates what a human confirmed ('auditor') from what the
+    system suggested ('ai'). AI-origin rows are never presented as verified
+    facts. `status` supports soft removal so the audit trail is preserved.
+    """
+
+    __tablename__ = "investigation_memory"
+
+    id = Column(Integer, primary_key=True, index=True)
+    project_id = Column(Integer, index=True, nullable=False)
+    investigation_id = Column(Integer, index=True)
+    # 'finding' | 'note' | 'pattern' | 'question' | 'evidence'
+    kind = Column(String(32), nullable=False, default="note")
+    title = Column(String(240))
+    body = Column(Text)
+    source = Column(String(240))
+    origin = Column(String(16), nullable=False, default="auditor")  # auditor | ai
+    confirmed = Column(Boolean, nullable=False, default=True)
+    status = Column(String(16), nullable=False, default="active")   # active | removed
+    related_project_id = Column(Integer, index=True)
+    created_by_user_id = Column(Integer)
+    created_by_name = Column(String(160))
+    created_at = Column(String, nullable=False)
+    updated_at = Column(String)
+
+    __table_args__ = (
+        Index("idx_mem_project", "project_id", "status"),
+        Index("idx_mem_investigation", "investigation_id"),
+    )

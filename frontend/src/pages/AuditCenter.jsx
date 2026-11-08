@@ -89,7 +89,7 @@ export default function AuditCenter({ onOpenProject, fy }) {
       </header>
 
       {/* Metric cards */}
-      <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <section className="grid grid-cols-1 min-[400px]:grid-cols-2 gap-3 lg:grid-cols-4">
         <MetricCard icon="🔍" label="Projects Scanned" value={metrics.scanned == null ? "…" : metrics.scanned.toLocaleString("en-IN")} tone="blue" />
         <MetricCard icon="🚨" label="High-Risk Flagged" value={items ? metrics.critical : "…"} tone="red" hint="Critical band (80-100) in current view" />
         <MetricCard icon="🖼️" label="Duplicate Photos Caught" value={items ? metrics.photoFraud : "…"} tone="purple" hint="Projects with near-duplicate submissions" />
@@ -210,7 +210,7 @@ function MetricCard({ icon, label, value, tone, hint }) {
         <span className={`flex h-8 w-8 items-center justify-center rounded-lg text-base ${TONES[tone]}`} aria-hidden>{icon}</span>
         <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">{label}</span>
       </div>
-      <p className="mt-2 text-2xl font-bold text-gray-900 dark:text-white">{value}</p>
+      <p className="value-nowrap mt-2 text-2xl font-bold text-gray-900 dark:text-white">{value}</p>
       {hint && <p className="mt-0.5 text-[0.6875rem] text-gray-400">{hint}</p>}
     </div>
   )

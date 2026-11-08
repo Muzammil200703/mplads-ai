@@ -807,6 +807,129 @@ export async function getActiveInvestigations() {
   return request("/investigations/active")
 }
 
+// ═══════════════ AUTONOMOUS AUDIT RESEARCH AGENT ═══════════════
+// Runs inside the existing investigation workspace. Read-only research over
+// the platform's own records; the agent stores only its run/finding/review
+// state. Analyst+ is enforced by the server on every call.
+
+export async function getAgentRun(projectId) {
+  return request(`/agent/projects/${projectId}/latest`)
+}
+
+export async function runResearchAgent(projectId) {
+  return request(`/agent/projects/${projectId}/run`, { method: "POST" })
+}
+
+export async function reviewAgentFinding(findingId, payload) {
+  return request(`/agent/findings/${findingId}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function getAgentReport(projectId) {
+  return request(`/agent/projects/${projectId}/report`)
+}
+
+// ═══════════════ ADVANCED INTELLIGENCE (/intel) ═══════════════
+// Analytical layer over existing records. Reads never mutate project data;
+// the only writes are human review decisions on reconciliation cases and
+// investigation memory. Analyst+ enforced server-side.
+
+function intelQuery(params = {}) {
+  const qs = new URLSearchParams()
+  Object.entries(params).forEach(([k, v]) => {
+    if (v !== undefined && v !== null && v !== "" && v !== "All") qs.set(k, v)
+  })
+  const q = qs.toString()
+  return q ? `?${q}` : ""
+}
+
+export async function getRootCause(projectId) {
+  return request(`/intel/root-cause/${projectId}`)
+}
+
+export async function getEmergingRisk(params) {
+  return request(`/intel/emerging-risk${intelQuery(params)}`)
+}
+
+export async function getAnomalyEvolution(params) {
+  return request(`/intel/evolution${intelQuery(params)}`)
+}
+
+export async function getBehaviourClusters(params) {
+  return request(`/intel/clusters${intelQuery(params)}`)
+}
+
+export async function getClusterProjects(clusterId, limit = 50) {
+  return request(`/intel/clusters/${clusterId}/projects?limit=${limit}`)
+}
+
+export async function getReconciliation(params) {
+  return request(`/intel/reconciliation${intelQuery(params)}`)
+}
+
+export async function reviewReconciliation(caseKey, payload) {
+  return request(`/intel/reconciliation/review/${encodeURIComponent(caseKey)}`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function runMultiAgent(projectId) {
+  return request(`/intel/multiagent/${projectId}/run`, { method: "POST" })
+}
+
+export async function getMultiAgent(projectId) {
+  return request(`/intel/multiagent/${projectId}/latest`)
+}
+
+export async function getInvestigationMemory(projectId) {
+  return request(`/intel/memory/${projectId}`)
+}
+
+export async function addInvestigationMemory(projectId, payload) {
+  return request(`/intel/memory/${projectId}`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function updateInvestigationMemory(entryId, payload) {
+  return request(`/intel/memory/entry/${entryId}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function getGeoCoverage(state) {
+  return request(`/intel/geo/coverage${intelQuery({ state })}`)
+}
+
+export async function getGeoAreas(params) {
+  return request(`/intel/geo/districts${intelQuery(params)}`)
+}
+
+export async function getGeoSpatial(params) {
+  return request(`/intel/geo/spatial${intelQuery(params)}`)
+}
+
+export async function getGeoProgress(params) {
+  return request(`/intel/geo/progress${intelQuery(params)}`)
+}
+
+export async function getGeoOutliers(params) {
+  return request(`/intel/geo/outliers${intelQuery(params)}`)
+}
+
+// ═══════════════ PROJECT OUTCOME PREDICTION ═══════════════
+// Same validated payload the assistant embeds, exposed directly for the
+// project surfaces. Analyst+ enforced server-side; never writes data.
+
+export async function predictProjectOutcome(projectId, fresh = false) {
+  return request(`/predict/projects/${projectId}${fresh ? "?fresh=1" : ""}`)
+}
+
 // Data freshness / sync
 export async function getDataFreshness() {
   const cached = cacheGet("data_freshness", 60000) // 1 min cache

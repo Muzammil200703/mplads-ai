@@ -3,6 +3,7 @@ import { useAuth } from "../context/AuthContext"
 import {
   askAssistant, getAssistantSuggestions, getAssistantContextHelp, getAssistantQueryResults,
 } from "../services/api"
+import OutcomePredictionCard from "./OutcomePredictionCard"
 
 /* ═══════════════════════════════════════════════════════════════════
    MPLADS AI ASSISTANT — universal role-aware widget (floating panel)
@@ -599,6 +600,7 @@ export default function AssistantWidget({
         },
         query: res.query || null,
         chart: res.chart || null,
+        prediction: res.prediction || null,
         ts: Date.now(),
       }])
       // Auto-navigation should reveal the page, but an analytical answer must
@@ -837,6 +839,7 @@ export default function AssistantWidget({
                     <AnswerBody text={m.text} />
                     <StructuredBlocks data={m.structured} />
                     <QueryResult query={m.query} chart={m.chart} />
+                    <OutcomePredictionCard data={m.prediction} />
                     {m.retry && !busy && (
                       <button
                         onClick={() => send(m.retry)}

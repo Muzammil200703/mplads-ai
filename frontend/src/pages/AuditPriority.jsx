@@ -211,7 +211,7 @@ const AuditPriority = memo(function AuditPriority({ fy, drillDownParams, onClear
         </div>
 
         {/* ═══ TIER SUMMARY CARDS ═══ */}
-        <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4">
+        <div className="grid grid-cols-1 min-[400px]:grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4">
           {["P1", "P2", "P3", "P4"].map((code) => {
             const tier = summary.tiers?.[code] || { count: 0, sanctioned_under_review: 0 }
             const style = tierStyle(code)
@@ -219,7 +219,7 @@ const AuditPriority = memo(function AuditPriority({ fy, drillDownParams, onClear
               <button
                 key={code}
                 onClick={() => { setFilterTier(filterTier === code ? "" : code); setCurrentPage(1) }}
-                className={`rounded-xl border bg-white p-4 text-left shadow-sm transition dark:bg-[#0d090b] ${
+                className={`min-w-0 rounded-xl border bg-white p-4 text-left shadow-sm transition dark:bg-[#0d090b] ${
                   filterTier === code ? "border-[#c8102e] ring-1 ring-[#c8102e]/20 dark:border-blue-500" : "border-gray-200 hover:border-gray-300 dark:border-gray-700"
                 }`}
               >
@@ -227,11 +227,11 @@ const AuditPriority = memo(function AuditPriority({ fy, drillDownParams, onClear
                   <span className={`rounded px-1.5 py-0.5 text-[0.625rem] font-bold ${style.chip}`}>{code}</span>
                   <span className="text-[0.625rem] font-bold uppercase tracking-wider text-gray-400">{summary.tier_labels?.[code] || ""}</span>
                 </div>
-                <p className={`mt-1.5 font-mono text-3xl font-bold ${style.text}`}>{(tier.count || 0).toLocaleString("en-IN")}</p>
+                <p className={`value-nowrap mt-1.5 font-mono text-3xl font-bold tabular-nums ${style.text}`}>{(tier.count || 0).toLocaleString("en-IN")}</p>
                 <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
                   <div className={`bar-fill h-full rounded-full ${style.bar}`} style={{ width: `${summary.total_flagged ? Math.max(2, (tier.count / summary.total_flagged) * 100) : 0}%` }} />
                 </div>
-                <p className="mt-1 text-[0.5625rem] text-gray-400">Sanctioned: <span className="font-mono">{money(tier.sanctioned_under_review)}</span></p>
+                <p className="mt-1 whitespace-normal text-[0.5625rem] text-gray-400">Sanctioned: <span className="font-mono">{money(tier.sanctioned_under_review)}</span></p>
               </button>
             )
           })}

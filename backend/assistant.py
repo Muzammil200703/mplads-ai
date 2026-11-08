@@ -39,6 +39,7 @@ import assistant_nlu
 import assistant_analytics
 import assistant_review
 import natural_language_query_service
+import prediction_assistant
 from assistant_query import router as assistant_query_router
 
 router = APIRouter(prefix="/assistant", tags=["AI Assistant"])
@@ -499,6 +500,8 @@ class AskResponse(BaseModel):
     # ── Natural-language query payload (None for non-query answers) ──
     query: Optional[Dict[str, Any]] = None
     chart: Optional[Dict[str, Any]] = None
+    # ── Project Outcome Prediction payload (Feature 2; None otherwise) ──
+    prediction: Optional[Dict[str, Any]] = None
 
 
 # ── Conversational session memory ────────────────────────────────────
@@ -2981,6 +2984,13 @@ def _answer_body(question: str, page: Optional[str], user, db: Session,
             question, ql, ctx_project_id, user, db, session_ctx=_session_get_ctx(session_id)), "data"),
         (lambda: investigation_intents.audit_brief_intent(
             question, ql, ctx_project_id, user, db, session_ctx=_session_get_ctx(session_id)), "data"),
+        # Outcome prediction (Feature 2): "predicted completion outlook",
+        # "will this complete", "probability of delay" — before the generic
+        # high-risk/lookup handlers so the validated prediction service owns
+        # those phrasings. Falls through when the question is about risk
+        # methodology or comparisons instead of an outcome.
+        (lambda: prediction_assistant.prediction_intent(
+            question, ql, ctx_project_id, user, db, session_ctx=_session_get_ctx(session_id)), "data"),
         (lambda: _intent_high_risk(ql, user, db, session_id=session_id), "data"),
         (lambda: investigation_intents.peer_comparison_intent(
             question, ql, ctx_project_id, user, db, session_ctx=_session_get_ctx(session_id)), "data"),
@@ -3183,6 +3193,28 @@ def ask(
     else:
         query = None
     chart = query.get("chart") if query else None
+    # Outcome-prediction payload: bounded and type-checked (service already
+    # caps arrays; this guards the JSON contract so old clients stay safe).
+    prediction = None
+    if isinstance(meta.get("prediction"), dict):
+        raw = meta["prediction"]
+        try:
+            prediction = {
+                "project_id": int(raw.get("project_id") or 0),
+                "model_version": str(raw.get("model_version") or "")[:40],
+                "generated_at": str(raw.get("generated_at") or "")[:20],
+                "current": raw.get("current") if isinstance(raw.get("current"), dict) else {},
+                "outcome": raw.get("outcome") if isinstance(raw.get("outcome"), dict) else {},
+                "drivers": raw.get("drivers") if isinstance(raw.get("drivers"), list) else [],
+                "history": raw.get("history") if isinstance(raw.get("history"), list) else [],
+                "forecast": raw.get("forecast") if isinstance(raw.get("forecast"), list) else [],
+                "cohort": raw.get("cohort") if isinstance(raw.get("cohort"), dict) else {},
+                "validation": raw.get("validation") if isinstance(raw.get("validation"), dict) else {},
+                "limitations": [str(x)[:300] for x in (raw.get("limitations") or [])],
+                "disclaimers": [str(x)[:300] for x in (raw.get("disclaimers") or [])],
+            }
+        except Exception:
+            prediction = None
     # Single choke point: every action leaving the API is checked against the
     # allowlist, whichever intent produced it.
     return AskResponse(
@@ -3191,6 +3223,7 @@ def ask(
         findings=[f for f in findings if isinstance(f, dict)],
         recommendations=[r for r in recommendations if isinstance(r, dict)],
         limitations=limitations, table=table, query=query, chart=chart,
+        prediction=prediction,
     )
 
 
@@ -3200,6 +3233,16 @@ def suggestions(page: Optional[str] = None):
     chips. Page chips come first (they match the user's current context);
     the client keeps the list compact."""
     if not page or page not in PAGE_SUGGESTIONS:
+        blended = None
+        if page and page.startswith("project:"):
+            # Project drawer suggestions — outcome-prediction prompts come
+            # before the role defaults so the new capability is discoverable.
+            blended = [
+                "What is the predicted completion outlook for this project?",
+                "Will this project complete on time?",
+                "Why is this risky?",
+            ] + SUGGESTIONS["general"][:2]
+            return {"general": blended}
         return SUGGESTIONS
     # Dedupe while preserving order — page chips often overlap role defaults.
     blended = list(dict.fromkeys(PAGE_SUGGESTIONS[page] + SUGGESTIONS["general"][:2]))

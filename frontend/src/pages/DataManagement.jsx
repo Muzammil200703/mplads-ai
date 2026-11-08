@@ -93,7 +93,7 @@ function Stat({ label, value, tone = "" }) {
   return (
     <div className="rounded-lg border border-[#e8dadc] px-3 py-2 dark:border-[#351923]">
       <p className="text-[0.6875rem] font-semibold uppercase tracking-wide text-[#71666a] dark:text-[#b9aeb2]">{label}</p>
-      <p className={`mt-0.5 text-lg font-bold ${tone || "text-[#292326] dark:text-[#f5eff1]"}`}>{value}</p>
+      <p className={`value-nowrap mt-0.5 text-lg font-bold ${tone || "text-[#292326] dark:text-[#f5eff1]"}`}>{value}</p>
     </div>
   )
 }
@@ -185,7 +185,7 @@ function BatchCard({ batch, onChange, onBusy }) {
         </p>
       )}
 
-      <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-6">
+      <div className="mt-3 grid grid-cols-2 gap-2 min-[400px]:grid-cols-4 lg:grid-cols-6">
         <Stat label="Rows" value={formatNumber(batch.total_rows)} />
         <Stat label="Valid" value={formatNumber(batch.valid_rows)} />
         <Stat label="New" value={formatNumber(batch.new_rows)} tone="text-green-700 dark:text-green-400" />

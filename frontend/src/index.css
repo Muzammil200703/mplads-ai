@@ -433,9 +433,27 @@ textarea {
   min-width: 0;
 }
 
-button,
-a {
-  overflow-wrap: anywhere;
+/* Buttons and links no longer opt into character-level breaking
+   (overflow-wrap: anywhere) — that rule made uppercase action labels split
+   mid-word ("SEARCH" → "SEAR CH") and segmented controls ("All") break
+   apart. Labels now wrap only at word boundaries or truncate cleanly;
+   compact action buttons additionally force a single line below. */
+
+/* Long content never forces horizontal page scroll through replaced media;
+   charts, images and iframes always shrink inside their card. */
+img,
+svg,
+video,
+canvas,
+iframe {
+  max-width: 100%;
+}
+
+/* Headings wrap cleanly at word boundaries and never spill past their card
+   (prevents the "Executive Overview"-style title overflow on tiny screens). */
+h1, h2, h3, h4, h5 {
+  overflow-wrap: break-word;
+  min-width: 0;
 }
 
 main,
@@ -445,17 +463,64 @@ main section,
   min-width: 0;
 }
 
+/* ── Global responsive layout standards ────────────────────────────────
+   Shared conventions so every page follows the same mobile rhythm (values
+   map onto the Tailwind scale the components already use):
+     • Page gutter ............. p-4 (phone) / p-6 (≥sm)
+     • Section spacing ......... mb-6 / mb-7
+     • Card internal padding ... p-4 sm:p-5
+     • Compact metric grid gap . gap-3 (2-col) → gap-4 (≥md)
+     • Number cells ............ mono + tabular-nums + white-space: nowrap
+     • Control labels .......... wrap at word boundaries only, never chars
+   Currency, ids and metric values additionally opt in below so a full value
+   always renders on one line and overflow, not mid-character breaks. */
+.tabular-nums,
+.num,
+.font-mono {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Metric/dashboard value lines: keep the rendered number whole; long tokens
+   may clip inside minWidth-0 cards rather than reflowing into fragments. */
+.value-nowrap {
+  white-space: nowrap;
+  min-width: 0;
+}
+
+/* One-line compact controls (Search/Reset actions, sort pills, pagination,
+   segmented house toggle, show-details toggles). Long-content buttons such
+   as FAQ accordion rows stay excluded — they carry their own wrapping. */
+.ctrl-nowrap {
+  white-space: nowrap;
+}
+
 /* Data tables remain usable at larger reading sizes without widening the
    page or causing neighboring cards to overlap. */
 table {
   max-width: 100%;
 }
 
-/* Responsive utilities */
+/* Responsive utilities
+   Root type scale: desktop keeps the enlarged 125% reading size; tablets
+   drop slightly and phones drop further so cards, chips and currency values
+   get the horizontal room they need without ever dropping below comfortably
+   readable body sizes (≥17px effective). */
 html {
   font-size: 125%;
   -webkit-text-size-adjust: 100%;
   -webkit-tap-highlight-color: transparent;
+}
+
+@media (max-width: 1023px) {
+  html {
+    font-size: 112.5%; /* 18px */
+  }
+}
+
+@media (max-width: 639px) {
+  html {
+    font-size: 106.25%; /* 17px */
+  }
 }
 
 /* Application-shell scroll ownership: the document itself never scrolls —

@@ -3,6 +3,7 @@ import { getAnomalies, getAnomaliesSummary, getStates, getConstituencies, getPro
 import { TableRowsSkeleton, CardsSkeleton, MobileCardsSkeleton } from "../components/Skeletons"
 import { formatMoney, formatNumber } from "../utils/format"
 import RecTimelineBlock from "../components/RecTimelineBlock"
+import RiskIntelPanel from "../components/RiskIntelPanel"
 
 /* ──────────── Expenditure-span display helpers (recorded activity only —
    NOT official start/delay dates; see tooltip below) ──────────── */
@@ -412,7 +413,7 @@ const RiskCenter = memo(function RiskCenter({ drillDownParams, onClearDrillDown,
         </div>
 
         {/* KPI CARDS */}
-        <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4">
+        <div className="grid grid-cols-1 min-[400px]:grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4">
           {[
             { label: "Total Checked", value: summary.total_projects_checked, icon: "🔍", text: "text-blue-600 dark:text-blue-400" },
             { label: "High Risk", value: summary.high_risk, icon: "🔴", text: "text-red-600 dark:text-red-400" },
@@ -424,10 +425,15 @@ const RiskCenter = memo(function RiskCenter({ drillDownParams, onClearDrillDown,
                 <p className="text-[0.6875rem] font-bold uppercase tracking-wider text-gray-400">{card.label}</p>
                 <span className="text-lg">{card.icon}</span>
               </div>
-              <p className={`mt-1 font-mono text-3xl font-bold ${card.text}`}>{card.value.toLocaleString("en-IN")}</p>
+              <p className={`value-nowrap mt-1 font-mono text-3xl font-bold tabular-nums ${card.text}`}>{card.value.toLocaleString("en-IN")}</p>
             </div>
           ))}
         </div>
+
+        {/* RISK INTELLIGENCE LAYER — emerging risk, pattern evolution,
+            behavioural clustering. Separate analytical layer; it does not
+            alter the stored risk scores. */}
+        <RiskIntelPanel onSelectProject={(id) => handleOpenDetail({ project_id: id })} />
 
         {/* CHARTS ROW 1: Donut + Anomaly Types */}
         {analytics && (

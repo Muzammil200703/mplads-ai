@@ -309,7 +309,7 @@ const Projects = memo(function Projects({ projectSearchQuery, onClearProjectSear
                 setProjectSearchApplied(false)
                 setCurrentPage(1)
               }}
-              className="rounded-lg border border-blue-300 bg-white px-3 py-1.5 text-xs font-bold text-blue-700 transition hover:bg-blue-100 dark:border-blue-700 dark:bg-blue-900/60 dark:text-blue-200 dark:hover:bg-blue-800"
+              className="whitespace-nowrap rounded-lg border border-blue-300 bg-white px-3 py-1.5 text-xs font-bold text-blue-700 transition hover:bg-blue-100 dark:border-blue-700 dark:bg-blue-900/60 dark:text-blue-200 dark:hover:bg-blue-800"
             >
               Clear Search
             </button>
@@ -420,9 +420,9 @@ const Projects = memo(function Projects({ projectSearchQuery, onClearProjectSear
             </div>
           </div>
 
-          {/* SORT ROW */}
+          {/* SORT ROW — chips flow onto clean rows and never split a label */}
           <div className="mt-4 flex flex-wrap items-center gap-1.5 sm:gap-3 border-t border-gray-100 pt-3 dark:border-gray-700/60">
-            <span className="text-[0.625rem] font-bold uppercase tracking-wider text-gray-400">Sort:</span>
+            <span className="whitespace-nowrap text-[0.625rem] font-bold uppercase tracking-wider text-gray-400">Sort:</span>
             {[
               { value: "", label: "Default" },
               { value: "id", label: "Project ID" },
@@ -446,7 +446,7 @@ const Projects = memo(function Projects({ projectSearchQuery, onClearProjectSear
                   }
                   setCurrentPage(1)
                 }}
-                className={`rounded-lg px-3 py-1.5 text-[0.6875rem] font-bold transition ${
+                className={`ctrl-nowrap rounded-lg px-3 py-1.5 text-[0.6875rem] font-bold transition ${
                   sortBy === opt.value
                     ? "bg-[#c8102e] text-white dark:bg-blue-600"
                     : "border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:bg-[#0d090b] dark:text-gray-300"
@@ -469,23 +469,26 @@ const Projects = memo(function Projects({ projectSearchQuery, onClearProjectSear
             )}
           </div>
 
-          <div className="mt-3 flex items-center justify-between">
-            <div className="flex gap-2">
+          {/* ACTION ROW — buttons keep single-line labels; the pagination
+              summary moves to its own row on phones instead of squeezing
+              against the buttons. */}
+          <div className="mt-3 flex flex-col items-start gap-2.5 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-wrap gap-2">
               <button
                 type="submit"
-                className="rounded-lg bg-[#c8102e] px-4 sm:px-5 py-2 text-xs font-bold uppercase tracking-wider text-white shadow-2xs transition hover:bg-[#120b0e] dark:bg-blue-600 dark:hover:bg-blue-700"
+                className="whitespace-nowrap rounded-lg bg-[#c8102e] px-4 sm:px-5 py-2 text-xs font-bold uppercase tracking-wider text-white shadow-2xs transition hover:bg-[#120b0e] dark:bg-blue-600 dark:hover:bg-blue-700"
               >
                 Search
               </button>
               <button
                 type="button"
                 onClick={handleResetFilters}
-                className="rounded-lg border border-gray-300 bg-white px-3 sm:px-4 py-2 text-xs font-bold uppercase tracking-wider text-gray-700 shadow-2xs transition hover:bg-gray-50 dark:border-gray-600 dark:bg-[#000000] dark:text-gray-200 dark:hover:bg-gray-800"
+                className="whitespace-nowrap rounded-lg border border-gray-300 bg-white px-3 sm:px-4 py-2 text-xs font-bold uppercase tracking-wider text-gray-700 shadow-2xs transition hover:bg-gray-50 dark:border-gray-600 dark:bg-[#000000] dark:text-gray-200 dark:hover:bg-gray-800"
               >
                 Reset
               </button>
             </div>
-            <span className="text-xs text-gray-500 dark:text-gray-400">
+            <span className="whitespace-nowrap text-xs text-gray-500 dark:text-gray-400">
               Page {currentPage} of {totalPages}
             </span>
           </div>
@@ -630,7 +633,7 @@ const Projects = memo(function Projects({ projectSearchQuery, onClearProjectSear
                                   ⚠
                                 </span>
                               )}
-                              <span className="rounded-md border border-gray-200 bg-gray-100 px-1.5 py-0.5 text-[0.625rem] font-medium dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200">
+                              <span className="whitespace-nowrap rounded-md border border-gray-200 bg-gray-100 px-1.5 py-0.5 text-[0.625rem] font-medium dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200">
                                 {proj.status || "Ongoing"}
                               </span>
                             </div>
@@ -642,14 +645,25 @@ const Projects = memo(function Projects({ projectSearchQuery, onClearProjectSear
                             </p>
                           </div>
                         </div>
-                        <div className="mt-2.5 grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
-                          <div className="flex items-center justify-between rounded-md bg-gray-50 dark:bg-gray-700/40 px-2.5 py-1.5">
-                            <span className="text-gray-400 dark:text-gray-500">Sanctioned</span>
-                            <span className="font-mono font-bold text-gray-800 dark:text-gray-200">{formatMoney(proj.sanctioned_amount)}</span>
+                        {/* Money block: label sits above its value in every
+                            cell, values are monospaced tabular numerals on one
+                            line — no overlap, no character-level breaks. */}
+                        <div className="mt-2.5 grid grid-cols-2 gap-2 min-[400px]:gap-3">
+                          <div className="min-w-0 rounded-md bg-gray-50 px-2.5 py-2 dark:bg-gray-700/40">
+                            <p className="text-[0.625rem] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">
+                              Sanctioned
+                            </p>
+                            <p className="value-nowrap mt-0.5 font-mono text-xs font-bold tabular-nums text-gray-800 dark:text-gray-200">
+                              {formatMoney(proj.sanctioned_amount)}
+                            </p>
                           </div>
-                          <div className="flex justify-between">
-                            <span className="text-gray-500 dark:text-gray-400">Spent</span>
-                            <span className="font-mono font-bold text-gray-800 dark:text-gray-200">{formatMoney(proj.expenditure)}</span>
+                          <div className="min-w-0 rounded-md bg-gray-50 px-2.5 py-2 dark:bg-gray-700/40">
+                            <p className="text-[0.625rem] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">
+                              Expenditure
+                            </p>
+                            <p className="value-nowrap mt-0.5 font-mono text-xs font-bold tabular-nums text-gray-800 dark:text-gray-200">
+                              {formatMoney(proj.expenditure)}
+                            </p>
                           </div>
                         </div>
                       </div>
@@ -666,31 +680,31 @@ const Projects = memo(function Projects({ projectSearchQuery, onClearProjectSear
                 )}
               </div>
 
-              <div className="flex flex-wrap items-center justify-between gap-3 border-t border-gray-200 bg-gray-50/80 px-4 py-3 sm:px-5 sm:py-3.5 dark:border-gray-700 dark:bg-[#120b0e]">
-                <div className="flex items-center gap-3">
-                  <span className="text-xs text-gray-500 dark:text-gray-400">
+              {/* Pagination footer: record summary on its own row on phones,
+                  controls row beneath — no overlap with the Search/Reset row. */}
+              <div className="flex flex-col items-start gap-2 border-t border-gray-200 bg-gray-50/80 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5 sm:py-3.5 dark:border-gray-700 dark:bg-[#120b0e]">
+                <span className="min-w-0 text-xs text-gray-500 dark:text-gray-400">
                   Showing <strong>{totalCount === 0 ? 0 : (currentPage - 1) * rowsPerPage + 1}</strong> to{" "}
                   <strong>{Math.min(currentPage * rowsPerPage, totalCount)}</strong> of <strong>{totalCount.toLocaleString("en-IN")}</strong> records
-                  </span>
-                </div>
+                </span>
 
-                <div className="flex items-center gap-2">
+                <div className="flex w-full items-center justify-between gap-2 sm:w-auto sm:justify-end">
                   <button
                     disabled={currentPage === 1}
                     onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                    className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 shadow-2xs transition hover:bg-gray-50 disabled:opacity-40 dark:border-gray-600 dark:bg-[#0d090b] dark:text-gray-200 dark:hover:bg-gray-700"
+                    className="whitespace-nowrap rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 shadow-2xs transition hover:bg-gray-50 disabled:opacity-40 dark:border-gray-600 dark:bg-[#0d090b] dark:text-gray-200 dark:hover:bg-gray-700"
                   >
                     ← Previous
                   </button>
 
-                  <span className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 font-mono text-xs font-bold text-gray-700 dark:border-gray-600 dark:bg-[#0d090b] dark:text-gray-200">
+                  <span className="shrink-0 rounded-lg border border-gray-200 bg-white px-3 py-1.5 font-mono text-xs font-bold text-gray-700 dark:border-gray-600 dark:bg-[#0d090b] dark:text-gray-200">
                     {currentPage} / {totalPages}
                   </span>
 
                   <button
                     disabled={currentPage >= totalPages}
                     onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                    className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 shadow-2xs transition hover:bg-gray-50 disabled:opacity-40 dark:border-gray-600 dark:bg-[#0d090b] dark:text-gray-200 dark:hover:bg-gray-700"
+                    className="whitespace-nowrap rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 shadow-2xs transition hover:bg-gray-50 disabled:opacity-40 dark:border-gray-600 dark:bg-[#0d090b] dark:text-gray-200 dark:hover:bg-gray-700"
                   >
                     Next →
                   </button>
