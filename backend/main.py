@@ -384,6 +384,17 @@ async def lifespan(app: FastAPI):
         ))
         conn.execute(text("CREATE INDEX IF NOT EXISTS idx_exp_house_state ON expenditures(house, state);"))
         conn.execute(text("CREATE INDEX IF NOT EXISTS idx_proj_house_fy ON projects(house, fy);"))
+        # Covering indexes for the money aggregates recomputed on every
+        # dashboard cache miss (SUM over 108k payments / 44k completions /
+        # 84k works): scanning the narrow index avoids reading table pages.
+        conn.execute(text("CREATE INDEX IF NOT EXISTS idx_exp_house_amount ON expenditures(house, expenditure_amount);"))
+        conn.execute(text("CREATE INDEX IF NOT EXISTS idx_comp_house_amount ON completed_works(house, final_amount);"))
+        conn.execute(text("CREATE INDEX IF NOT EXISTS idx_proj_house_sanctioned ON projects(house, sanctioned_amount);"))
+        # Vendor-network scan indexes: the grouped pass groups by
+        # lower(trim(vendor)) and the membership pass filters on
+        # lower(trim(ida)) — expression indexes keep both off table pages.
+        conn.execute(text("CREATE INDEX IF NOT EXISTS idx_exp_vendor_lower_amount ON expenditures(lower(trim(vendor)), expenditure_amount);"))
+        conn.execute(text("CREATE INDEX IF NOT EXISTS idx_exp_ida_lower ON expenditures(lower(trim(ida)));"))
         # MP summary indexes for name-based search
         conn.execute(text("CREATE INDEX IF NOT EXISTS idx_mp_name ON mp_summaries(mp_name);"))
         conn.execute(text("CREATE INDEX IF NOT EXISTS idx_mp_const_state ON mp_summaries(constituency, state);"))
@@ -396,6 +407,9 @@ async def lifespan(app: FastAPI):
         conn.execute(text("CREATE INDEX IF NOT EXISTS idx_proj_state_fy ON projects(state, fy);"))
         conn.execute(text("CREATE INDEX IF NOT EXISTS idx_proj_state_cons ON projects(state, constituency);"))
         conn.execute(text("CREATE INDEX IF NOT EXISTS idx_risk_project_level ON risk_scores(project_id, risk_level);"))
+        # Refresh planner statistics after the index set is (re)built so the
+        # aggregate queries pick the covering indexes instead of table scans.
+        conn.execute(text("PRAGMA optimize;"))
         conn.commit()
 
     # project_rec_info index for rec-date sorting (table + indexes are created

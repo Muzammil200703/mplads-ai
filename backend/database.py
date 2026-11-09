@@ -78,6 +78,11 @@ def set_sqlite_pragma(dbapi_connection, connection_record):
         # page cache, so this does not slow the grouped dashboard queries.
         cursor.execute("PRAGMA cache_size=-6000")
         cursor.execute("PRAGMA busy_timeout=60000")
+        # Memory-mapped I/O: aggregate scans (84k works, 108k payments) are
+        # served through a mapping of the database file instead of read()
+        # syscalls. 256MB is a ceiling, not a reservation — RSS only grows
+        # with the pages actually touched (the OS page cache backs it).
+        cursor.execute("PRAGMA mmap_size=268435456")
         # SQLite groups aggregate intermediate rows in temp storage; MEMORY
         # would grow them in RAM on the big vendor GROUP BY passes.
         cursor.execute("PRAGMA temp_store=FILE")

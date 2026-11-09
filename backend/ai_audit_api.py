@@ -684,23 +684,28 @@ def vendor_network(
     # (ida, vendor) pairs only for the selected candidates' IDAs. Members
     # are then filtered to the candidate's family in Python — a tiny set.
     wanted_idas = {c["ida"].lower() for c in top_candidates}
-    pairs = (
-        db.query(
-            _func.lower(_func.trim(models.Expenditure.ida)),
-            _func.lower(_func.trim(models.Expenditure.vendor)),
-        )
-        .filter(
-            models.Expenditure.ida.isnot(None),
-            models.Expenditure.vendor.isnot(None),
-            models.Expenditure.vendor != "",
-        )
-        .yield_per(300)
-    )
     ida_members: Dict[str, set] = {}
-    for ida_key, vkey in pairs:
-        if ida_key in wanted_idas:
+    if wanted_idas:
+        # Filter in SQL instead of streaming every payment row and discarding
+        # it in Python. When cluster discovery yields no candidates (the
+        # common case on this dataset) the pass is skipped entirely; when it
+        # does, SQLite can serve the predicate from idx_exp_ida_lower.
+        pairs = (
+            db.query(
+                _func.lower(_func.trim(models.Expenditure.ida)),
+                _func.lower(_func.trim(models.Expenditure.vendor)),
+            )
+            .filter(
+                models.Expenditure.ida.isnot(None),
+                models.Expenditure.vendor.isnot(None),
+                models.Expenditure.vendor != "",
+                _func.lower(_func.trim(models.Expenditure.ida)).in_(wanted_idas),
+            )
+            .yield_per(300)
+        )
+        for ida_key, vkey in pairs:
             ida_members.setdefault(ida_key, set()).add(vkey)
-    del pairs
+        del pairs
 
     clusters = []
     for idx, cand in enumerate(top_candidates):
