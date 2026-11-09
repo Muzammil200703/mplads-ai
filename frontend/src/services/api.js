@@ -572,7 +572,7 @@ export async function getVendorComparison(keys = [], params = {}) {
   // vendor set is compared multiple times (e.g., modal open/close cycles).
   // Cache TTL: 2 minutes — comparison data is stable within a analysis session.
   const cacheKey = `vendor_comparison_${keys.sort().join(",")}_${JSON.stringify(params)}`
-  cached = cacheGet(cacheKey, 120000)
+  const cached = cacheGet(cacheKey, 120000)
   if (cached !== undefined) return cached
   const query = buildQuery({ keys: keys.join(","), ...params })
   const promise = request(`/vendor-intelligence/compare${query}`)

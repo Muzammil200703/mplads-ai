@@ -1,7 +1,6 @@
 import { lazy, Suspense, useEffect, useState, memo } from "react"
 import {
   getDashboardOverview,
-  getAINarrativeInsights,
   getDashboardStates,
   getAnomaliesSummary,
   getEarlyWarning,
@@ -27,9 +26,11 @@ const Overview = memo(function Overview({
   onHouseChange,
 }) {
   const [overview, setOverview] = useState(null)
-  const [narratives, setNarratives] = useState([])
   const [stateData, setStateData] = useState([])
-  const [anomaliesSummary, setAnomaliesSummary] = useState(null)
+  // The anomaly summary request is still issued on load (the metrics remain
+  // part of the page's data set); its value is no longer rendered here since
+  // the High-Risk Anomalies KPI card was removed from this page.
+  const [, setAnomaliesSummary] = useState(null)
   const [earlyWarning, setEarlyWarning] = useState(null)
   const [ewExpanded, setEwExpanded] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -75,10 +76,9 @@ const Overview = memo(function Overview({
 
         const fyParams = fy ? { fy } : {}
         const houseParam = house !== "All" ? { house } : {}
-        const [healthRes, ovRes, narrRes, statesRes, anomRes, ewRes] = await Promise.allSettled([
+        const [healthRes, ovRes, statesRes, anomRes, ewRes] = await Promise.allSettled([
           healthCheck(),
           getDashboardOverview({ ...fyParams, ...houseParam }),
-          getAINarrativeInsights({ ...fyParams, ...houseParam }),
           getDashboardStates({ ...fyParams, ...houseParam }),
           getAnomaliesSummary({ ...fyParams, ...houseParam }),
           getEarlyWarning({ ...fyParams, ...houseParam }),
@@ -129,9 +129,6 @@ const Overview = memo(function Overview({
           setOverviewMissing(true)
         }
 
-        if (narrRes.status === "fulfilled" && narrRes.value?.insights) {
-          setNarratives(narrRes.value.insights)
-        }
 
         if (statesRes.status === "fulfilled" && Array.isArray(statesRes.value)) {
           setStateData(statesRes.value)
@@ -178,8 +175,6 @@ const Overview = memo(function Overview({
             setOverview(ovRes)
             setOverviewMissing(false)
           }
-          const narrRes = await getAINarrativeInsights({ ...fyParams, ...houseParam }).catch(() => null)
-          if (narrRes?.insights) setNarratives(narrRes.insights)
           const statesRes = await getDashboardStates({ ...fyParams, ...houseParam })
           if (Array.isArray(statesRes)) setStateData(statesRes)
           const anomRes = await getAnomaliesSummary({ ...fyParams, ...houseParam })
@@ -214,11 +209,7 @@ const Overview = memo(function Overview({
     : 1
 
   const totalWorks = overview?.total_projects || 0
-  const sanctionedAmount = overview?.total_sanctioned_amount || overview?.total_allocated_amount || 0
-  const expenditure = overview?.total_expenditure || 0
-  const highRiskWorks = anomaliesSummary?.high_risk || 0
   const completedWorks = overview?.completed_projects || 0
-  const utilization = overview?.utilization_percentage || 0
 
   if (loading) {
     return (
@@ -324,20 +315,13 @@ const Overview = memo(function Overview({
                 </div>
               ))}
             </div>
-            {houseStats.data_snapshot && (
+            {houseStats.data_snapshot && !houseStats.data_snapshot.reference && (
               <p className={`mt-3 text-[0.625rem] leading-snug ${mutedText}`}>
-                {houseStats.data_snapshot.reference
-                  ? <>
-                      Reference: {houseStats.data_snapshot.label}. Metric definitions match the official eSAKSHI dashboard; underlying data is a batch import, not a live feed.
-                    </>
-                  : <>
-                      Data snapshot: batch import through{" "}
-                      {houseStats.data_snapshot.last_payment_date
-                        ? new Date(houseStats.data_snapshot.last_payment_date).toLocaleDateString("en-IN", { month: "long", year: "numeric" })
-                        : "—"}
-                      . Batch snapshot, not a live feed — the official eSAKSHI portal updates in real time, so figures drift as new payments are recorded there.
-                    </>
-                }
+                Data snapshot: batch import through{" "}
+                {houseStats.data_snapshot.last_payment_date
+                  ? new Date(houseStats.data_snapshot.last_payment_date).toLocaleDateString("en-IN", { month: "long", year: "numeric" })
+                  : "—"}
+                . Batch snapshot, not a live feed — the official eSAKSHI portal updates in real time, so figures drift as new payments are recorded there.
               </p>
             )}
           </>
@@ -505,136 +489,6 @@ const Overview = memo(function Overview({
           )}
         </div>
       )}
-
-      {/* AI NARRATIVE INSIGHTS BANNER */}
-      {narratives.length > 0 && (
-        <div className="mb-7 rounded-xl border border-blue-200 bg-gradient-to-r from-blue-50 via-white to-blue-50/50 p-5 shadow-sm dark:border-blue-900/60 dark:from-[#210a12] dark:via-[#210a12] dark:to-[#210a12]">
-          <div className="mb-3 flex items-center gap-2">
-            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-600 text-xs text-white">✨</span>
-            <h3 className="text-xs font-bold uppercase tracking-wider text-blue-950 dark:text-blue-200">
-              AI Audit Insights & Discrepancy Findings
-            </h3>
-          </div>
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
-            {narratives.map((item, idx) => (
-              <div
-                key={idx}
-                className="rounded-lg border border-blue-100 bg-white/80 p-3 shadow-2xs dark:border-gray-700/60 dark:bg-[#000000]/70"
-              >
-                <div className="flex items-center gap-2">
-                  <span className="text-sm">
-                    {item.type === "risk" ? "⚠️" : item.type === "financial" ? "💰" : item.type === "completion" ? "🏗️" : "📍"}
-                  </span>
-                  <span className="text-xs font-bold text-gray-900 dark:text-white">
-                    {item.title}
-                  </span>
-                </div>
-                <p className="mt-1.5 text-xs leading-relaxed text-gray-600 dark:text-gray-300">
-                  {item.message}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* CORE STAT CARDS */}
-      <div className="grid grid-cols-1 gap-4 sm:gap-5 md:grid-cols-2 xl:grid-cols-4">
-        {/* TOTAL WORKS */}
-        <div
-          className={`rounded-xl border p-3 sm:p-4 shadow-sm cursor-pointer transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 ${cardClasses}`}
-          onClick={() => onDrillDown && onDrillDown("Projects")}
-        >
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0 flex-1">
-              <p className={`text-[0.6875rem] font-bold uppercase tracking-wider ${mutedText}`}>
-                Total Monitored Works
-              </p>
-              <h2 className="mt-2.5 text-2xl sm:text-3xl font-bold font-mono tracking-tight">
-                {totalWorks.toLocaleString("en-IN")}
-              </h2>
-            </div>
-            <div className="flex-shrink-0 flex items-center justify-center h-11 w-11 rounded-xl bg-blue-500/10 text-xl">
-              🏗️
-            </div>
-          </div>
-          <div className="mt-4 pt-3 border-t border-gray-100 dark:border-gray-700/50">
-            <p className={`text-xs ${mutedText}`}>
-              <span className="font-bold text-green-600 dark:text-green-400">✓ {(overview?.completed_projects || 0).toLocaleString("en-IN")}</span>{" "}
-              Completed works
-            </p>
-          </div>
-        </div>
-
-        {/* SANCTIONED AMOUNT */}
-        <div className={`rounded-xl border p-3 sm:p-4 shadow-sm transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 ${cardClasses}`}>
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0 flex-1">
-              <p className={`text-[0.6875rem] font-bold uppercase tracking-wider ${mutedText}`}>
-                Total Project Amount
-              </p>
-              <h2 className="mt-2.5 text-2xl sm:text-3xl font-bold font-mono tracking-tight">
-                ₹{formatCrore(sanctionedAmount)} <span className="text-sm sm:text-base font-sans text-gray-400 font-normal">Cr</span>
-              </h2>
-            </div>
-            <div className="flex-shrink-0 flex items-center justify-center h-11 w-11 rounded-xl bg-amber-500/10 text-xl">
-              💰
-            </div>
-          </div>
-          <div className="mt-4 pt-3 border-t border-gray-100 dark:border-gray-700/50">
-            <p className={`text-xs ${mutedText}`}>
-              Across <span className="font-bold text-gray-800 dark:text-gray-200">{overview?.total_states || stateData.length}</span> States & UTs
-            </p>
-          </div>
-        </div>
-
-        {/* TOTAL EXPENDITURE */}
-        <div className={`rounded-xl border p-3 sm:p-4 shadow-sm transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 ${cardClasses}`}>
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0 flex-1">
-              <p className={`text-[0.6875rem] font-bold uppercase tracking-wider ${mutedText}`}>
-                Cumulative Expenditure
-              </p>
-              <h2 className="mt-2.5 text-2xl sm:text-3xl font-bold font-mono tracking-tight">
-                ₹{formatCrore(expenditure)} <span className="text-sm sm:text-base font-sans text-gray-400 font-normal">Cr</span>
-              </h2>
-            </div>
-            <div className="flex-shrink-0 flex items-center justify-center h-11 w-11 rounded-xl bg-purple-500/10 text-xl">
-              💳
-            </div>
-          </div>
-          <div className="mt-4 pt-3 border-t border-gray-100 dark:border-gray-700/50">
-            <p className={`text-xs ${mutedText}`}>
-              <span className="font-bold text-blue-600 dark:text-blue-400">{Number(utilization).toFixed(1)}%</span> Fund utilization
-            </p>
-          </div>
-        </div>
-
-        {/* HIGH RISK WORKS */}
-        <div
-          className={`rounded-xl border-2 border-l-4 border-l-red-500 border-t-red-200 border-r-red-200 border-b-red-200 dark:border-l-red-500 dark:border-t-red-900/50 dark:border-r-red-900/50 dark:border-b-red-900/50 p-3 sm:p-4 shadow-sm cursor-pointer transition-all duration-200 hover:shadow-soft-lg hover:-translate-y-0.5 ${cardClasses}`}
-          onClick={() => onDrillDown && onDrillDown("Risk Center", { risk_level: "High" })}
-        >
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0 flex-1">
-              <p className="text-[0.6875rem] font-bold uppercase tracking-wider text-red-400 dark:text-red-400">
-                High-Risk Anomalies
-              </p>
-              <h2 className="mt-2.5 text-2xl sm:text-3xl font-bold font-mono text-red-500 dark:text-red-400 tracking-tight">
-                {highRiskWorks.toLocaleString("en-IN")}
-              </h2>
-            </div>
-            <div className="flex-shrink-0 flex items-center justify-center h-11 w-11 rounded-xl bg-red-500/10 text-xl">
-              ⚠️
-            </div>
-          </div>
-          <div className="mt-4 pt-3 border-t border-red-100 dark:border-red-900/50">
-            <p className="text-xs text-red-400 dark:text-red-400">
-              Flagged by <span className="font-bold">AI Anomaly Model</span>
-            </p>
-          </div>
-        </div>
-      </div>
 
       {/* GEOGRAPHIC DISTRIBUTION — state-level choropleth. Placed directly
           below the KPI cards and above the existing regional charts. It
