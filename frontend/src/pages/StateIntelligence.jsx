@@ -6,12 +6,13 @@ import {
   getDataFreshness,
 } from "../services/api"
 import { formatMoney, formatNumber } from "../utils/format"
-import GeoIntelPanel from "../components/GeoIntelPanel"
+import { useAuth } from "../context/AuthContext"
 
 // Heavy map (d3-geo + GeoJSON) loads only when this page is opened.
 const GeographicDistribution = lazy(
   () => import("../components/GeographicDistribution")
 )
+const GeoIntelPanel = lazy(() => import("../components/GeoIntelPanel"))
 
 const HOUSES = ["All", "Lok Sabha", "Rajya Sabha"]
 
@@ -73,6 +74,10 @@ const StateIntelligence = memo(function StateIntelligence({
   drillDownParams,
   onClearDrillDown,
 }) {
+  const { user, loading: authLoading, hasRole } = useAuth()
+  // The geospatial intelligence endpoints require analyst access. Wait for
+  // the server-verified session restore before mounting any protected content.
+  const canViewGeospatialIntelligence = !authLoading && Boolean(user) && hasRole("analyst")
   const [states, setStates] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
@@ -375,33 +380,39 @@ const StateIntelligence = memo(function StateIntelligence({
         {/* SHARED INDIA CHOROPLETH — same boundaries, metrics and palette as
             Overview. Selecting here does not navigate away; it opens the
             expanded state panel below the map. */}
-        <Suspense
-          fallback={
-            <div
-              className="h-72 animate-pulse rounded-xl border border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800/40"
-              aria-label="Loading India map"
+        {canViewGeospatialIntelligence && (
+          <Suspense
+            fallback={
+              <div
+                className="h-72 animate-pulse rounded-xl border border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800/40"
+                aria-label="Loading India map"
+              />
+            }
+          >
+            <GeographicDistribution
+              darkMode={darkMode}
+              house={house}
+              fy={fy}
+              title="India Geospatial Intelligence"
+              subtitle="Explore the geographic distribution of MPLADS projects and compare financial and implementation indicators across Indian states."
+              scopeNote="Follows the selected House filter"
+              onSelectState={handleMapSelect}
+              selectedStateCode={selectedMapCode}
+              onApplyState={applyMapState}
+              onOpenState={openMapState}
+              dataFreshness={freshness}
             />
-          }
-        >
-          <GeographicDistribution
-            darkMode={darkMode}
-            house={house}
-            fy={fy}
-            title="India Geospatial Intelligence"
-            subtitle="Explore the geographic distribution of MPLADS projects and compare financial and implementation indicators across Indian states."
-            scopeNote="Follows the selected House filter"
-            onSelectState={handleMapSelect}
-            selectedStateCode={selectedMapCode}
-            onApplyState={applyMapState}
-            onOpenState={openMapState}
-            dataFreshness={freshness}
-          />
-        </Suspense>
+          </Suspense>
+        )}
 
         {/* GEOSPATIAL INTELLIGENCE — coverage gaps, sub-state execution
             patterns, spatial relations, geographic outliers, progress map.
             Aggregation unit is disclosed by the backend. */}
-        <GeoIntelPanel house={house === "All" ? "" : house} />
+        {canViewGeospatialIntelligence && (
+          <Suspense fallback={<div className="h-52 animate-pulse rounded-xl border border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800/40" aria-label="Loading geospatial intelligence" />}>
+            <GeoIntelPanel house={house === "All" ? "" : house} />
+          </Suspense>
+        )}
 
         {loading && (
           <div className="flex items-center gap-2 rounded-lg border border-blue-100 bg-blue-50/60 px-3 py-2 text-xs font-semibold text-blue-700 dark:border-blue-900/50 dark:bg-blue-950/20 dark:text-blue-300">

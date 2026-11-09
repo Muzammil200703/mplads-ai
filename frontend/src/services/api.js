@@ -22,14 +22,26 @@ export function clearToken() { setToken(null) }
 // ═══════════════ CLIENT-SIDE API CACHE ═══════════════
 // TTL-based cache to avoid refetching filter/static data on every page mount
 const _apiCache = new Map()
+const API_CACHE_MAX_ENTRIES = 128
 function cacheGet(key, ttlMs = 60000) {
   const entry = _apiCache.get(key)
-  if (entry && (Date.now() - entry.ts) < ttlMs) return entry.data
+  if (!entry) return undefined
+  if ((Date.now() - entry.ts) >= ttlMs) {
+    _apiCache.delete(key)
+    return undefined
+  }
+  // Map insertion order doubles as a tiny LRU queue, so frequently reused
+  // filters survive while abandoned search combinations cannot grow forever.
   _apiCache.delete(key)
-  return undefined
+  _apiCache.set(key, entry)
+  return entry.data
 }
 function cacheSet(key, data) {
+  _apiCache.delete(key)
   _apiCache.set(key, { data, ts: Date.now() })
+  while (_apiCache.size > API_CACHE_MAX_ENTRIES) {
+    _apiCache.delete(_apiCache.keys().next().value)
+  }
 }
 function cacheInvalidate(prefix) {
   for (const key of _apiCache.keys()) {
@@ -102,6 +114,7 @@ export function getBackendStatus() {
 const TRANSIENT_STATUS = new Set([429, 502, 503, 504])
 const TRANSIENT_RETRIES = 2
 const TRANSIENT_BASE_DELAY_MS = 800
+const DEFAULT_REQUEST_TIMEOUT_MS = 60000
 
 function delay(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms))
@@ -110,6 +123,10 @@ function delay(ms) {
 async function request(endpoint, options = {}, _attempt = 0) {
   const url = `${API_URL}${endpoint}`
   const token = getToken()
+  const { signal: callerSignal, timeoutMs: requestedTimeoutMs, ...fetchOptions } = options
+  const timeoutMs = Number.isFinite(requestedTimeoutMs) && requestedTimeoutMs > 0
+    ? requestedTimeoutMs
+    : DEFAULT_REQUEST_TIMEOUT_MS
 
   // Only attach Content-Type when a body is actually sent. A bodyless GET
   // with "Content-Type: application/json" is NOT CORS-safelisted, so it
@@ -129,13 +146,45 @@ async function request(endpoint, options = {}, _attempt = 0) {
     headers["Content-Type"] = "application/json"
   }
 
+  const requestController = new AbortController()
+  let requestTimedOut = false
+  const timeoutId = setTimeout(() => {
+    requestTimedOut = true
+    requestController.abort()
+  }, timeoutMs)
+  const abortRequest = () => requestController.abort(callerSignal?.reason)
+  if (callerSignal) {
+    if (callerSignal.aborted) abortRequest()
+    else callerSignal.addEventListener("abort", abortRequest, { once: true })
+  }
+  const cleanupRequest = () => {
+    clearTimeout(timeoutId)
+    callerSignal?.removeEventListener("abort", abortRequest)
+  }
+
   let response
+  let responseText
   try {
-    response = await fetch(url, { ...options, headers })
+    response = await fetch(url, { ...fetchOptions, headers, signal: requestController.signal })
+    if (response.ok) {
+      _reportBackendStatus(true)
+    }
+
+    if (response.status === 401 && getToken()) {
+      // Session expired — clear so the UI falls back to signed-out state.
+      clearToken()
+      window.dispatchEvent(new CustomEvent("auth-expired"))
+    }
+
+    responseText = await response.text()
   } catch (networkError) {
+    cleanupRequest()
+    if (requestTimedOut) {
+      throw new Error(`Request timed out after ${timeoutMs} ms: ${endpoint}`)
+    }
     // fetch() rejects on network failures (offline, DNS, aborted connection).
     // AbortError must always propagate so callers can cancel live search.
-    if (networkError && networkError.name === "AbortError") throw networkError
+    if (callerSignal?.aborted || (networkError && networkError.name === "AbortError")) throw networkError
     if (_attempt < TRANSIENT_RETRIES) {
       await delay(TRANSIENT_BASE_DELAY_MS * (_attempt + 1))
       return request(endpoint, options, _attempt + 1)
@@ -143,19 +192,7 @@ async function request(endpoint, options = {}, _attempt = 0) {
     _reportBackendStatus(false)
     throw networkError
   }
-
-  // Any successful HTTP exchange proves the backend is up. This runs before
-  // the retry check so that even the intermediate 2xx of a request whose
-  // caller still throws elsewhere marks connectivity truthfully.
-  if (response.ok) {
-    _reportBackendStatus(true)
-  }
-
-  if (response.status === 401 && getToken()) {
-    // Session expired — clear so the UI falls back to signed-out state.
-    clearToken()
-    window.dispatchEvent(new CustomEvent("auth-expired"))
-  }
+  cleanupRequest()
 
   // Retry transient platform failures (Render cold start 503, edge 429
   // throttle, gateway 502/504) before surfacing an error to the UI.
@@ -167,7 +204,7 @@ async function request(endpoint, options = {}, _attempt = 0) {
   if (!response.ok) {
     let errorDetail = `API request failed: ${response.status}`
     try {
-      const errJson = await response.json()
+      const errJson = JSON.parse(responseText)
       if (errJson && errJson.detail) {
         errorDetail = typeof errJson.detail === "string"
           ? errJson.detail
@@ -185,10 +222,9 @@ async function request(endpoint, options = {}, _attempt = 0) {
     throw new Error(errorDetail)
   }
 
-  const text = await response.text()
-  if (!text) return null
+  if (!responseText) return null
   try {
-    return JSON.parse(text)
+    return JSON.parse(responseText)
   } catch {
     return null
   }

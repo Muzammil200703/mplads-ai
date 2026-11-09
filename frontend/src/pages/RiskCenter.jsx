@@ -1,9 +1,11 @@
-import { useEffect, useState, useCallback, memo } from "react"
+import { useEffect, useState, useCallback, memo, lazy, Suspense } from "react"
 import { getAnomalies, getAnomaliesSummary, getStates, getConstituencies, getProjectDetail, getAnomalyAnalytics, getRiskExplanation, healthCheck, onBackendStatus, getBackendStatus } from "../services/api"
 import { TableRowsSkeleton, CardsSkeleton, MobileCardsSkeleton } from "../components/Skeletons"
 import { formatMoney, formatNumber } from "../utils/format"
 import RecTimelineBlock from "../components/RecTimelineBlock"
-import RiskIntelPanel from "../components/RiskIntelPanel"
+import { useAuth } from "../context/AuthContext"
+
+const RiskIntelPanel = lazy(() => import("../components/RiskIntelPanel"))
 
 /* ──────────── Expenditure-span display helpers (recorded activity only —
    NOT official start/delay dates; see tooltip below) ──────────── */
@@ -177,6 +179,10 @@ function getStaleProgressFlag(project) {
 
 /* ═══════════════ MAIN COMPONENT ═══════════════ */
 const RiskCenter = memo(function RiskCenter({ drillDownParams, onClearDrillDown, fy }) {
+  const { user, loading: authLoading, hasRole } = useAuth()
+  // Risk-intelligence endpoints require analyst access. Keep the panel
+  // unmounted until AuthContext has restored and verified the session.
+  const canViewRiskIntelligence = !authLoading && Boolean(user) && hasRole("analyst")
   const [summary, setSummary] = useState({ total_projects_checked: 0, high_risk: 0, medium_risk: 0, low_risk: 0, total_anomalies: 0 })
   const [anomalies, setAnomalies] = useState([])
   const [totalCount, setTotalCount] = useState(0)
@@ -440,7 +446,11 @@ const RiskCenter = memo(function RiskCenter({ drillDownParams, onClearDrillDown,
         {/* RISK INTELLIGENCE LAYER — emerging risk, pattern evolution,
             behavioural clustering. Separate analytical layer; it does not
             alter the stored risk scores. */}
-        <RiskIntelPanel onSelectProject={(id) => handleOpenDetail({ project_id: id })} />
+        {canViewRiskIntelligence && (
+          <Suspense fallback={null}>
+            <RiskIntelPanel onSelectProject={(id) => handleOpenDetail({ project_id: id })} />
+          </Suspense>
+        )}
 
         {/* CHARTS ROW 1: Donut + Anomaly Types */}
         {analytics && (

@@ -1,8 +1,6 @@
-import { useState, useEffect, lazy, Suspense, memo, useRef } from "react"
+import { Activity, useState, useEffect, lazy, Suspense, memo, useRef, useCallback } from "react"
 import Sidebar from "./components/Sidebar"
 import AssistantWidget from "./components/AssistantWidget"
-import CommandPalette from "./components/CommandPalette"
-import HistoricalReplayPanel from "./components/HistoricalReplayPanel"
 import TopBar from "./components/TopBar"
 import SetPassword from "./pages/SetPassword"
 import { PageSkeleton } from "./components/Skeleton"
@@ -17,6 +15,8 @@ import { invalidateAPICache } from "./services/api"
 
 const LoginView = lazy(() => import("./pages/Auth").then((m) => ({ default: m.LoginView })))
 const SignupView = lazy(() => import("./pages/Auth").then((m) => ({ default: m.SignupView })))
+const CommandPalette = lazy(() => import("./components/CommandPalette"))
+const HistoricalReplayPanel = lazy(() => import("./components/HistoricalReplayPanel"))
 const SavedProjectsPage = lazy(() => import("./pages/Workspace").then((m) => ({ default: m.SavedProjectsPage })))
 const MyInvestigationsPage = lazy(() => import("./pages/Workspace").then((m) => ({ default: m.MyInvestigationsPage })))
 const MyAuditCasesPage = lazy(() => import("./pages/Workspace").then((m) => ({ default: m.MyAuditCasesPage })))
@@ -175,6 +175,12 @@ function AppShell() {
   ScrollManager()
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [darkMode, setDarkMode] = useState(false)
+  const [simpleMode, setSimpleMode] = useState(() => {
+    try { return localStorage.getItem("mplads_display_mode") === "simple" } catch { return false }
+  })
+  useEffect(() => {
+    try { localStorage.setItem("mplads_display_mode", simpleMode ? "simple" : "standard") } catch { /* storage unavailable */ }
+  }, [simpleMode])
   // Default to main Overview dashboard so all options (Reports, Leaderboard, etc.) are immediately visible
   const [currentPage, setCurrentPage] = useState(() => {
     if (typeof window !== "undefined") {
@@ -207,20 +213,20 @@ function AppShell() {
   // State Intelligence page context: the state name currently drilled into.
   const [assistantState, setAssistantState] = useState(null)
 
-  const handleNavigate = (page) => {
+  const handleNavigate = useCallback((page) => {
     setCurrentPage(page)
     if (isMobile) setMobileDrawerOpen(false)
-  }
+  }, [isMobile])
 
-  const toggleSidebar = () => {
+  const toggleSidebar = useCallback(() => {
     if (isMobile) {
       setMobileDrawerOpen((prev) => !prev)
     } else {
       setSidebarCollapsed((previous) => !previous)
     }
-  }
+  }, [isMobile])
 
-  const closeMobileDrawer = () => setMobileDrawerOpen(false)
+  const closeMobileDrawer = useCallback(() => setMobileDrawerOpen(false), [])
 
   // Keyboard shortcut: Ctrl+B or [ to toggle sidebar
   useEffect(() => {
@@ -232,7 +238,7 @@ function AppShell() {
     }
     window.addEventListener("keydown", handler)
     return () => window.removeEventListener("keydown", handler)
-  }, [isMobile])
+  }, [toggleSidebar])
 
   // Listen for navigate-to-project events from any component (e.g. RiskCenter modal)
   useEffect(() => {
@@ -249,30 +255,55 @@ function AppShell() {
   }, [isMobile])
 
   // Global search submit: only navigate when user explicitly selects a result
-  const handleGlobalSearchNavigate = (page, params) => {
+  const handleGlobalSearchNavigate = useCallback((page, params) => {
     setGlobalSearchQuery("")
     if (params?.keyword) {
       setProjectSearchQuery(params.keyword)
     }
     setCurrentPage(page)
     if (isMobile) setMobileDrawerOpen(false)
-  }
+  }, [isMobile])
 
-  const handleDrillDown = (page, params) => {
+  const handleDrillDown = useCallback((page, params) => {
     setDrillDownParams(params || null)
     setCurrentPage(page)
     if (isMobile) setMobileDrawerOpen(false)
-  }
+  }, [isMobile])
+
+  const clearDrillDown = useCallback(() => setDrillDownParams(null), [])
+  const clearProjectSearch = useCallback(() => setProjectSearchQuery(""), [])
+  const navigateToStateProjects = useCallback((state) => handleDrillDown("Projects", { state }), [handleDrillDown])
+  const openCommandPalette = useCallback(() => setCommandOpen(true), [])
+  const openAssistant = useCallback(() => setAssistantOpen(true), [])
+  const toggleTheme = useCallback(() => setDarkMode((previous) => !previous), [])
+  const handleCommandOpenChange = useCallback((value) => {
+    setCommandOpen(value)
+    if (value) setAssistantOpen(false)
+  }, [])
+
+  // CommandPalette is downloaded only when opened, so keep its global shortcut
+  // in the shell while it is not mounted.
+  useEffect(() => {
+    const onShortcut = (event) => {
+      if (!(event.ctrlKey || event.metaKey) || event.altKey || event.key.toLowerCase() !== "k") return
+      if (commandOpen) return
+      event.preventDefault()
+      setAssistantOpen(false)
+      setCommandOpen(true)
+    }
+    window.addEventListener("keydown", onShortcut)
+    return () => window.removeEventListener("keydown", onShortcut)
+  }, [commandOpen])
 
   // Open a project drawer from a workspace page: switch to Projects, then
   // dispatch once the page is mounted (retry covers the lazy chunk load).
-  const openProjectFromWorkspace = (projectId, tab) => {
+  const openProjectFromWorkspace = useCallback((projectId, tab) => {
     setCurrentPage("Projects")
     if (isMobile) setMobileDrawerOpen(false)
     const dispatch = () => window.dispatchEvent(new CustomEvent("open-project", { detail: { projectId, tab } }))
     setTimeout(dispatch, 400)
     setTimeout(dispatch, 1200)
-  }
+  }, [isMobile])
 
   // Context for the AI Assistant: which project the user is looking at
   // ("project:<id>" page tag) so "why is this risky?" resolves correctly.
@@ -309,7 +340,7 @@ function AppShell() {
     window.addEventListener("assistant-project-context", remember)
     return () => window.removeEventListener("assistant-project-context", remember)
   }, [])
-  const getAssistantProjectName = (pid) => (pid ? assistantProjectNames[pid] || null : null)
+  const getAssistantProjectName = useCallback((pid) => (pid ? assistantProjectNames[pid] || null : null), [assistantProjectNames])
 
   // ── Assistant action execution (JARVIS control plane) ────────────────
   // The assistant returns structured, backend-validated actions; they are
@@ -318,7 +349,7 @@ function AppShell() {
   // clear_filters / refresh_data are broadcast as events; filter pages
   // reset their OWN existing filter state on "assistant:clear-filters"
   // and re-run their existing loads on "assistant:refresh".
-  const executeAssistant = (action) => {
+  const executeAssistant = useCallback((action) => {
     return executeAssistantAction(action, {
       navigate: handleNavigate,
       drillDown: handleDrillDown,
@@ -341,7 +372,7 @@ function AppShell() {
         return GUEST_PAGES.has(page)
       },
     })
-  }
+  }, [handleNavigate, handleDrillDown, openProjectFromWorkspace, user])
 
   // Page state preservation: track which pages have been visited so we keep them mounted
   const visitedPages = useRef(new Set(["Overview"]))
@@ -363,7 +394,7 @@ function AppShell() {
     const el = mainRef.current
     if (!el) return
     el.classList.add("page-entering")
-    const t = setTimeout(() => el.classList.remove("page-entering"), 240)
+    const t = setTimeout(() => el.classList.remove("page-entering"), 260)
     return () => {
       clearTimeout(t)
       el?.classList.remove("page-entering")
@@ -376,21 +407,21 @@ function AppShell() {
     if (currentPage === "Sign up") return <SignupView onSwitch={() => setCurrentPage("Sign in")} />
 
     const pages = [
-      { key: "Overview", el: <Overview darkMode={darkMode} onDrillDown={handleDrillDown} fy={selectedFY} house={selectedHouse} onHouseChange={setSelectedHouse} /> },
-      { key: "Projects", el: <Projects projectSearchQuery={projectSearchQuery} onClearProjectSearch={() => setProjectSearchQuery("")} drillDownParams={drillDownParams} onClearDrillDown={() => setDrillDownParams(null)} fy={selectedFY} onNavigate={handleNavigate} /> },
-      { key: "Risk Center", el: <RiskCenter drillDownParams={drillDownParams} onClearDrillDown={() => setDrillDownParams(null)} fy={selectedFY} /> },
+      { key: "Overview", el: <Overview darkMode={darkMode} simpleMode={simpleMode} onDrillDown={handleDrillDown} fy={selectedFY} house={selectedHouse} onHouseChange={setSelectedHouse} /> },
+      { key: "Projects", el: <Projects simpleMode={simpleMode} projectSearchQuery={projectSearchQuery} onClearProjectSearch={clearProjectSearch} drillDownParams={drillDownParams} onClearDrillDown={clearDrillDown} fy={selectedFY} onNavigate={handleNavigate} /> },
+      { key: "Risk Center", el: <RiskCenter drillDownParams={drillDownParams} onClearDrillDown={clearDrillDown} fy={selectedFY} /> },
       { key: "AI Audit Center", el: <AuditCenter onOpenProject={openProjectFromWorkspace} fy={selectedFY} /> },
       { key: "Vendor Network", el: <VendorNetwork /> },
       { key: "Ground Truth Verification", el: <VerifyPortal /> },
-      { key: "Reports", el: <Reports fy={selectedFY} /> },
+      { key: "Reports", el: <Reports fy={selectedFY} drillDownParams={drillDownParams} onClearDrillDown={clearDrillDown} /> },
       { key: "Leaderboard", el: <Leaderboard darkMode={darkMode} /> },
-      { key: "State Intelligence", el: <StateIntelligence darkMode={darkMode} house={selectedHouse} onHouseChange={setSelectedHouse} onNavigateToProjects={(state) => handleDrillDown("Projects", { state })} onContextChange={setAssistantState} fy={selectedFY} drillDownParams={drillDownParams} onClearDrillDown={() => setDrillDownParams(null)} /> },
-      { key: "MP Intelligence", el: <MPIntelligence darkMode={darkMode} drillDownParams={drillDownParams} onClearDrillDown={() => setDrillDownParams(null)} fy={selectedFY} onContextChange={setAssistantMpId} /> },
-      { key: "Audit Priority", el: <AuditPriority fy={selectedFY} drillDownParams={drillDownParams} onClearDrillDown={() => setDrillDownParams(null)} /> },
-      { key: "Compare Projects", el: <CompareProjects fy={selectedFY} drillDownParams={drillDownParams} onClearDrillDown={() => setDrillDownParams(null)} /> },
+      { key: "State Intelligence", el: <StateIntelligence darkMode={darkMode} house={selectedHouse} onHouseChange={setSelectedHouse} onNavigateToProjects={navigateToStateProjects} onContextChange={setAssistantState} fy={selectedFY} drillDownParams={drillDownParams} onClearDrillDown={clearDrillDown} /> },
+      { key: "MP Intelligence", el: <MPIntelligence darkMode={darkMode} drillDownParams={drillDownParams} onClearDrillDown={clearDrillDown} fy={selectedFY} onContextChange={setAssistantMpId} /> },
+      { key: "Audit Priority", el: <AuditPriority fy={selectedFY} drillDownParams={drillDownParams} onClearDrillDown={clearDrillDown} /> },
+      { key: "Compare Projects", el: <CompareProjects fy={selectedFY} drillDownParams={drillDownParams} onClearDrillDown={clearDrillDown} /> },
       { key: "FAQ", el: <FAQ /> },
-      { key: "Vendor Intelligence", el: <VendorIntelligence onOpenProject={openProjectFromWorkspace} drillDownParams={drillDownParams} onClearDrillDown={() => setDrillDownParams(null)} /> },
-      { key: "Settings", el: <SettingsPage darkMode={darkMode} onThemeToggle={() => setDarkMode((previous) => !previous)} /> },
+      { key: "Vendor Intelligence", el: <VendorIntelligence onOpenProject={openProjectFromWorkspace} drillDownParams={drillDownParams} onClearDrillDown={clearDrillDown} /> },
+      { key: "Settings", el: <SettingsPage darkMode={darkMode} onThemeToggle={toggleTheme} simpleMode={simpleMode} onDisplayModeChange={setSimpleMode} /> },
       { key: "Saved Projects", el: <SavedProjectsPage onOpenProject={openProjectFromWorkspace} /> },
       { key: "My Investigations", el: <MyInvestigationsPage onOpenProject={openProjectFromWorkspace} /> },
       { key: "My Audit Cases", el: <MyAuditCasesPage onOpenProject={openProjectFromWorkspace} /> },
@@ -409,7 +440,9 @@ function AppShell() {
             className="page-enter rise-refresh"
             style={{ display: key === currentPage && visitedPages.current.has(key) ? "block" : "none" }}
           >
-            {visitedPages.current.has(key) ? el : null}
+            <Activity mode={key === currentPage ? "visible" : "hidden"}>
+              {visitedPages.current.has(key) ? el : null}
+            </Activity>
           </div>
         ))}
       </Suspense>
@@ -465,9 +498,10 @@ return (
           : "bg-[#faf7f6] text-[#292326]"
       }`}
     >
-      {isMobile && mobileDrawerOpen && (
+      {isMobile && (
         <div
-          className="fixed inset-0 z-[55] bg-black/50 transition-opacity"
+          aria-hidden={!mobileDrawerOpen}
+          className={`mobile-nav-backdrop fixed inset-0 z-[55] bg-black/50 transition-opacity ${mobileDrawerOpen ? "opacity-100" : "pointer-events-none opacity-0"}`}
           onClick={closeMobileDrawer}
         />
       )}
@@ -480,7 +514,8 @@ return (
         isMobile={isMobile}
         isOpen={mobileDrawerOpen}
         onClose={closeMobileDrawer}
-        onSupportClick={() => setAssistantOpen(true)}
+        onSupportClick={openAssistant}
+        simpleMode={simpleMode}
       />
 
       <TopBar
@@ -494,15 +529,15 @@ return (
         isMobile={isMobile}
         selectedFY={selectedFY}
         onFYChange={setSelectedFY}
-        onOpenCommandPalette={() => setCommandOpen(true)}
+        onOpenCommandPalette={openCommandPalette}
       />
 
       <main
         ref={mainRef}
-        className={`h-full overflow-x-auto overflow-y-auto pt-[64px] lg:pt-[72px] transition-[margin] duration-300 ease-in-out ${getMainMargin()}`}
+        className={`h-full overflow-x-auto overflow-y-auto pt-[64px] lg:pt-[72px] transition-[margin] duration-300 ease-in-out ${getMainMargin()} ${simpleMode ? "simple-mode" : ""}`}
       >
         {currentPage === "State Intelligence" && (
-          <HistoricalReplayPanel house={selectedHouse} />
+          <Suspense fallback={null}><HistoricalReplayPanel house={selectedHouse} /></Suspense>
         )}
         {renderPage()}
       </main>
@@ -521,27 +556,21 @@ return (
         onOpenChange={setAssistantOpen}
       />
 
-      <CommandPalette
-        key={commandOpen ? "palette-open" : "palette-closed"}
+      {commandOpen && <Suspense fallback={null}><CommandPalette
         open={commandOpen}
-        onOpenChange={(value) => {
-          setCommandOpen(value)
-          // The palette is the focused surface: never leave the floating
-          // assistant open on top of it.
-          if (value) setAssistantOpen(false)
-        }}
+        onOpenChange={handleCommandOpenChange}
         currentPage={currentPage}
         house={selectedHouse}
         fy={selectedFY}
         darkMode={darkMode}
-        onToggleTheme={() => setDarkMode((previous) => !previous)}
+        onToggleTheme={toggleTheme}
         onHouseChange={setSelectedHouse}
         onFYChange={setSelectedFY}
         contextProjectId={assistantProjectId}
         onNavigate={handleNavigate}
         onDrillDown={handleDrillDown}
         onOpenProject={openProjectFromWorkspace}
-      />
+      /></Suspense>}
     </div>
   )
 }function App() {
@@ -553,4 +582,4 @@ return (
 }
 
 export default App
-    
+

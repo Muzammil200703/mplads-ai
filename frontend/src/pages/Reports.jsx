@@ -5,7 +5,14 @@ const API_URL = import.meta.env.VITE_API_URL !== undefined
   ? import.meta.env.VITE_API_URL
   : (import.meta.env.PROD ? "https://mplads-ai-optimized.onrender.com" : "http://127.0.0.1:8000")
 
-function Reports() {
+const REPORT_TYPES = [
+  "Project Audit Report",
+  "Anomaly Summary Report",
+  "Regional Risk Report",
+  "Financial Utilization Report",
+]
+
+function Reports({ drillDownParams, onClearDrillDown }) {
   const [reportType, setReportType] = useState("Project Audit Report")
   const [format, setFormat] = useState("CSV Dataset (.csv)")
   const [states, setStates] = useState([])
@@ -27,6 +34,20 @@ function Reports() {
   useEffect(() => {
     getStates().then((s) => { if (Array.isArray(s)) setStates(s) }).catch(() => {})
   }, [])
+
+  // Command palette / drill-down: preselect the report type the user chose.
+  // Only types the page actually supports are accepted; everything else is
+  // ignored so this never invents a report.
+  useEffect(() => {
+    if (!drillDownParams) return
+    if (drillDownParams.report_type && REPORT_TYPES.includes(drillDownParams.report_type)) {
+      // Synchronizing with the shell's navigation signal; the list of valid
+      // types is local, so this cannot invent a report.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setReportType(drillDownParams.report_type)
+    }
+    onClearDrillDown?.()
+  }, [drillDownParams, onClearDrillDown])
 
   useEffect(() => {
     if (!selectedState) { setConstituencies([]); setSelectedConstituency(""); return }

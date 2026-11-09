@@ -1193,6 +1193,18 @@ textarea.rounded-sm {
   main { padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px)); }
 }
 main { scroll-padding-bottom: 6rem; }
+.simple-mode {
+  scroll-behavior: auto;
+}
+.simple-mode table {
+  font-size: 0.8125rem;
+}
+.simple-mode th {
+  letter-spacing: 0.04em;
+}
+.simple-mode :is(button, a, input, select, textarea) {
+  scroll-margin: 1rem;
+}
 .assistant-fab {
   right: calc(1.25rem + env(safe-area-inset-right, 0px));
   bottom: calc(1.25rem + env(safe-area-inset-bottom, 0px));
@@ -1201,5 +1213,142 @@ main { scroll-padding-bottom: 6rem; }
 /* Geospatial tab strip: horizontal scroll on phones, no merged labels. */
 .geo-tab-scroll {
   scrollbar-width: thin;  -webkit-overflow-scrolling: touch;
+}
+
+/* ══ Global interaction polish ═══════════════════════════════════════
+   Shared defaults bring the existing module-specific motion into one timing
+   language. Only paint/compositor properties are animated; no layout sizing. */
+:root {
+  --motion-fast: 140ms;
+  --motion-control: 170ms;
+  --motion-surface: 210ms;
+  --motion-overlay: 260ms;
+  --motion-ease: cubic-bezier(0.2, 0.75, 0.25, 1);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  button,
+  a[href],
+  summary,
+  input,
+  select,
+  textarea,
+  [role="button"] {
+    transition-duration: var(--motion-control);
+    transition-timing-function: var(--motion-ease);
+  }
+  button:not([class*="transition"]),
+  a[href]:not([class*="transition"]),
+  summary:not([class*="transition"]),
+  [role="button"]:not([class*="transition"]) {
+    transition-property: color, background-color, border-color, box-shadow, opacity, transform;
+  }
+
+  /* Tailwind's transition-colors otherwise leaves the press transform instant. */
+  button[class*="transition-colors"],
+  a[href][class*="transition-colors"],
+  [role="button"][class*="transition-colors"] {
+    transition-property: color, background-color, border-color, box-shadow, opacity, transform;
+  }
+
+  button:active,
+  a[href]:active,
+  [role="button"]:active {
+    transform: scale(0.985);
+  }
+
+  :is(input, select, textarea)[aria-invalid="true"] {
+    border-color: var(--color-red-500);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-red-500) 14%, transparent);
+  }
+
+  [role="alert"] {
+    animation: feedback-enter 160ms var(--motion-ease) both;
+  }
+  @keyframes feedback-enter {
+    from { opacity: 0; transform: translateY(-3px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Card shells throughout every module use the same light border/elevation
+     response. Hover lift is restricted to precise pointer devices. */
+  main [class*="rounded-xl"][class*="border"][class*="shadow-sm"] {
+    transition-property: transform, box-shadow, border-color, background-color;
+    transition-duration: var(--motion-surface);
+    transition-timing-function: var(--motion-ease);
+  }
+  main .page-enter [class*="rounded-xl"][class*="border"][class*="shadow-sm"] {
+    @starting-style {
+      opacity: 0;
+      transform: translateY(5px);
+    }
+  }
+  @media (hover: hover) and (pointer: fine) {
+    main [class*="rounded-xl"][class*="border"][class*="shadow-sm"]:hover {
+      transform: translateY(-1px);
+      box-shadow: var(--shadow-soft);
+    }
+  }
+
+  /* Data rows react quickly without adding per-row entrance work to large tables. */
+  main table tbody tr {
+    transition: background-color var(--motion-fast) ease-out;
+  }
+
+  /* Keep chart and progress updates fluid without the former 100ms wait. */
+  main .bar-fill,
+  main .bar-start {
+    transition: width 340ms var(--motion-ease), opacity 180ms ease-out;
+  }
+
+  /* Common native disclosure menus open with a restrained fade/settle. */
+  main details[open] > :not(summary) {
+    animation: disclosure-enter 180ms var(--motion-ease) both;
+  }
+  @keyframes disclosure-enter {
+    from { opacity: 0; transform: translateY(-3px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* The command palette remains quick but gets the same modal timing. */
+  [role="dialog"].pop-in-down,
+  [role="dialog"].pop-in-up {
+    transition-duration: var(--motion-overlay);
+  }
+
+  /* The active nav marker grows in rather than appearing as a hard edge. */
+  .nav-active-indicator {
+    transform-origin: center right;
+    animation: nav-marker-enter 180ms var(--motion-ease) both;
+  }
+  @keyframes nav-marker-enter {
+    from { opacity: 0; transform: scaleY(0.55); }
+    to { opacity: 1; transform: scaleY(1); }
+  }
+
+  .page-entering > :where(.page-enter) {
+    animation-duration: 250ms;
+  }
+
+  /* Replace the harsher generic pulse with a low-contrast skeleton shimmer. */
+  .animate-pulse {
+    animation: skeleton-soft 1.5s ease-in-out infinite;
+  }
+  @keyframes skeleton-soft {
+    0%, 100% { opacity: 0.62; }
+    50% { opacity: 1; }
+  }
+}
+
+.mobile-nav-backdrop {
+  transition: opacity 220ms var(--motion-ease);
+}
+
+/* Simple Mode keeps the same subtle movement system, with hover elevation
+   reduced slightly to suit its calmer information layout. */
+@media (prefers-reduced-motion: no-preference) and (hover: hover) and (pointer: fine) {
+  .simple-mode [class*="rounded-xl"][class*="border"][class*="shadow-sm"]:hover {
+    transform: translateY(-0.5px);
+  }
 }
 

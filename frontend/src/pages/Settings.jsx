@@ -18,9 +18,42 @@ function SettingsShell({ children }) {
   )
 }
 
-export default function Settings({ darkMode, onThemeToggle }) {
+export default function Settings({ darkMode, onThemeToggle, simpleMode = false, onDisplayModeChange }) {
   return (
     <SettingsShell>
+      <section className="rounded-xl border border-[#e8dadc] bg-white p-4 shadow-sm sm:p-5 dark:border-[#351923] dark:bg-[#000000]">
+        <div className="mb-4">
+          <h2 className="text-lg font-bold text-[#292326] dark:text-[#f5eff1]">Display Mode</h2>
+          <p className="mt-0.5 max-w-2xl text-sm text-[#71666a] dark:text-[#b9aeb2]">
+            Choose how much detail you see. Simple Mode puts key funds, project progress, important alerts, and essential navigation first. Advanced tools remain available under More / Advanced.
+          </p>
+        </div>
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2" role="group" aria-label="Display mode">
+          {[
+            { label: "Standard Mode", description: "The complete MPLADS-AI experience with all analytics and details.", value: false },
+            { label: "Simple Mode", description: "A cleaner, less crowded view focused on essential information.", value: true },
+          ].map((option) => {
+            const selected = simpleMode === option.value
+            return (
+              <button
+                key={option.label}
+                type="button"
+                onClick={() => onDisplayModeChange?.(option.value)}
+                aria-pressed={selected}
+                className={`rounded-lg border px-3 py-3 text-left transition ${selected ? "border-[#c8102e] bg-[#f8f1f1] ring-2 ring-[#c8102e]/10 dark:border-blue-500 dark:bg-[#0d090b]" : "border-[#e8dadc] bg-white hover:border-[#71666a]/50 dark:border-[#351923] dark:bg-[#000000] dark:hover:border-[#b9aeb2]/50"}`}
+              >
+                <span className="flex items-center gap-2">
+                  <span className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 ${selected ? "border-[#c8102e] dark:border-blue-400" : "border-[#e8dadc] dark:border-[#82767b]"}`}>
+                    {selected && <span className="h-2 w-2 rounded-full bg-[#c8102e] dark:bg-blue-400" />}
+                  </span>
+                  <span className="text-sm font-semibold text-[#292326] dark:text-[#f5eff1]">{option.label}</span>
+                </span>
+                <span className="mt-1 block pl-6 text-xs text-[#71666a] dark:text-[#b9aeb2]">{option.description}</span>
+              </button>
+            )
+          })}
+        </div>
+      </section>
       {/* THEME */}
       <section className="rounded-xl border border-[#e8dadc] bg-white p-4 shadow-sm sm:p-5 dark:border-[#351923] dark:bg-[#000000]">
         <div className="mb-4">

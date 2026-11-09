@@ -452,27 +452,63 @@ export default function AssistantWidget({
     return () => { document.removeEventListener("scroll", onScroll, true); clearTimeout(idle) }
   }, [])
   useEffect(() => {
+    let card = null
+    let resizeObserver = null
+    let frame = 0
+
     const measure = () => {
-      const card = document.querySelector("[data-mplads-modal-card]")
-      setModalPresent(!!card)
-      if (!card) { setModalSync(null); return }
-      const r = card.getBoundingClientRect()
-      const m = 12
-      const top = Math.max(r.top, m)
-      const bottom = Math.min(r.bottom, window.innerHeight - m)
-      const h = bottom - top
-      if (h < 200) { setModalSync(null); return }
-      setModalSync({ top: Math.round(top), height: Math.round(h) })
+      frame = 0
+      const nextCard = document.querySelector("[data-mplads-modal-card]")
+      if (nextCard !== card) {
+        resizeObserver?.disconnect()
+        card = nextCard
+        resizeObserver = card ? new ResizeObserver(scheduleMeasure) : null
+        if (card) resizeObserver.observe(card)
+      }
+
+      const present = Boolean(card)
+      setModalPresent((previous) => previous === present ? previous : present)
+      if (!card) {
+        setModalSync((previous) => previous === null ? previous : null)
+        return
+      }
+
+      const rect = card.getBoundingClientRect()
+      const top = Math.max(rect.top, 12)
+      const bottom = Math.min(rect.bottom, window.innerHeight - 12)
+      const height = bottom - top
+      const next = height < 200 ? null : { top: Math.round(top), height: Math.round(height) }
+      setModalSync((previous) => (
+        previous?.top === next?.top && previous?.height === next?.height
+          ? previous
+          : next
+      ))
     }
+
+    const scheduleMeasure = () => {
+      if (!frame) frame = requestAnimationFrame(measure)
+    }
+    const containsModalCard = (node) => node.nodeType === 1 && (
+      node.matches?.("[data-mplads-modal-card]") || node.querySelector?.("[data-mplads-modal-card]")
+    )
+    const mutationObserver = new MutationObserver((records) => {
+      if (records.some((record) => [...record.addedNodes, ...record.removedNodes].some(containsModalCard))) {
+        scheduleMeasure()
+      }
+    })
+
     measure()
-    const card = document.querySelector("[data-mplads-modal-card]")
-    const ro = card ? new ResizeObserver(measure) : null
-    if (card) ro.observe(card)
-    window.addEventListener("resize", measure)
-    window.addEventListener("scroll", measure, true)
-    const t = setInterval(measure, 400)
-    return () => { if (ro) ro.disconnect(); window.removeEventListener("resize", measure); window.removeEventListener("scroll", measure, true); clearInterval(t) }
-  }, [open, lastProjectId, modalPresent])
+    mutationObserver.observe(document.body, { childList: true, subtree: true })
+    window.addEventListener("resize", scheduleMeasure)
+    window.addEventListener("scroll", scheduleMeasure, true)
+    return () => {
+      mutationObserver.disconnect()
+      resizeObserver?.disconnect()
+      window.removeEventListener("resize", scheduleMeasure)
+      window.removeEventListener("scroll", scheduleMeasure, true)
+      if (frame) cancelAnimationFrame(frame)
+    }
+  }, [])
 
   /* ── Side-by-side signal ── Project Details shifts left only while this
      panel is open (desktop widths, enforced by CSS media query). Exposed

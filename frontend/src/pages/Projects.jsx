@@ -66,7 +66,7 @@ function getStaleProgressFlag(project) {
   return null
 }
 
-const Projects = memo(function Projects({ projectSearchQuery, onClearProjectSearch, drillDownParams, onClearDrillDown, fy, onNavigate }) {
+const Projects = memo(function Projects({ simpleMode = false, projectSearchQuery, onClearProjectSearch, drillDownParams, onClearDrillDown, fy, onNavigate }) {
   const [projects, setProjects] = useState([])
   const [totalCount, setTotalCount] = useState(0)
   const [states, setStates] = useState([])
@@ -89,6 +89,10 @@ const Projects = memo(function Projects({ projectSearchQuery, onClearProjectSear
   const [detailTab, setDetailTab] = useState(null)
   const [projectSearchApplied, setProjectSearchApplied] = useState(false)
   const rowsPerPage = 15
+  // Distinguishes "state cleared by the user" from the first render, so a
+  // drill-down that supplies state + constituency at the same time is not
+  // wiped by the constituency loader's initial empty-state reset.
+  const previousStateRef = useRef("")
 
   // Debounced keyword: typing fires at most one backend search per 300 ms
   // instead of one request per keystroke. `keyword` still drives the input so
@@ -171,10 +175,14 @@ const Projects = memo(function Projects({ projectSearchQuery, onClearProjectSear
   useEffect(() => {
     async function loadConstituenciesList() {
       if (!state) {
+        // Only clear a previously chosen constituency when the state was
+        // actually cleared; do not erase a drill-down value on first mount.
+        if (previousStateRef.current) setConstituency("")
+        previousStateRef.current = ""
         setConstituencies([])
-        setConstituency("")
         return
       }
+      previousStateRef.current = state
       try {
         const data = await getConstituencies(state)
         if (Array.isArray(data)) setConstituencies(data)
@@ -321,7 +329,7 @@ const Projects = memo(function Projects({ projectSearchQuery, onClearProjectSear
             Projects Explorer
           </h2>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            Live MPLADS projects database with real-time AI risk evaluation.
+            {simpleMode ? "Browse projects and check their location, funding, and progress." : "Live MPLADS projects database with real-time AI risk evaluation."}
           </p>
         </div>
 
@@ -347,6 +355,7 @@ const Projects = memo(function Projects({ projectSearchQuery, onClearProjectSear
                 value={state}
                 onChange={(e) => {
                   setState(e.target.value)
+                  setConstituency("")
                   setCurrentPage(1)
                 }}
                 className="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-2xs outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-gray-600 dark:bg-[#000000] dark:text-white"
@@ -420,8 +429,8 @@ const Projects = memo(function Projects({ projectSearchQuery, onClearProjectSear
             </div>
           </div>
 
-          {/* SORT ROW — chips flow onto clean rows and never split a label */}
-          <div className="mt-4 flex flex-wrap items-center gap-1.5 sm:gap-3 border-t border-gray-100 pt-3 dark:border-gray-700/60">
+          {/* Sorting remains visible in Standard Mode; Simple Mode keeps the main search and filters in view. */}
+          {!simpleMode && <div className="mt-4 flex flex-wrap items-center gap-1.5 sm:gap-3 border-t border-gray-100 pt-3 dark:border-gray-700/60">
             <span className="whitespace-nowrap text-[0.625rem] font-bold uppercase tracking-wider text-gray-400">Sort:</span>
             {[
               { value: "", label: "Default" },
@@ -467,7 +476,7 @@ const Projects = memo(function Projects({ projectSearchQuery, onClearProjectSear
                 ✕ Clear
               </button>
             )}
-          </div>
+          </div>}
 
           {/* ACTION ROW — buttons keep single-line labels; the pagination
               summary moves to its own row on phones instead of squeezing
@@ -728,6 +737,7 @@ const Projects = memo(function Projects({ projectSearchQuery, onClearProjectSear
           <ProjectDetail
             projectId={detailProjectId}
             initialTab={detailTab}
+            simpleMode={simpleMode}
             onClose={() => {
               setDetailProjectId(null)
               setDetailTab(null)

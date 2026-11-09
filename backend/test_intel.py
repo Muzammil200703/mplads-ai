@@ -331,8 +331,24 @@ def main():
     elif status == 200:
         check("geo outliers explain an unavailable result", bool(go.get("reason")))
 
-    status, _ = call("GET", "/intel/geo/coverage?state=Bihar", citizen)
-    check("geospatial intel denied for citizen", status in (401, 403), f"got {status}")
+    # Every endpoint backing the protected intelligence sections must enforce
+    # authentication and the existing analyst role independently of the UI.
+    protected_intelligence_routes = [
+        "/intel/emerging-risk?state=Bihar",
+        "/intel/evolution?state=Bihar",
+        "/intel/clusters?state=Bihar",
+        "/intel/clusters/1/projects",
+        "/intel/geo/coverage?state=Bihar",
+        "/intel/geo/districts?state=Bihar",
+        "/intel/geo/spatial?state=Bihar",
+        "/intel/geo/progress?state=Bihar",
+        "/intel/geo/outliers?state=Bihar",
+    ]
+    for route in protected_intelligence_routes:
+        status, _ = call("GET", route)
+        check(f"{route.split('?')[0]} denies unauthenticated request", status == 401, f"got {status}")
+        status, _ = call("GET", route, citizen)
+        check(f"{route.split('?')[0]} denies non-analyst role", status == 403, f"got {status}")
 
     # ── read-only guarantee ────────────────────────────────────────
     db.expire_all()

@@ -53,7 +53,7 @@ function NavRow({ icon, label, href, active, onNavigate, collapsed, badge, onCli
         `}
     >
       {active && (
-        <span className="fade-in-200 absolute right-0 top-1/2 h-8 w-1 -translate-y-1/2 rounded-l bg-[#c8102e] dark:bg-[#d33b62]" aria-hidden="true" />
+        <span className="nav-active-indicator fade-in-200 absolute right-0 top-1/2 h-8 w-1 -translate-y-1/2 rounded-l bg-[#c8102e] dark:bg-[#d33b62]" aria-hidden="true" />
       )}
       <span className={ICON_COL}>
         <IconFor icon={icon} />
@@ -100,6 +100,7 @@ function Sidebar({
   isOpen,
   onClose,
   onSupportClick,
+  simpleMode = false,
 }) {
   const { user, hasRole, can } = useAuth()
   // Auto-hiding scrollbar: a container-level class on the scroll element
@@ -187,10 +188,48 @@ function Sidebar({
     workspaceNav.push({ name: "Data Management", href: "Data Management", icon: "database" })
   }
 
+  if (simpleMode) {
+    const essential = mainNav.filter((item) => ["Overview", "Projects", "Risk Center", "Reports"].includes(item.name))
+    const advanced = [
+      ...mainNav.filter((item) => !essential.includes(item)),
+      ...auditNav,
+      ...vendorNav,
+      ...workspaceNav.map((item) => ({ ...item, name: item.name })),
+      ...bottomNav.filter((item) => !["Settings", "Support", "FAQ"].includes(item.label)).map((item) => ({ name: item.label, href: item.href, icon: item.icon })),
+    ]
+    const simpleBottomNav = bottomNav.filter((item) => ["Settings", "Support", "FAQ"].includes(item.label)).map((item) => ({ ...item, name: item.label }))
+    const rows = (items) => items.map((item) => <NavRow key={item.name} icon={item.icon} label={item.name} href={item.href} active={currentPage === item.href} onNavigate={onNavigate} badge={item.badge} collapsed={false} onClick={item.label === "Support" ? onSupportClick : undefined} />)
+    const compactNav = (
+      <div className="flex flex-col gap-1">
+        <div className="mb-2 rounded-lg border border-[#e8dadc] bg-white px-3 py-2 text-xs text-[#71666a] dark:border-[#351923] dark:bg-[#0d090b] dark:text-[#b9aeb2]">Simple Mode · Key information at a glance</div>
+        {rows(essential)}
+        <details className="group mt-1" open={advanced.some((item) => currentPage === item.href)}>
+          <summary className="flex h-11 cursor-pointer list-none items-center gap-3 rounded-sm px-3 text-sm font-semibold text-[#71666a] hover:bg-[#f8f1f1] dark:text-[#d8ced1] dark:hover:bg-[#210a12]">
+            <span className={ICON_COL} aria-hidden="true">＋</span><span>More / Advanced</span>
+          </summary>
+          <div className="ml-3 flex flex-col gap-1 border-l border-[#e8dadc] pl-2 dark:border-[#351923]">{rows(advanced)}</div>
+        </details>
+        <div className="mt-2 flex flex-col gap-1 border-t border-[#e8dadc] pt-2 dark:border-[#351923]">
+          {rows(simpleBottomNav)}
+        </div>
+      </div>
+    )
+    if (isMobile) {
+      return <aside className={`fixed left-0 top-0 z-[60] flex h-screen min-h-0 w-64 flex-col border-r border-[#e8dadc] bg-[#faf7f6] px-4 text-[#292326] transition-transform duration-250 ease-in-out dark:border-[#351923] dark:bg-[#000000] dark:text-[#f5eff1] ${isOpen ? "translate-x-0" : "-translate-x-full"}`}>
+        <div className="flex items-center gap-3 pb-4 pt-1"><div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#292326] text-lg text-white dark:bg-[#351923]">🏛</div><div><h1 className="text-lg font-bold">MPLADS Insight</h1><p className="text-xs text-[#71666a] dark:text-[#b9aeb2]">Auditor Portal</p></div></div>
+        <nav ref={navRef} className="sidebar-scroll min-h-0 flex-1 overflow-y-auto overflow-x-hidden pb-2">{compactNav}</nav>
+      </aside>
+    }
+    return <aside className={`fixed left-0 top-0 z-30 hidden h-screen min-h-0 w-60 flex-col border-r border-[#e8dadc] bg-[#faf7f6] px-4 text-[#292326] dark:border-[#351923] dark:bg-[#000000] dark:text-[#f5eff1] lg:flex`}>
+      <div className="flex items-center gap-3 pb-4 pt-1"><div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#292326] text-lg text-white dark:bg-[#351923]">🏛</div><div><h1 className="text-lg font-bold">MPLADS Insight</h1><p className="text-xs text-[#71666a] dark:text-[#b9aeb2]">Auditor Portal</p></div></div>
+      <nav ref={navRef} className="sidebar-scroll min-h-0 flex-1 overflow-y-auto overflow-x-hidden pb-2">{compactNav}</nav>
+    </aside>
+  }
+
   if (isMobile) {
     return (
       <>
-        <aside className={`fixed left-0 top-0 z-[60] flex h-screen min-h-0 w-64 flex-col border-r border-[#e8dadc] bg-[#faf7f6] text-[#292326] dark:border-[#351923] dark:bg-[#000000] dark:text-[#f5eff1] transition-transform duration-300 ease-in-out px-4 ${isOpen ? "translate-x-0" : "-translate-x-full"}`}>
+        <aside className={`fixed left-0 top-0 z-[60] flex h-screen min-h-0 w-64 flex-col border-r border-[#e8dadc] bg-[#faf7f6] text-[#292326] dark:border-[#351923] dark:bg-[#000000] dark:text-[#f5eff1] transition-transform duration-250 ease-in-out px-4 ${isOpen ? "translate-x-0" : "-translate-x-full"}`}>
           <div className="flex min-w-0 flex-none items-center gap-3 pb-4 pt-1">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#292326] text-lg leading-none text-white dark:bg-[#351923]">🏛</div>
             <div className="min-w-0 overflow-hidden">
@@ -222,10 +261,10 @@ function Sidebar({
   }
 
   return (
-    <aside className={`fixed left-0 top-0 z-30 hidden h-screen min-h-0 flex-col border-r border-[#e8dadc] bg-[#faf7f6] text-[#292326] dark:border-[#351923] dark:bg-[#000000] dark:text-[#f5eff1] transition-all duration-300 ease-in-out lg:flex ${collapsed ? "w-16 px-2" : "w-60 px-4"}`}>
+    <aside className={`fixed left-0 top-0 z-30 hidden h-screen min-h-0 flex-col border-r border-[#e8dadc] bg-[#faf7f6] text-[#292326] dark:border-[#351923] dark:bg-[#000000] dark:text-[#f5eff1] transition-all duration-220 ease-in-out lg:flex ${collapsed ? "w-16 px-2" : "w-60 px-4"}`}>
       <div className={`flex min-w-0 flex-none items-center pb-4 pt-1 ${collapsed ? "justify-center gap-0" : "gap-3"}`}>
         <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#292326] text-lg leading-none text-white dark:bg-[#351923]">🏛</div>
-        <div className={`overflow-hidden transition-all duration-300 ${collapsed ? "w-0 opacity-0" : "w-auto opacity-100"}`}>
+        <div className={`overflow-hidden transition-all duration-220 ${collapsed ? "w-0 opacity-0" : "w-auto opacity-100"}`}>
           <h1 className="whitespace-nowrap text-lg font-bold text-[#292326] dark:text-[#f5eff1]">MPLADS Insight</h1>
           <p className="whitespace-nowrap text-xs text-[#71666a] dark:text-[#b9aeb2]">Auditor Portal</p>
         </div>

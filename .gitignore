@@ -6,6 +6,9 @@ frontend/.env
 .freebuff/
 __pycache__/
 *.pyc
+*.db
+*.sqlite
+*.sqlite3
 *.db-shm
 *.db-wal
 *.db-journal
@@ -13,6 +16,7 @@ __pycache__/
 # Temporary DB backups (local safety copies only — never commit; the live
 # backend/mplads.db is intentionally tracked via Git LFS)
 *backup*.db
+backend/data/backups/
 
 # Admin CSV import staging (uploaded files are never committed)
 backend/data/imports/

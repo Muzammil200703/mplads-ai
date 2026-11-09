@@ -1,8 +1,7 @@
-import { lazy, Suspense, useEffect, useState, memo } from "react"
+import { lazy, Suspense, useCallback, useEffect, useState, memo } from "react"
 import {
   getDashboardOverview,
   getDashboardStates,
-  getAnomaliesSummary,
   getEarlyWarning,
   getDashboardHouse,
   healthCheck,
@@ -20,6 +19,7 @@ const GeographicDistribution = lazy(
 
 const Overview = memo(function Overview({
   darkMode,
+  simpleMode = false,
   onDrillDown,
   fy,
   house: houseProp,
@@ -27,10 +27,6 @@ const Overview = memo(function Overview({
 }) {
   const [overview, setOverview] = useState(null)
   const [stateData, setStateData] = useState([])
-  // The anomaly summary request is still issued on load (the metrics remain
-  // part of the page's data set); its value is no longer rendered here since
-  // the High-Risk Anomalies KPI card was removed from this page.
-  const [, setAnomaliesSummary] = useState(null)
   const [earlyWarning, setEarlyWarning] = useState(null)
   const [ewExpanded, setEwExpanded] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -46,15 +42,15 @@ const Overview = memo(function Overview({
 
   // Official eSAKSHI-style per-house dashboard (metric definitions mirror the
   // official MPLADS dashboard; backend derives everything from the ledgers).
-  // `house` also scopes the page-level portfolio cards, anomalies summary and
+  // `house` also scopes the page-level portfolio cards and
   // early-warning panels — one selector, one consistent snapshot everywhere.
   // "All" is the unfiltered portfolio (no house constraint anywhere).
   const [localHouse, setLocalHouse] = useState("All")
   const house = houseProp || localHouse || "All"
-  const setHouse = (next) => {
+  const setHouse = useCallback((next) => {
     setLocalHouse(next)
     if (onHouseChange) onHouseChange(next)
-  }
+  }, [onHouseChange])
   const [houseStats, setHouseStats] = useState(null)
   useEffect(() => {
     let cancelled = false
@@ -68,21 +64,29 @@ const Overview = memo(function Overview({
   }, [house, fy])
 
   useEffect(() => {
+    let cancelled = false
     async function loadData() {
       try {
         setLoading(true)
         setError("")
         setOverviewMissing(false)
+        setEarlyWarning(null)
 
         const fyParams = fy ? { fy } : {}
         const houseParam = house !== "All" ? { house } : {}
-        const [healthRes, ovRes, statesRes, anomRes, ewRes] = await Promise.allSettled([
+        // This aggregate is intentionally secondary to the initial portfolio
+        // cards. Fetch it in parallel, then allow the primary dashboard data
+        // to paint without waiting for the slower alert analysis.
+        getEarlyWarning({ ...fyParams, ...houseParam })
+          .then((data) => { if (!cancelled) setEarlyWarning(data) })
+          .catch(() => {})
+
+        const [healthRes, ovRes, statesRes] = await Promise.allSettled([
           healthCheck(),
           getDashboardOverview({ ...fyParams, ...houseParam }),
           getDashboardStates({ ...fyParams, ...houseParam }),
-          getAnomaliesSummary({ ...fyParams, ...houseParam }),
-          getEarlyWarning({ ...fyParams, ...houseParam }),
         ])
+        if (cancelled) return
 
         const projectCount = healthRes.status === "fulfilled"
           ? Number(healthRes.value?.total_projects || 0)
@@ -134,14 +138,6 @@ const Overview = memo(function Overview({
           setStateData(statesRes.value)
         }
 
-        if (anomRes.status === "fulfilled") {
-          setAnomaliesSummary(anomRes.value)
-        }
-
-        if (ewRes.status === "fulfilled") {
-          setEarlyWarning(ewRes.value)
-        }
-
         // Connectivity is NOT decided here anymore. The old logic flipped a
         // page-local "unreachable" flag whenever health (or overview+states)
         // failed — even while sibling requests succeeded — and never cleared
@@ -151,46 +147,46 @@ const Overview = memo(function Overview({
         // success exists (race-guarded). The red banner below renders purely
         // from that shared state, so a wake-up clears it automatically.
       } catch (err) {
+        if (cancelled) return
         console.error("Overview error:", err)
         setError("Error loading dashboard metrics.")
       } finally {
-        setLoading(false)
+        if (!cancelled) setLoading(false)
       }
     }
 
     loadData()
+    return () => { cancelled = true }
   }, [fy, house])
 
   // Assistant control plane: "refresh data" replays the page's own load
   // cycle — no parallel fetch path.
   useEffect(() => {
+    let cancelled = false
     const handler = () => {
       async function reload() {
-        try {
-          setLoading(true)
-          const fyParams = fy ? { fy } : {}
-          const houseParam = house !== "All" ? { house } : {}
-          const ovRes = await getDashboardOverview({ ...fyParams, ...houseParam })
-          if (ovRes && ovRes.total_projects != null) {
-            setOverview(ovRes)
-            setOverviewMissing(false)
-          }
-          const statesRes = await getDashboardStates({ ...fyParams, ...houseParam })
-          if (Array.isArray(statesRes)) setStateData(statesRes)
-          const anomRes = await getAnomaliesSummary({ ...fyParams, ...houseParam })
-          if (anomRes) setAnomaliesSummary(anomRes)
-          const ewRes = await getEarlyWarning({ ...fyParams, ...houseParam })
-          if (ewRes) setEarlyWarning(ewRes)
-        } catch {
-          // Failures surface through the normal error banners on next load.
-        } finally {
-          setLoading(false)
+        const fyParams = fy ? { fy } : {}
+        const houseParam = house !== "All" ? { house } : {}
+        const [ovRes, statesRes, ewRes] = await Promise.allSettled([
+          getDashboardOverview({ ...fyParams, ...houseParam }),
+          getDashboardStates({ ...fyParams, ...houseParam }),
+          getEarlyWarning({ ...fyParams, ...houseParam }),
+        ])
+        if (cancelled) return
+        if (ovRes.status === "fulfilled" && ovRes.value?.total_projects != null) {
+          setOverview(ovRes.value)
+          setOverviewMissing(false)
         }
+        if (statesRes.status === "fulfilled" && Array.isArray(statesRes.value)) setStateData(statesRes.value)
+        if (ewRes.status === "fulfilled") setEarlyWarning(ewRes.value)
       }
       reload()
     }
     window.addEventListener("assistant:refresh-data", handler)
-    return () => window.removeEventListener("assistant:refresh-data", handler)
+    return () => {
+      cancelled = true
+      window.removeEventListener("assistant:refresh-data", handler)
+    }
   }, [fy, house])
 
   const pageClasses = darkMode
@@ -248,7 +244,7 @@ const Overview = memo(function Overview({
       <div className="mb-4 sm:mb-6">
         <h1 className="text-xl sm:text-2xl md:text-3xl font-bold">Executive Overview</h1>
         <p className={`mt-1 sm:mt-2 text-sm sm:text-base ${mutedText}`}>
-          AI-driven monitoring of MPLADS allocations, physical progress, and financial anomalies.
+          {simpleMode ? "A clear summary of funds, projects, progress, and important alerts." : "AI-driven monitoring of MPLADS allocations, physical progress, and financial anomalies."}
         </p>
       </div>
 
@@ -263,7 +259,7 @@ const Overview = memo(function Overview({
               🏛 House Dashboard
             </h3>
             <p className={`mt-0.5 text-xs ${mutedText}`}>
-              Official eSAKSHI metric set, computed from the imported dataset snapshot.
+              {simpleMode ? `Key fund and project figures · ${house === "All" ? "All Houses" : house}` : "Official eSAKSHI metric set, computed from the imported dataset snapshot."}
             </p>
           </div>
           <div className="flex max-w-full items-center gap-1 self-start rounded-lg border border-gray-200 p-1 dark:border-gray-700">
@@ -289,6 +285,7 @@ const Overview = memo(function Overview({
             <div className="grid grid-cols-1 min-[400px]:grid-cols-2 gap-3 md:grid-cols-4">
               {[
                 { label: "Total Allocated", num: `₹${formatCrore(houseStats.total_allocated)}`, unit: "Cr", sub: "Total funds allocated to MPs" },
+                { label: "Total Projects", num: formatNumber(overview?.total_projects), unit: "", sub: "Projects in the selected portfolio" },
                 { label: "Total Expenditure", num: `₹${formatCrore(houseStats.total_expenditure)}`, unit: "Cr", sub: houseStats.expenditure_transactions != null ? `Vendor payments · ${formatNumber(houseStats.expenditure_transactions)} transactions` : "Vendor payments recorded" },
                 { label: "Fund Utilization", num: `${houseStats.fund_utilization_percentage}`, unit: "%", sub: "Share of allocation recommended by MPs" },
                 { label: "Expenditure Rate", num: `${houseStats.expenditure_rate_percentage}`, unit: "%", sub: "Vendor expenditure as a share of allocation" },
@@ -297,9 +294,9 @@ const Overview = memo(function Overview({
                 { label: "Works Pending", num: formatNumber(houseStats.works_pending), unit: "", sub: "Recommended works not yet in the completions ledger" },
                 { label: "Ongoing-Work Payments", num: `₹${formatCrore(houseStats.ongoing_work_payments)}`, unit: "Cr", sub: "Vendor payments linked to works not yet marked complete" },
                 { label: "Total Project Amount", num: houseStats.total_project_amount != null ? `₹${formatCrore(houseStats.total_project_amount)}` : "—", unit: houseStats.total_project_amount != null ? "Cr" : "", sub: "Sanctioned amounts across monitored works" },
-              ].map((m) => (
+              ].filter((m) => !simpleMode || ["Total Allocated", "Total Expenditure", "Fund Utilization", "Total Projects", "Works Completed", "Works Pending"].includes(m.label)).map((m) => (
                 <div key={m.label} className="flex min-w-0 flex-col rounded-lg border border-gray-100 bg-white/60 p-3 dark:border-gray-700/60 dark:bg-white/5">
-                  <p className="text-[0.625rem] font-bold uppercase tracking-wider text-gray-400">{m.label}</p>
+                  <p className="text-[0.625rem] font-bold uppercase tracking-wider text-gray-400">{simpleMode && m.label === "Works Completed" ? "Completed Projects" : simpleMode && m.label === "Works Pending" ? "Pending Projects" : m.label}</p>
                   {/* Value line: currency/percentage figures stay on one line
                       (monospaced, tabular numerals); the scale unit renders as
                       a small suffix instead of a wrapped fragment. */}
@@ -311,7 +308,7 @@ const Overview = memo(function Overview({
                       </span>
                     )}
                   </p>
-                  <p className="mt-0.5 text-[0.625rem] leading-snug text-gray-400">{m.sub}</p>
+                  {!simpleMode && <p className="mt-0.5 text-[0.625rem] leading-snug text-gray-400">{m.sub}</p>}
                 </div>
               ))}
             </div>
@@ -329,6 +326,28 @@ const Overview = memo(function Overview({
           <p className={`text-xs ${mutedText}`}>House metrics could not be loaded.</p>
         )}
       </div>
+
+      {simpleMode && (
+        <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className={`rounded-xl border p-4 shadow-sm ${cardClasses}`}>
+            <p className={`text-sm font-semibold ${mutedText}`}>High-risk projects</p>
+            <p className="mt-1 text-2xl font-bold text-red-600 dark:text-red-400">
+              {earlyWarning ? formatNumber(Number(earlyWarning.bands?.critical) || 0) : "—"}
+            </p>
+            <p className={`mt-1 text-xs ${mutedText}`}>Projects that may need attention</p>
+          </div>
+          <div className={`rounded-xl border p-4 shadow-sm ${cardClasses}`}>
+            <p className={`text-sm font-semibold ${mutedText}`}>Important alerts</p>
+            {earlyWarning?.hot_states?.some((item) => Number(item.flagged) > 0) ? (
+              <ul className="mt-2 space-y-1.5 text-sm">
+                {earlyWarning.hot_states.filter((item) => Number(item.flagged) > 0).slice(0, 3).map((item) => (
+                  <li key={item.state} className="flex items-center justify-between gap-3"><span className="truncate">{item.state}</span><span className="shrink-0 font-semibold text-amber-700 dark:text-amber-300">{formatNumber(item.flagged)} flagged</span></li>
+                ))}
+              </ul>
+            ) : <p className={`mt-2 text-sm ${mutedText}`}>{earlyWarning ? "No important alerts for this view." : "Alerts are loading."}</p>}
+          </div>
+        </div>
+      )}
 
       {/* ERROR NOTICE — two distinct failure classes, never conflated:
           1) GLOBAL BACKEND UNREACHABLE — the shared transport confirms every
@@ -363,7 +382,7 @@ const Overview = memo(function Overview({
       )}
 
       {/* EARLY WARNING SUMMARY — derived from the risk engine + recorded fields */}
-      {earlyWarning && (
+      {!simpleMode && earlyWarning && (
         <div className={`mb-7 rounded-xl border p-5 shadow-sm ${cardClasses}`}>
           <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div>
@@ -495,7 +514,7 @@ const Overview = memo(function Overview({
           reuses the House Dashboard's existing house selection (no duplicate
           House control) and its own aggregation request fires only when the
           House or FY scope changes. */}
-      <Suspense
+      {!simpleMode && <Suspense
         fallback={
           <div
             className={`mt-6 h-64 animate-pulse rounded-xl border ${cardClasses}`}
@@ -509,10 +528,10 @@ const Overview = memo(function Overview({
           fy={fy}
           onDrillDown={onDrillDown}
         />
-      </Suspense>
+      </Suspense>}
 
       {/* STATE INTENSITY & REGIONAL ANALYSIS */}
-      <div className="mt-6 grid grid-cols-1 gap-4 sm:gap-5 xl:grid-cols-12">
+      {!simpleMode && <div className="mt-6 grid grid-cols-1 gap-4 sm:gap-5 xl:grid-cols-12">
         {/* REGIONAL BREAKDOWN */}
         <div className={`rounded-xl border p-5 sm:p-6 shadow-sm xl:col-span-8 ${cardClasses}`}>
           <div className="mb-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-gray-100 pb-3 dark:border-gray-700/60">
@@ -656,7 +675,7 @@ const Overview = memo(function Overview({
             </p>
           </div>
         </div>
-      </div>
+      </div>}
 
     </div>
   )

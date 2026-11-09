@@ -769,6 +769,15 @@ def _scan(
 
     counts = {"total": 0, "valid": 0, "new": 0, "update": 0, "unchanged": 0,
               "duplicate": 0, "rejected": 0}
+    # Official eSAKSHI ledgers are partitioned by source so legacy
+    # github_legacy rows are never double-counted with the current export.
+    # Rows inserted from an uploaded eSAKSHI CSV must join that partition,
+    # otherwise the dashboards (which read source='esakshi') omit them.
+    insert_source = (
+        "esakshi"
+        if spec["table"] in ("recommended_works", "completed_works")
+        else None
+    )
     issues: List[Dict[str, Any]] = []
     duplicate_examples: List[Dict[str, Any]] = []
     issue_count = 0
@@ -853,7 +862,8 @@ def _scan(
             if action == "new":
                 counts["new"] += 1
                 if apply:
-                    obj = spec["model"](**vals)
+                    obj = (spec["model"](**vals) if insert_source is None
+                           else spec["model"](source=insert_source, **vals))
                     db.add(obj)
                     inserted_rows.append(obj)
                     if len(inserted_rows) >= 1000:
@@ -886,7 +896,8 @@ def _scan(
         if existing is None:
             counts["new"] += 1
             if apply:
-                obj = spec["model"](**vals)
+                obj = (spec["model"](**vals) if insert_source is None
+                       else spec["model"](source=insert_source, **vals))
                 db.add(obj)
                 inserted_rows.append(obj)
                 if len(inserted_rows) >= 1000:

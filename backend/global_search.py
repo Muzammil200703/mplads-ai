@@ -1,8 +1,9 @@
 """Unified record search for the global command palette.
 
 One bounded, read-only endpoint backs every record lookup in the palette:
-projects, MPs, vendors, constituencies, states and investigations. Pages and
-quick actions are resolved client-side from the application's own page
+projects, MPs, vendors, constituencies, districts, states, investigations,
+anomalies, audit findings, recorded changes, imports and report types. Pages
+and quick actions are resolved client-side from the application's own page
 registry, so this module never duplicates navigation.
 
 Performance / correctness notes
@@ -54,11 +55,25 @@ DESTINATIONS = {
 }
 
 SEARCH_TYPES = (
-    "projects", "mps", "vendors", "constituencies", "states", "investigations",
-    "expenditures", "completed_works", "findings", "batches", "changes",
+    "projects", "mps", "vendors", "constituencies", "districts", "states",
+    "investigations", "expenditures", "completed_works", "findings",
+    "anomalies", "batches", "changes", "reports",
 )
 
-PROJECT_COLUMNS = "id, project_name, state, constituency, house, status, completion_percentage"
+PROJECT_COLUMNS = (
+    "id, project_name, state, district, constituency, house, status, "
+    "completion_percentage"
+)
+
+# Reports are UI capabilities, not database rows. These are the exact report
+# types the existing Reports page can export; a palette hit opens that page
+# with the type preselected (Reports consumes drillDownParams.report_type).
+REPORTS = (
+    ("Project Audit Report", "Project-level audit dataset · CSV or JSON"),
+    ("Anomaly Summary Report", "Risk-scored anomalies · CSV or JSON"),
+    ("Regional Risk Report", "State and constituency risk view · CSV or JSON"),
+    ("Financial Utilization Report", "Allocation, expenditure and utilization · CSV or JSON"),
+)
 
 # Small response cache: typing then deleting a character replays the same
 # query, and the palette is debounced but still chatty.
@@ -67,7 +82,7 @@ _CACHE_TTL = 30.0
 _CACHE_MAX = 64
 
 # Geo aggregates are the only full-table GROUP BYs here.
-_GEO: Dict[str, Any] = {"at": 0.0, "states": [], "constituencies": []}
+_GEO: Dict[str, Any] = {"at": 0.0, "states": [], "constituencies": [], "districts": []}
 _GEO_TTL = 300.0
 
 
@@ -166,9 +181,22 @@ def _geo(db: Session) -> Dict[str, Any]:
                 GROUP BY constituency, state
             """)).all()
         ]
+        districts = [
+            dict(r._mapping) for r in db.execute(text("""
+                SELECT district, state, COUNT(*) AS n
+                FROM projects
+                WHERE district IS NOT NULL AND district != ''
+                GROUP BY district, state
+            """)).all()
+        ]
     except Exception:
-        states, constituencies = [], []
-    _GEO.update({"at": time.time(), "states": states, "constituencies": constituencies})
+        states, constituencies, districts = [], [], []
+    _GEO.update({
+        "at": time.time(),
+        "states": states,
+        "constituencies": constituencies,
+        "districts": districts,
+    })
     return _GEO
 
 
@@ -176,7 +204,7 @@ def _geo(db: Session) -> Dict[str, Any]:
 
 def _project_row(row) -> Optional[dict]:
     m = row._mapping
-    bits = [m["state"], m["house"] or "House unattributed"]
+    bits = [m["state"], m["district"], m["house"] or "House unattributed"]
     if m["completion_percentage"] is not None:
         bits.append(f"{float(m['completion_percentage']):.0f}% complete")
     if m["status"]:
@@ -230,14 +258,15 @@ def _search_projects(db: Session, q: str, limit: int, house: Optional[str]) -> L
     if len(results) < limit:
         collect(db.execute(text(f"""
             SELECT {PROJECT_COLUMNS} FROM projects
-            WHERE (state = :raw OR constituency = :raw) {house_sql}
+            WHERE (state = :raw OR district = :raw OR constituency = :raw
+                   OR project_type = :raw OR status = :raw OR fy = :raw) {house_sql}
             ORDER BY id
             LIMIT :lim
         """), base).all())
 
-    # 2. State / constituency quite often IS the query (“telangana”). The geo
-    #    aggregates are already in memory, so resolve the name there and then
-    #    hit the indexed equality instead of scanning 83k rows for a LIKE.
+    # 2. State / constituency / district quite often IS the query (“telangana”).
+    #    The geo aggregates are already in memory, so resolve the name there and
+    #    then hit the indexed equality instead of scanning 83k rows for a LIKE.
     if len(results) < limit:
         geo = _geo(db)
         ql = q.lower()
@@ -246,20 +275,27 @@ def _search_projects(db: Session, q: str, limit: int, house: Optional[str]) -> L
             r["constituency"] for r in geo["constituencies"]
             if ql in str(r["constituency"]).lower()
         ][:4]
-        if state_hits or constituency_hits:
+        district_hits = [
+            r["district"] for r in geo["districts"]
+            if ql in str(r["district"]).lower()
+        ][:4]
+        if state_hits or constituency_hits or district_hits:
             stmt = text(f"""
                 SELECT {PROJECT_COLUMNS} FROM projects
-                WHERE (state IN :states OR constituency IN :constituencies) {house_sql}
+                WHERE (state IN :states OR constituency IN :constituencies
+                       OR district IN :districts) {house_sql}
                 ORDER BY id
                 LIMIT :lim
             """).bindparams(
                 bindparam("states", expanding=True),
                 bindparam("constituencies", expanding=True),
+                bindparam("districts", expanding=True),
             )
             collect(db.execute(stmt, {
                 **base,
                 "states": state_hits or [""],
                 "constituencies": constituency_hits or [""],
+                "districts": district_hits or [""],
             }).all())
 
     # 3. Name substring (single column, bounded by LIMIT).
@@ -466,6 +502,36 @@ def _search_states(db: Session, q: str, limit: int) -> List[dict]:
     return [built for built in (build(row) for row in hits[:limit]) if built["destination"]]
 
 
+def _search_districts(db: Session, q: str, limit: int) -> List[dict]:
+    rows = _geo(db)["districts"]
+    ql = q.lower()
+
+    def build(row) -> dict:
+        return {
+            "type": "district",
+            "id": f"district:{row['district']}|{row.get('state') or ''}",
+            "record_id": row["district"],
+            "title": row["district"],
+            "subtitle": f"{row.get('state') or 'State unknown'} · {int(row['n']):,} projects",
+            "meta": None,
+            "destination": _destination(
+                "Projects",
+                state=row.get("state"),
+                keyword=row["district"],
+            ),
+        }
+
+    hits = [row for row in rows if ql in str(row["district"]).lower()]
+    hits.sort(key=lambda r: (0 if str(r["district"]).lower().startswith(ql) else 1, -int(r["n"] or 0)))
+
+    if len(hits) < limit and len(q) >= 4:
+        remaining = [row for row in rows if row not in hits]
+        for match in _fuzzy_rows(q, remaining, "district", limit - len(hits)):
+            hits.append(match)
+
+    return [built for built in (build(row) for row in hits[:limit]) if built["destination"]]
+
+
 # ── Investigations (private + auditor-scoped) ────────────────────────────
 
 def _search_investigations(
@@ -586,7 +652,7 @@ def _search_expenditures(db: Session, q: str, limit: int, user) -> List[dict]:
             "record_id": m["id"],
             "title": m["work_description"] or (f"Payment to {vendor}" if vendor else f"Payment #{m['id']}"),
             "subtitle": " · ".join(
-                [b for b in [vendor or "Vendor not recorded", m["state"], m["expenditure_date"]] if b]
+                [b for b in [vendor or "Vendor not recorded", m["state"], (m["expenditure_date"] or "")[:10] or None] if b]
             ),
             "meta": _money(m["expenditure_amount"]),
             "destination": dest,
@@ -616,10 +682,11 @@ def _search_completed_works(db: Session, q: str, limit: int, house: Optional[str
     out: List[dict] = []
     for row in rows:
         m = row._mapping
-        dest = (
-            _destination("Projects", projectId=m["work_id"])
-            if m["work_id"] else _destination("Projects", state=m["state"], constituency=m["constituency"])
-        )
+        # completed_works.work_id is an eSAKSHI work identifier, NOT a
+        # projects.id. Opening it as a project id produces a 404. The honest
+        # destination is the existing Projects list scoped to the recorded
+        # state/constituency.
+        dest = _destination("Projects", state=m["state"], constituency=m["constituency"])
         if not dest:
             continue
         out.append({
@@ -628,7 +695,7 @@ def _search_completed_works(db: Session, q: str, limit: int, house: Optional[str
             "record_id": m["id"],
             "title": m["work_description"] or f"Completed work {m['id']}",
             "subtitle": " · ".join(
-                [b for b in ["Completed", m["state"], m["completed_date"]] if b]
+                [b for b in ["Completed", m["state"], (m["completed_date"] or "")[:10] or None] if b]
             ),
             "meta": _money(m["final_amount"]),
             "destination": dest,
@@ -739,12 +806,159 @@ def _search_changes(db: Session, q: str, limit: int, user) -> List[dict]:
     return out
 
 
+# ── Risk anomalies (Risk Center records) ────────────────────────────────
+
+ANOMALY_SELECT = """
+    SELECT p.id, p.project_name, p.state, p.district, p.constituency, p.house,
+           rs.risk_level, rs.risk_score, rs.ml_anomaly
+    FROM projects p
+    JOIN risk_scores rs ON rs.project_id = p.id
+"""
+
+
+def _anomaly_row(m) -> dict:
+    bits: List[str] = []
+    if m["risk_level"]:
+        bits.append(f"{m['risk_level']} risk")
+    if m["risk_score"] is not None:
+        bits.append(f"{int(m['risk_score'])}/100")
+    if m["ml_anomaly"]:
+        bits.append("ML anomaly")
+    bits.extend([b for b in [m["state"], m["district"], m["house"]] if b])
+    return {
+        "type": "anomaly",
+        "id": f"anomaly:{m['id']}",
+        "record_id": m["id"],
+        "title": m["project_name"] or f"Project {m['id']}",
+        "subtitle": " · ".join(bits),
+        "meta": f"#{m['id']}",
+        # Open the existing project drawer, which already carries the risk
+        # explanation; the record itself is a Risk Center anomaly.
+        "destination": _destination("Projects", projectId=m["id"]),
+    }
+
+
+def _search_anomalies(
+    db: Session, q: str, limit: int, house: Optional[str],
+) -> List[dict]:
+    """Anomaly records from the existing risk pipeline.
+
+    Only rows the Risk Center classifies as anomalous are returned: ML
+    outliers and High-risk works. Three bounded passes are used (name prefix /
+    exact id, exact geography, then a capped top-anomaly pool for partial and
+    typo matches) so a common term never becomes a full-table scan.
+    """
+    house_sql = " AND p.house = :house" if house else ""
+    params: Dict[str, Any] = {
+        "lim": max(limit * 4, 24),
+        "raw": q,
+        "pre": q + "%",
+    }
+    if house:
+        params["house"] = house
+
+    results: List[dict] = []
+    seen: set = set()
+
+    def add(rows) -> None:
+        for row in rows:
+            m = row._mapping
+            if m["id"] in seen:
+                continue
+            seen.add(m["id"])
+            results.append(_anomaly_row(m))
+
+    condition = "(rs.ml_anomaly = 1 OR rs.risk_level = 'High')"
+    try:
+        add(db.execute(text(f"""
+            {ANOMALY_SELECT}
+            WHERE (p.project_name LIKE :pre ESCAPE '\\' OR CAST(p.id AS TEXT) = :raw)
+              AND {condition} {house_sql}
+            ORDER BY rs.risk_score DESC
+            LIMIT :lim
+        """), params).all())
+
+        if len(results) < limit:
+            add(db.execute(text(f"""
+                {ANOMALY_SELECT}
+                WHERE (p.state = :raw OR p.district = :raw OR p.constituency = :raw)
+                  AND {condition} {house_sql}
+                ORDER BY rs.risk_score DESC
+                LIMIT :lim
+            """), params).all())
+
+        if len(results) < limit and len(q) >= 4:
+            pool: List[dict] = []
+            pool_params = {"lim": 400}
+            if house:
+                pool_params["house"] = house
+            for risk_condition in ("rs.ml_anomaly = 1", "rs.risk_level = 'High'"):
+                pool.extend(
+                    dict(row._mapping) for row in db.execute(text(f"""
+                        {ANOMALY_SELECT}
+                        WHERE {risk_condition} {house_sql}
+                        ORDER BY rs.risk_score DESC
+                        LIMIT :lim
+                    """), pool_params).all()
+                )
+            ql = q.lower()
+            candidates = []
+            for match in pool:
+                blob = " ".join(
+                    str(match.get(key) or "")
+                    for key in ("project_name", "state", "district", "constituency")
+                ).lower()
+                ratio = _best_ratio(q, match.get("project_name"))
+                if ql in blob or ratio >= 0.8:
+                    candidates.append((1.0 if ql in blob else ratio, match))
+            candidates.sort(key=lambda pair: -pair[0])
+            for _, match in candidates:
+                if match["id"] in seen:
+                    continue
+                seen.add(match["id"])
+                results.append(_anomaly_row(match))
+                if len(results) >= limit:
+                    break
+    except Exception:  # an unavailable risk table must not break the palette
+        return results[:limit]
+
+    return results[:limit]
+
+
+# ── Reports (static capabilities of the existing Reports page) ──────────
+
+def _search_reports(q: str, limit: int) -> List[dict]:
+    ql = q.lower()
+    scored: List[tuple] = []
+    for title, description in REPORTS:
+        haystack = f"{title} {description}".lower()
+        exact = title.lower().startswith(ql)
+        if ql in haystack or exact or _best_ratio(q, title) >= 0.78:
+            scored.append((0 if exact else 1, title, description))
+    scored.sort(key=lambda row: row[0])
+    out: List[dict] = []
+    for _, title, description in scored[:limit]:
+        destination = _destination("Reports", report_type=title)
+        if not destination:
+            continue
+        out.append({
+            "type": "report",
+            "id": f"report:{title}",
+            "record_id": title,
+            "title": title,
+            "subtitle": description,
+            "meta": "Reports",
+            "destination": destination,
+        })
+    return out
+
+
 # ── Endpoint ─────────────────────────────────────────────────────────────
 
 @router.get("/global-search")
 def global_search(
-    q: str = Query("", max_length=120, description="Free-text query: name, ID, constituency or state"),
-    type: Optional[str] = Query(None, description="projects | mps | vendors | constituencies | states | investigations"),
+    q: str = Query("", max_length=120, description="Free-text query: name, ID, constituency, district or state"),
+    type: Optional[str] = Query(None, description="projects | mps | vendors | constituencies | districts | states | investigations | anomalies | findings | changes | reports"),
     limit: int = Query(6, ge=1, le=MAX_LIMIT),
     house: Optional[str] = Query(None, description="'Lok Sabha' / 'Rajya Sabha' — omitted for All"),
     user=Depends(auth.get_current_user),
@@ -787,13 +1001,16 @@ def global_search(
         ("mps", lambda: _search_mps(db, query, per_type, house_scope)),
         ("vendors", lambda: _search_vendors(db, query, per_type)),
         ("constituencies", lambda: _search_constituencies(db, query, per_type)),
+        ("districts", lambda: _search_districts(db, query, per_type)),
         ("states", lambda: _search_states(db, query, per_type)),
         ("investigations", lambda: _search_investigations(db, query, per_type, user, house_scope)),
         ("expenditures", lambda: _search_expenditures(db, query, per_type, user)),
         ("completed_works", lambda: _search_completed_works(db, query, per_type, house_scope)),
         ("findings", lambda: _search_findings(db, query, per_type, user)),
+        ("anomalies", lambda: _search_anomalies(db, query, per_type, house_scope)),
         ("batches", lambda: _search_batches(db, query, per_type, user)),
         ("changes", lambda: _search_changes(db, query, per_type, user)),
+        ("reports", lambda: _search_reports(query, per_type)),
     ]
 
     for name, run in searchers:

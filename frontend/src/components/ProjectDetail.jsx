@@ -285,6 +285,8 @@ function ProjectDetail({ projectId, onClose, initialTab }) {
   const [loading, setLoading] = useState(true)
   const [loadingSimilar, setLoadingSimilar] = useState(false)
   const [activeTab, setActiveTab] = useState("overview")
+  const [auditView, setAuditView] = useState("risk")
+  const [moreSection, setMoreSection] = useState("metadata")
   const [timeline, setTimeline] = useState(null)
   const [activity, setActivity] = useState(null)
   const [riskExplanation, setRiskExplanation] = useState(null)
@@ -335,8 +337,11 @@ function ProjectDetail({ projectId, onClose, initialTab }) {
     setSimilar(null)
     // Assistant tab deep-links: only allowlisted tab ids are honored; anything
     // else falls back to the default overview tab.
-    const ALLOWED_TABS = ["overview", "financial", "risk", "forensics", "audit", "timeline", "changes", "similar", "dna"]
-    setActiveTab(ALLOWED_TABS.includes(initialTab) ? initialTab : "overview")
+    const legacyTabs = new Set(["overview", "financial", "risk", "forensics", "audit", "timeline", "changes", "similar", "dna"])
+    const requestedTab = legacyTabs.has(initialTab) ? initialTab : "overview"
+    setAuditView(requestedTab === "audit" ? "audit" : "risk")
+    setMoreSection(["forensics", "changes", "similar", "dna"].includes(requestedTab) ? requestedTab : "metadata")
+    setActiveTab(["forensics", "changes", "similar", "dna"].includes(requestedTab) ? "more-details" : requestedTab === "audit" ? "risk" : requestedTab)
     setTimeline(null)
     setActivity(null)
     // The open global assistant follows this modal: switching projects
@@ -416,6 +421,7 @@ function ProjectDetail({ projectId, onClose, initialTab }) {
   const utilization = sanctioned > 0 ? (expenditure / sanctioned * 100) : 0
   const remaining = Math.max(0, sanctioned - expenditure)
   const discrepancy = utilization - completion
+  const hasLinkedExpenditure = proj.expenditure_status === "linked"
   const badges = getBadges(risk, proj)
   const recommendations = getAuditRecommendation(parsedReasons)
 
@@ -424,21 +430,27 @@ function ProjectDetail({ projectId, onClose, initialTab }) {
       className={`anim-overlay-in fixed inset-0 z-[80] flex items-start justify-center overflow-y-auto bg-black/50 p-3 backdrop-blur-2xs transition-opacity modal-shift-transition sm:p-6 ${closing ? "is-closing" : ""} ${assistantPanelOpen ? "modal-share-with-assistant" : ""}`}
       onClick={requestClose}
     >
-      <div data-mplads-modal-card className="anim-card-in relative my-auto w-full max-w-3xl rounded-2xl border border-[#e8dadc] bg-white p-5 text-gray-900 shadow-soft-lg sm:p-6 dark:border-[#351923] dark:bg-[#0d090b] dark:text-white" onClick={(e) => e.stopPropagation()}>
+      <div data-mplads-modal-card className="anim-card-in relative my-auto max-h-[92dvh] w-full max-w-5xl overflow-y-auto rounded-2xl border border-[#e8dadc] bg-white p-4 text-gray-900 shadow-soft-lg sm:p-6 lg:p-7 dark:border-[#351923] dark:bg-[#0d090b] dark:text-white" onClick={(e) => e.stopPropagation()}>
 
         {/* Header */}
-        <div className="flex items-start justify-between">
-          <div className="flex items-center gap-2">
-            <span className="rounded-sm bg-blue-100 px-2.5 py-1 font-mono text-xs font-bold text-blue-800 dark:bg-blue-900/60 dark:text-blue-200">#{proj.id}</span>
-            {proj.status && (
-              <span className={`rounded-sm px-2 py-0.5 text-xs font-bold ${
-                proj.status === "Completed" ? "bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-300"
-                : proj.status === "Ongoing" ? "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300"
-                : "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300"
-              }`}>{proj.status}</span>
-            )}
+        <div className="flex flex-col gap-3 border-b border-gray-200 pb-4 sm:flex-row sm:items-start sm:justify-between dark:border-gray-700">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="rounded-sm bg-blue-100 px-2.5 py-1 font-mono text-xs font-bold text-blue-800 dark:bg-blue-900/60 dark:text-blue-200">Project ID · #{proj.id}</span>
+              {proj.status && (
+                <span className={`rounded-full px-3 py-1 text-xs font-bold ${
+                  proj.status === "Completed" ? "bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-300"
+                  : proj.status === "Ongoing" ? "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300"
+                  : "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300"
+                }`}>{proj.status}</span>
+              )}
+            </div>
+            <h2 className="mt-3 break-words text-xl font-bold leading-snug sm:text-2xl">{proj.project_name || "Unnamed Project"}</h2>
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+              {[proj.state, proj.constituency, proj.project_type].filter(Boolean).join(" · ") || "Location and category unavailable"}
+            </p>
           </div>
-          <div className="flex flex-wrap items-center justify-end gap-2">
+          <div className="flex shrink-0 flex-wrap items-center gap-2 sm:justify-end">
             {/* Forensic + stress-test actions — hidden entirely for roles
                 without permissions (never rendered disabled). Analysts
                 (rank-based) and audit-capable roles get them. */}
@@ -461,17 +473,30 @@ function ProjectDetail({ projectId, onClose, initialTab }) {
               </>
             )}
             <SaveProjectButton projectId={proj.id} />
-            <button onClick={requestClose} className="rounded-lg p-1.5 text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700">✕</button>
+            <button onClick={requestClose} aria-label="Close project details" className="rounded-lg p-1.5 text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700">✕</button>
           </div>
         </div>
 
-        <h2 className="mt-3 text-lg font-bold leading-snug">{proj.project_name || "Unnamed Project"}</h2>
-
-        {/* Location */}
-        <div className="mt-2 grid grid-cols-2 gap-2">
-          <span className="text-xs text-gray-500">📍 {proj.state || "N/A"}</span>
-          <span className="text-xs text-gray-500">🏛 {proj.constituency || "N/A"}</span>
-        </div>
+        {/* Compact financial and completion summary */}
+        <section aria-label="Project summary" className="mt-4 grid grid-cols-1 divide-y divide-gray-200 rounded-xl border border-gray-200 bg-gray-50/70 px-3 sm:grid-cols-3 sm:divide-x sm:divide-y-0 dark:divide-gray-700 dark:border-gray-700 dark:bg-[#000000]">
+          <div className="min-w-0 py-3 sm:px-4">
+            <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Allocated Amount</p>
+            <p className="mt-0.5 truncate text-base font-bold tabular-nums">{proj.sanctioned_amount == null ? "Not recorded" : formatMoney(sanctioned)}</p>
+          </div>
+          <div className="min-w-0 py-3 sm:px-4">
+            <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Expenditure</p>
+            <p className="mt-0.5 truncate text-base font-bold tabular-nums">
+              {proj.expenditure_status === "linked" ? formatMoney(expenditure) : proj.expenditure_status === "ambiguous_shared_work" ? "Not allocated to this project" : "No linked records"}
+            </p>
+          </div>
+          <div className="min-w-0 py-3 sm:px-4">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Physical Completion</p>
+              <p className="text-base font-bold tabular-nums">{proj.completion_percentage == null ? "Not recorded" : `${completion}%`}</p>
+            </div>
+            {proj.completion_percentage != null && <div className="mt-2 h-2 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700"><div className="bar-fill h-full rounded-full bg-blue-600 dark:bg-blue-500" style={{ width: `${Math.max(0, Math.min(100, completion))}%` }} /></div>}
+          </div>
+        </section>
 
         {proj.data_quality_flag === "POSSIBLY_STALE" && (
           <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 dark:border-amber-900/60 dark:bg-amber-950/30">
@@ -495,30 +520,17 @@ function ProjectDetail({ projectId, onClose, initialTab }) {
           </div>
         )}
 
-        {/* Digital Audit Card — understand the project in seconds */}
-        <div className="mt-4">
-          <DigitalAuditCard
-            detail={detail}
-            investigation={investigation}
-            onStartInvestigation={() => { setActiveTab("audit"); setAuditSection("investigation") }}
-          />
-        </div>
-
         {/* Tabs */}
-        <div className="mt-5 flex flex-wrap gap-1 border-b border-gray-200 dark:border-gray-700">
+        <div role="tablist" aria-label="Project details sections" className="mt-5 flex min-w-0 gap-1 overflow-x-auto border-b border-gray-200 dark:border-gray-700">
           {[
             { id: "overview", label: "Overview" },
-            { id: "financial", label: "Financial" },
-            { id: "risk", label: "Risk & Audit" },
-            { id: "forensics", label: "AI Forensics" },
-            { id: "audit", label: "Investigate" },
+            { id: "financial", label: "Financials" },
             { id: "timeline", label: "Timeline" },
-            { id: "changes", label: "Change History" },
-            ...(similar?.similar_projects?.length > 0 ? [{ id: "similar", label: "Similar" }] : []),
-            { id: "dna", label: "🧬 DNA" },
+            { id: "risk", label: "Audit & Risk" },
+            { id: "more-details", label: "More Details" },
           ].map((tab) => (
-            <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-              className={`px-3 py-2 text-xs font-bold transition ${activeTab === tab.id ? "border-b-2 border-blue-600 text-blue-600 dark:text-blue-400" : "text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"}`}>
+            <button key={tab.id} type="button" role="tab" aria-selected={activeTab === tab.id} onClick={() => setActiveTab(tab.id)}
+              className={`shrink-0 whitespace-nowrap border-b-2 px-3 py-3 text-xs font-bold transition sm:px-4 ${activeTab === tab.id ? "border-[#c8102e] text-[#c8102e] dark:border-blue-400 dark:text-blue-300" : "border-transparent text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200"}`}>
               {tab.label}
             </button>
           ))}
@@ -526,35 +538,73 @@ function ProjectDetail({ projectId, onClose, initialTab }) {
 
         {/* Tab Content — keyed so each switch replays the subtle fade/slide-in */}
         <div key={activeTab} className="anim-panel-in mt-4 space-y-4">
+          {activeTab === "risk" && (
+            <div role="tablist" aria-label="Audit and risk views" className="flex w-full gap-1 overflow-x-auto rounded-lg border border-gray-200 bg-gray-50 p-1 dark:border-gray-700 dark:bg-[#000000]">
+              {[
+                { id: "risk", label: "Risk Overview" },
+                { id: "audit", label: "Audit Findings & Investigation" },
+              ].map((item) => (
+                <button key={item.id} type="button" role="tab" aria-selected={auditView === item.id} onClick={() => setAuditView(item.id)} className={`shrink-0 rounded-md px-3 py-2 text-xs font-semibold transition sm:px-4 ${auditView === item.id ? "bg-white text-[#c8102e] shadow-sm dark:bg-[#120b0e] dark:text-blue-300" : "text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200"}`}>
+                  {item.label}
+                </button>
+              ))}
+            </div>
+          )}
+          {activeTab === "more-details" && (
+            <div role="tablist" aria-label="More project details" className="flex w-full gap-1 overflow-x-auto border-b border-gray-200 dark:border-gray-700">
+              {[
+                { id: "metadata", label: "Technical Metadata" },
+                { id: "documents", label: "Documents & Evidence" },
+                { id: "changes", label: "Change History" },
+                { id: "forensics", label: "AI Forensics" },
+                { id: "similar", label: "Similar Projects" },
+                { id: "dna", label: "DNA Analysis" },
+              ].map((item) => (
+                <button key={item.id} type="button" role="tab" aria-selected={moreSection === item.id} onClick={() => setMoreSection(item.id)} className={`shrink-0 whitespace-nowrap border-b-2 px-3 py-2.5 text-xs font-semibold transition ${moreSection === item.id ? "border-[#c8102e] text-[#c8102e] dark:border-blue-400 dark:text-blue-300" : "border-transparent text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200"}`}>
+                  {item.label}
+                </button>
+              ))}
+            </div>
+          )}
           {activeTab === "overview" && (
-            <>
-              <InfoGrid items={[
-                { label: "State", value: proj.state || "Not available" },
-                { label: "Constituency", value: proj.constituency || "Not available" },
-                { label: "Category", value: proj.project_type || "Not available" },
-                { label: "Status", value: proj.status || "Not available" },
-              ]} />
-              {/* Recommendation & timeline facts — backend rec source of truth */}
-              <div className="rounded-xl border border-gray-200 bg-gray-50/50 p-4 dark:border-gray-700 dark:bg-[#000000]">
-                <p className="text-[0.625rem] font-bold uppercase tracking-wider text-gray-400">Recommendation & Timeline</p>
-                <div className="mt-2.5">
-                  <RecTimelineBlock rec={detail.rec} physical_completion_pct={detail?.financial_physical?.physical_completion_pct} />
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:gap-5">
+              <section className="min-w-0 rounded-xl border border-gray-200 bg-white p-4 sm:p-5 dark:border-gray-700 dark:bg-[#000000]">
+                <h3 className="text-base font-bold">Project Information</h3>
+                <div className="mt-3">
+                  <DetailRows items={[
+                    { label: "State", value: proj.state },
+                    { label: "Constituency", value: proj.constituency },
+                    { label: "Category", value: proj.project_type },
+                    { label: "MP", value: detail.rec?.recommended_by },
+                    { label: "Status", value: proj.status },
+                    { label: "Sanction Year", value: proj.sanction_year || proj.sanctioned_year, fallback: "Not available in this project record" },
+                  ]} />
                 </div>
-              </div>
-              <ProgressCard completion={completion} />
-              {/* Predictive estimates + payment-data
-                  availability — derived from recorded values only. */}
-              <PredictiveInsightsPanel detail={detail} />
-            </>
+              </section>
+
+              <section className="min-w-0 rounded-xl border border-gray-200 bg-white p-4 sm:p-5 dark:border-gray-700 dark:bg-[#000000]">
+                <h3 className="text-base font-bold">Project Progress</h3>
+                <div className="mt-3">
+                  <ProgressCard completion={proj.completion_percentage == null ? null : completion} />
+                </div>
+                <div className="mt-4 divide-y divide-gray-200 border-t border-gray-200 dark:divide-gray-700 dark:border-gray-700">
+                  <div className="py-3"><RecTimelineBlock rec={detail.rec} physical_completion_pct={proj.completion_percentage} compact /></div>
+                  <div className="flex items-baseline justify-between gap-3 py-3 text-xs">
+                    <span className="text-gray-500 dark:text-gray-400">Expected completion</span>
+                    <span className="text-right italic text-gray-400">Not available in project records</span>
+                  </div>
+                </div>
+              </section>
+            </div>
           )}
 
           {activeTab === "financial" && (
             <>
               <div className="grid grid-cols-2 gap-3">
-                <MetricCard label="Sanctioned" value={formatMoney(sanctioned)} color="blue" />
-                <MetricCard label="Expenditure" value={formatMoney(expenditure)} color="purple" />
-                <MetricCard label="Remaining" value={formatMoney(remaining)} color="green" />
-                <MetricCard label="Utilization" value={`${utilization.toFixed(1)}%`} color={utilization > 100 ? "red" : "blue"} />
+                <MetricCard label="Allocated Amount" value={proj.sanctioned_amount == null ? "Not recorded" : formatMoney(sanctioned)} color="blue" />
+                <MetricCard label="Expenditure" value={hasLinkedExpenditure ? formatMoney(expenditure) : proj.expenditure_status === "ambiguous_shared_work" ? "Not attributed" : "Unknown"} color="purple" />
+                <MetricCard label="Remaining" value={hasLinkedExpenditure && proj.sanctioned_amount != null ? formatMoney(remaining) : "Unavailable"} color="green" />
+                <MetricCard label="Utilization" value={hasLinkedExpenditure && sanctioned > 0 ? `${utilization.toFixed(1)}%` : "Unavailable"} color={utilization > 100 ? "red" : "blue"} />
               </div>
               {/* Data-quality disclosures: unlinked/ambiguous expenditure is UNKNOWN, not a verified ₹0. */}
               {proj.expenditure_status === "no_linked_records" && (
@@ -570,7 +620,7 @@ function ProjectDetail({ projectId, onClose, initialTab }) {
                 </div>
               )}
               {/* Utilization Bar */}
-              <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-[#000000]">
+              {hasLinkedExpenditure && sanctioned > 0 ? <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-[#000000]">
                 <div className="flex items-center justify-between text-xs">
                   <span className="font-bold text-gray-500">Fund Utilization</span>
                   <span className="font-mono font-bold">{utilization.toFixed(1)}%</span>
@@ -583,9 +633,9 @@ function ProjectDetail({ projectId, onClose, initialTab }) {
                   <span>Spent: {formatMoney(expenditure)}</span>
                   <span>Remaining: {formatMoney(remaining)}</span>
                 </div>
-              </div>
+              </div> : <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 text-xs text-gray-600 dark:border-gray-700 dark:bg-[#000000] dark:text-gray-300">Fund utilization is unavailable because the project does not have uniquely linked expenditure records and a recorded allocation.</div>}
               {/* Expenditure vs Progress */}
-              <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-[#000000]">
+              {hasLinkedExpenditure && <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-[#000000]">
                 <h4 className="mb-3 text-xs font-bold uppercase tracking-wider text-gray-400">Expenditure vs Physical Progress</h4>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
@@ -614,7 +664,7 @@ function ProjectDetail({ projectId, onClose, initialTab }) {
                       : `Physical progress (${completion}%) exceeds financial utilization (${utilization.toFixed(0)}%) by ${Math.abs(discrepancy).toFixed(0)} percentage points.`}
                   </div>
                 )}
-              </div>
+              </div>}
               {/* Expenditure Activity / history */}
               <LazyFetch
                 store={[activity, setActivity]}
@@ -637,7 +687,7 @@ function ProjectDetail({ projectId, onClose, initialTab }) {
             </>
           )}
 
-          {activeTab === "risk" && (
+          {activeTab === "risk" && auditView === "risk" && (
             <>
               {/* Risk Score */}
               {risk && (
@@ -685,14 +735,14 @@ function ProjectDetail({ projectId, onClose, initialTab }) {
                   <h4 className="mb-2 text-xs font-bold uppercase tracking-wider text-blue-700 dark:text-blue-300">Audit Insight Summary</h4>
                   <div className="space-y-2 text-xs">
                     <p><span className="font-bold">Risk:</span> {risk.risk_level} (Score: {risk.risk_score}/100)</p>
-                    <p><span className="font-bold">Key Finding:</span> {formatMoney(expenditure)} has been spent against {formatMoney(sanctioned)} sanctioned while physical progress is {completion}%.</p>
-                    {discrepancy > 10 && (
+                    <p><span className="font-bold">Key Finding:</span> {hasLinkedExpenditure ? `${formatMoney(expenditure)} in linked expenditure against ${formatMoney(sanctioned)} allocated, with ${completion}% physical progress.` : `No expenditure could be uniquely linked to this project. Recorded spend is unknown; reported physical progress is ${completion}%.`}</p>
+                    {hasLinkedExpenditure && discrepancy > 10 && (
                       <p><span className="font-bold">Primary Concern:</span> Expenditure is disproportionately high relative to reported physical progress (utilization {utilization.toFixed(0)}% vs progress {completion}%).</p>
                     )}
-                    {expenditure > sanctioned && sanctioned > 0 && (
+                    {hasLinkedExpenditure && expenditure > sanctioned && sanctioned > 0 && (
                       <p><span className="font-bold">Primary Concern:</span> Expenditure exceeds sanctioned amount by {formatMoney(expenditure - sanctioned)}.</p>
                     )}
-                    {expenditure > 0 && completion === 0 && (
+                    {hasLinkedExpenditure && expenditure > 0 && completion === 0 && (
                       <p><span className="font-bold">Primary Concern:</span> Financial disbursements have been made but no physical progress is recorded.</p>
                     )}
                   </div>
@@ -801,8 +851,13 @@ function ProjectDetail({ projectId, onClose, initialTab }) {
             </>
           )}
 
-          {activeTab === "audit" && (
+          {activeTab === "risk" && auditView === "audit" && (
             <>
+              <DigitalAuditCard
+                detail={detail}
+                investigation={investigation}
+                onStartInvestigation={() => { setAuditSection("investigation") }}
+              />
               {/* Sub-sections — keeps the drawer scannable */}
               <div className="flex flex-wrap gap-1.5">
                 {[
@@ -836,15 +891,39 @@ function ProjectDetail({ projectId, onClose, initialTab }) {
             </>
           )}
 
-          {activeTab === "forensics" && (
+          {activeTab === "more-details" && moreSection === "documents" && <EvidenceGapPanel projectId={projectId} />}
+
+          {activeTab === "more-details" && moreSection === "metadata" && (
+            <section className="rounded-xl border border-gray-200 bg-white p-4 sm:p-5 dark:border-gray-700 dark:bg-[#000000]">
+              <h3 className="text-base font-bold">Technical Metadata</h3>
+              <div className="mt-3">
+                <DetailRows items={[
+                  { label: "Project ID", value: `#${proj.id}` },
+                  { label: "District", value: proj.district },
+                  { label: "House", value: proj.house },
+                  { label: "Financial Year", value: proj.fy },
+                  { label: "Expenditure Linkage", value: proj.expenditure_linkage?.status || proj.expenditure_status, fallback: "Not available" },
+                  { label: "Linkage Note", value: proj.expenditure_linkage?.note, fallback: "No additional linkage note" },
+                  { label: "Data Quality", value: proj.data_quality_flag, fallback: "No data quality notice" },
+                  { label: "Data Quality Note", value: proj.data_quality_reason, fallback: "No additional note" },
+                ]} />
+              </div>
+              <div className="mt-5 border-t border-gray-200 pt-4 dark:border-gray-700">
+                <h4 className="text-sm font-semibold">Additional insights</h4>
+                <div className="mt-3"><PredictiveInsightsPanel detail={detail} /></div>
+              </div>
+            </section>
+          )}
+
+          {activeTab === "more-details" && moreSection === "forensics" && (
             <ForensicsPanel projectId={projectId} onOpenProject={(id) => { if (id !== projectId) window.dispatchEvent(new CustomEvent("open-project", { detail: { projectId: id } })) }} />
           )}
 
-          {activeTab === "dna" && (
+          {activeTab === "more-details" && moreSection === "dna" && (
             <ProjectDNASection projectId={projectId} onOpenProject={(id) => { if (id !== projectId) window.dispatchEvent(new CustomEvent("open-project", { detail: { projectId: id } })) }} />
           )}
 
-          {activeTab === "changes" && <ChangeHistoryPanel projectId={projectId} />}
+          {activeTab === "more-details" && moreSection === "changes" && <ChangeHistoryPanel projectId={projectId} />}
 
           {activeTab === "timeline" && (
             <LazyFetch
@@ -855,7 +934,11 @@ function ProjectDetail({ projectId, onClose, initialTab }) {
             />
           )}
 
-          {activeTab === "similar" && similar && (
+          {activeTab === "more-details" && moreSection === "similar" && !similar && (
+            <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600 dark:border-gray-700 dark:bg-[#000000] dark:text-gray-300">Similar project information is unavailable for this record.</div>
+          )}
+
+          {activeTab === "more-details" && moreSection === "similar" && similar && (
             <>
               {/* Peer benchmarking against comparable projects */}
               <PeerBenchmarkPanel
@@ -901,7 +984,7 @@ function ProjectDetail({ projectId, onClose, initialTab }) {
           )}
 
           {/* Risk Stress Test — also available inline inside Risk & Audit */}
-          {activeTab === "risk" && (
+          {activeTab === "risk" && auditView === "risk" && (
             <div className="rounded-xl border border-purple-200 dark:border-purple-900/60">
               <button
                 onClick={() => setStressTab((v) => !v)}
@@ -1134,16 +1217,16 @@ function ActivityTransactions({ transactions }) {
   )
 }
 
-function InfoGrid({ items }) {
+function DetailRows({ items }) {
   return (
-    <div className="grid grid-cols-2 gap-2">
+    <dl className="divide-y divide-gray-200 dark:divide-gray-700">
       {items.map((item) => (
-        <div key={item.label} className="rounded-lg border border-gray-200 bg-gray-50 p-3 dark:border-gray-700 dark:bg-[#000000]">
-          <p className="text-[0.625rem] font-bold uppercase tracking-wider text-gray-400">{item.label}</p>
-          <p className="mt-0.5 text-sm font-semibold">{item.value}</p>
+        <div key={item.label} className="grid grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] gap-3 py-2.5 first:pt-0 last:pb-0">
+          <dt className="text-sm text-gray-500 dark:text-gray-400">{item.label}</dt>
+          <dd className="break-words text-right text-sm font-semibold">{item.value == null || String(item.value).trim() === "" ? item.fallback || "Not available in records" : item.value}</dd>
         </div>
       ))}
-    </div>
+    </dl>
   )
 }
 
@@ -1161,16 +1244,16 @@ function ProgressCard({ completion }) {
     <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-[#000000]">
       <div className="flex items-center justify-between">
         <span className="text-sm font-bold">Physical Completion</span>
-        <span className="font-mono text-lg font-bold text-blue-600 dark:text-blue-400">{completion}%</span>
+        <span className="font-mono text-lg font-bold text-blue-600 dark:text-blue-400">{completion == null ? "Not recorded" : `${completion}%`}</span>
       </div>
-      <div className="mt-2 h-4 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
+      {completion != null && <div className="mt-2 h-3 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
         <div className={`h-full rounded-full transition-all duration-500 ${
           completion >= 80 ? "bg-green-500" : completion >= 40 ? "bg-blue-600" : completion > 0 ? "bg-amber-500" : "bg-red-500"
         }`} style={{ width: `${Math.min(100, completion)}%` }} />
-      </div>
-      <p className="mt-2 text-xs text-gray-500">
+      </div>}
+      {completion != null && <p className="mt-2 text-xs text-gray-500">
         {completion >= 80 ? "On track" : completion >= 40 ? "Moderate progress" : completion > 0 ? "Early stage" : "No progress reported"}
-      </p>
+      </p>}
     </div>
   )
 }
